@@ -86,11 +86,11 @@ export class Project {
   readonly configValidation: FileValidation;
   /** The config, when it is valid. */
   readonly config: ConfigFile | undefined;
-  /** Files found by the config's globs. */
-  readonly files: ProjectFiles;
+  /** Files found by the config's globs; refreshed by every `validate`. */
+  files: ProjectFiles = { tests: [], flows: [], targets: [] };
   private readonly actions: ReadonlyMap<string, ActionSpec>;
-  private readonly sharedTargets = new Map<string, SharedTarget>();
-  private readonly sharedTargetFiles: FileValidation[] = [];
+  private sharedTargets = new Map<string, SharedTarget>();
+  private sharedTargetFiles: FileValidation[] = [];
   private readonly flowCache = new Map<string, FileValidation | undefined>();
 
   private constructor(
@@ -105,6 +105,15 @@ export class Project {
     this.configValidation = validateFile(PRODUCT.configFile, text, 'config', actions);
     const parsed = this.configValidation.parsed;
     this.config = parsed?.kind === 'config' ? parsed.data : undefined;
+    this.refresh();
+  }
+
+  /**
+   * Finds the project's files again and re-reads the shared targets files, so
+   * a client that stays open sees changes made on disk (review 0003,
+   * finding 7). Flows are re-read on demand.
+   */
+  private refresh(): void {
     const raw = this.configValidation.source.data;
     const globs = (key: keyof ProjectFiles): readonly string[] => {
       const value = isMapping(raw) ? raw[key] : undefined;
@@ -113,12 +122,16 @@ export class Project {
         : DEFAULT_GLOBS[key];
     };
     this.files = {
-      tests: findFiles(root, globs('tests')),
-      flows: findFiles(root, globs('flows')),
-      targets: findFiles(root, globs('targets')),
+      tests: findFiles(this.root, globs('tests')),
+      flows: findFiles(this.root, globs('flows')),
+      targets: findFiles(this.root, globs('targets')),
     };
+    this.flowCache.clear();
+    this.sharedTargets = new Map();
+    this.sharedTargetFiles = [];
     for (const file of this.files.targets) {
-      const validation = this.validateOne(file, readFileSync(join(root, file), 'utf8'));
+      const text = readFileIfFile(join(this.root, file));
+      const validation = text === undefined ? undefined : this.validateOne(file, text);
       if (validation === undefined) continue;
       this.sharedTargetFiles.push(validation);
       const data = validation.source.data;
@@ -207,8 +220,8 @@ export class Project {
    *   with project-relative paths using forward slashes.
    */
   validate(params: ValidateParams): Diagnostic[] {
-    // Flows may have changed on disk since the last request.
-    this.flowCache.clear();
+    // Files, shared targets and flows may have changed on disk since the last request.
+    this.refresh();
     const diagnostics: Diagnostic[] = [];
     // The protocol's params objects accept unknown fields, which defeats
     // narrowing with "in"; the schema guarantees one of the two shapes.
@@ -219,22 +232,31 @@ export class Project {
         ? [{ file: this.toProjectPath(content.file), text: content.text }]
         : files.map((file) => {
             const projectPath = this.toProjectPath(file);
-            const absolute = join(this.root, projectPath);
             return {
               file: projectPath,
-              text: existsSync(absolute) ? readFileSync(absolute, 'utf8') : undefined,
+              text: isOutside(projectPath)
+                ? undefined
+                : readFileIfFile(join(this.root, projectPath)),
             };
           });
     for (const { file, text } of inputs) {
-      if (file.startsWith('../')) {
+      if (isOutside(file)) {
         diagnostics.push(
           problem(file, 'FileOutsideProject', `"${file}" is outside the project folder.`),
         );
         continue;
       }
       if (text === undefined) {
+        const absolute = join(this.root, file);
         diagnostics.push(
-          problem(file, 'FileNotFound', `There is no file "${file}" in the project.`),
+          existsSync(absolute)
+            ? problem(
+                file,
+                'NotAFile',
+                `"${file || '.'}" is a folder, not a step file.`,
+                'Name the step files to validate.',
+              )
+            : problem(file, 'FileNotFound', `There is no file "${file}" in the project.`),
         );
         continue;
       }
@@ -275,7 +297,7 @@ export class Project {
         if (!this.flowCache.has(projectPath)) {
           const absolute = join(this.root, projectPath);
           const exists =
-            !projectPath.startsWith('../') && existsSync(absolute) && statSync(absolute).isFile();
+            !isOutside(projectPath) && existsSync(absolute) && statSync(absolute).isFile();
           this.flowCache.set(
             projectPath,
             exists ? this.validateOne(projectPath, readFileSync(absolute, 'utf8')) : undefined,
@@ -286,6 +308,20 @@ export class Project {
       knownFlowFiles: () => this.files.flows,
       exists: (file) => existsSync(join(this.root, file)),
     };
+  }
+}
+
+/** Whether a project-relative path points outside the project folder. */
+function isOutside(projectPath: string): boolean {
+  return projectPath === '..' || projectPath.startsWith('../') || isAbsolute(projectPath);
+}
+
+/** Reads a file's text, or returns undefined when it is missing or a folder. */
+function readFileIfFile(path: string): string | undefined {
+  try {
+    return statSync(path).isFile() ? readFileSync(path, 'utf8') : undefined;
+  } catch {
+    return undefined;
   }
 }
 
