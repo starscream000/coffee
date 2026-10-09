@@ -3,17 +3,20 @@
 Written only by the reviewer. The implementer reads this first.
 
 - Updated: 2026-10-09
-- **Open instruction:** [0004: review fixes, user actions, variables and secrets](instructions/0004-fixes-actions-and-secrets.md)
-- Waiting on: implementer
+- **Open instruction:** none. Instruction 0004 is reviewed: #10, #11 and #12
+  are approved and merged; #13 has changes requested and stays open. The
+  changes will come in instruction 0005. Do not push to `feat/context-secrets`
+  until then.
+- Waiting on: owner
 
 ## Instructions
 
-| No.  | Title                                             | State  | Report                                          | Review                                          | Pull requests                                        |
-| ---- | ------------------------------------------------- | ------ | ----------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------- |
-| 0001 | Finish the Milestone 0 documents                  | merged | [0001](reports/0001-finish-milestone-0-docs.md) | [0001](reviews/0001-finish-milestone-0-docs.md) | [#2](https://github.com/starscream000/coffee/pull/2) |
-| 0002 | Review fixes and the final names                  | merged | [0002](reports/0002-review-fixes-and-names.md)  | [0002](reviews/0002-review-fixes-and-names.md)  | #3, #4                                               |
-| 0003 | Milestone 1 foundation                            | merged | [0003](reports/0003-milestone-1-foundation.md)  | [0003](reviews/0003-milestone-1-foundation.md)  | #5, #6, #7, #8, #9                                   |
-| 0004 | Review fixes, user actions, variables and secrets | open   | –                                               | –                                               | –                                                    |
+| No.  | Title                                             | State             | Report                                          | Review                                            | Pull requests                                        |
+| ---- | ------------------------------------------------- | ----------------- | ----------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------- |
+| 0001 | Finish the Milestone 0 documents                  | merged            | [0001](reports/0001-finish-milestone-0-docs.md) | [0001](reviews/0001-finish-milestone-0-docs.md)   | [#2](https://github.com/starscream000/coffee/pull/2) |
+| 0002 | Review fixes and the final names                  | merged            | [0002](reports/0002-review-fixes-and-names.md)  | [0002](reviews/0002-review-fixes-and-names.md)    | #3, #4                                               |
+| 0003 | Milestone 1 foundation                            | merged            | [0003](reports/0003-milestone-1-foundation.md)  | [0003](reviews/0003-milestone-1-foundation.md)    | #5, #6, #7, #8, #9                                   |
+| 0004 | Review fixes, user actions, variables and secrets | changes requested | on branch `feat/context-secrets`                | [0004](reviews/0004-fixes-actions-and-secrets.md) | #10, #11, #12 merged; #13 open                       |
 
 States: `open` (published, no review yet), `changes requested`, `approved`,
 `merged`, `replaced`.
@@ -21,8 +24,8 @@ States: `open` (published, no review yet), `changes requested`, `approved`,
 ## Where the plan stands
 
 Milestone 0 is finished. Of the 16 branches in
-[the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 3 are on `main`.
-Instruction 0004 covers 4 and 5.
+[the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 4 are on `main`.
+Branch 5 (`feat/context-secrets`) is written and waits for one fix.
 
 ## Owner decisions on record
 
@@ -32,6 +35,9 @@ Instruction 0004 covers 4 and 5.
 
 ## Waiting on the owner
 
+- `next`, for instruction 0005.
+- How to write a regular expression for a URL (review 0004): keep `/regex/`,
+  or require the prefix `regex:`. The review recommends the prefix.
 - npm: create the organisation `cfe` to hold the `@cfe` scope. A free name can
   be taken at any time.
 - Repository visibility: it is public. Decide whether it should be private.
