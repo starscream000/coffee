@@ -9,6 +9,8 @@ coverage/
 .env
 .env.*
 !.env.example
+# The one exception: the demo project's demo-only .env (see its README).
+!examples/demo-app/.env
 
 # Playwright
 .playwright-browsers/

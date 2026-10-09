@@ -64,4 +64,5 @@ to the [ADR index](docs/adr/README.md).
 ## Secrets
 
 Never commit secrets, saved logins or run output. The product data folder (`.cfe/`) and `.env*`
-files are ignored by Git for this reason.
+files are ignored by Git for this reason. The one exception is
+`examples/demo-app/.env`, a committed demo-only file that protects nothing.

@@ -119,3 +119,22 @@ describe('validate through the protocol', () => {
     });
   });
 });
+
+describe('the demo project opens without setup', () => {
+  it('gives no diagnostics with no DEMO_PASSWORD in the environment: the committed .env has it', async () => {
+    // Empty counts as unset, so the demo's own .env must supply the value.
+    const engine = new EngineProcess(undefined, undefined, { DEMO_PASSWORD: '' });
+    engines.push(engine);
+    engine.initialize(0);
+    await engine.next();
+    expect(await engine.request(1, 'openProject', { root: DEMO_APP })).toMatchObject({
+      result: { diagnostics: [] },
+    });
+    const listed = await engine.request(2, 'listTests', {});
+    const files = (listed.result as { tests: { file: string }[] }).tests.map((test) => test.file);
+    expect(files.length).toBeGreaterThan(10);
+    expect(await engine.request(3, 'validate', { files })).toMatchObject({
+      result: { diagnostics: [] },
+    });
+  });
+});
