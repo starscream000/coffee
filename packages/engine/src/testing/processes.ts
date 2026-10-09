@@ -27,7 +27,11 @@ export interface MarkedTemp {
  * @returns The folder, its marker and the environment for the engine.
  */
 export function markedTemp(): MarkedTemp {
-  const folder = mkdtempSync(join(tmpdir(), 'cfe-browser-mark-'));
+  // A short folder: Chromium puts a Unix socket under its profile folder, and
+  // macOS limits socket paths to 104 characters, which the deep
+  // /var/folders/… temporary folder would exceed.
+  const base = process.platform === 'win32' ? tmpdir() : '/tmp';
+  const folder = mkdtempSync(join(base, 'cfe-mark-'));
   return { folder, marker: basename(folder), env: { TEMP: folder, TMP: folder, TMPDIR: folder } };
 }
 
