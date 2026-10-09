@@ -182,3 +182,37 @@ describe('user actions through the protocol', () => {
     });
   });
 });
+
+describe('review 0004 finding 2 through a real engine process', () => {
+  it('loads an action that imports a CommonJS package requiring Node built-ins', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'cfe-cjs-'));
+    roots.push(root);
+    cpSync(
+      fileURLToPath(new URL('../../test/fixtures/packages/cjs-uses-builtins/', import.meta.url)),
+      join(root, 'node_modules', 'cjs-uses-builtins'),
+      { recursive: true },
+    );
+    writeFileSync(
+      join(root, 'cfe.config.yaml'),
+      'version: 1\nenvironments:\n  local:\n    baseUrl: http://localhost:4310\n',
+    );
+    mkdirSync(join(root, 'actions'));
+    writeFileSync(
+      join(root, 'actions', 'shop.ts'),
+      [
+        "import { defineAction, z } from '@cfe/engine/sdk';",
+        "import pkg from 'cjs-uses-builtins';",
+        "if (pkg.joined !== 'a/b' || !pkg.sameModule) throw new Error('wrong values');",
+        'export default defineAction({',
+        "  name: 'shop.cjs',",
+        "  description: 'Uses a CommonJS package.',",
+        '  params: z.strictObject({}),',
+        '  run: () => Promise.resolve(),',
+        '});',
+      ].join('\n'),
+    );
+    const { engine, diagnostics } = await open(root);
+    expect(diagnostics).toEqual([]);
+    expect(JSON.stringify(await engine.request(2, 'listActions'))).toContain('"shop.cjs"');
+  });
+});

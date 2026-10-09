@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Review 0004 loader findings: user actions that import CommonJS packages
+  using Node built-ins load; the load-error hint fits the cause; a changed
+  imported file is picked up by the next `openProject` in the same engine; stale
+  bundles are removed from the action cache.
 - Review 0003: no console method can write to stdout; the engine answers every
   received request before exiting when stdin closes; `validate` on a folder is
   a diagnostic; an unclosed `${` is reported; regular expressions are checked
