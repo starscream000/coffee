@@ -131,7 +131,7 @@ describe('user actions through the protocol', () => {
       'count: 1',
       'Assertion failed: assert',
     ]) {
-      expect(engine.stderr).toContain(text);
+      expect(await engine.waitForStderr(text)).toContain(text);
     }
     expect(await engine.request(2, 'listActions')).toMatchObject({ id: 2 });
     expect(engine.notJson).toEqual([]);

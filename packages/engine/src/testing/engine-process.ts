@@ -119,6 +119,26 @@ export class EngineProcess {
   }
 
   /**
+   * Waits until stderr contains some text. stdout and stderr are separate
+   * pipes, so a line written to stderr before a response can arrive after it.
+   *
+   * @param text - Text to wait for.
+   * @param timeoutMs - How long to wait.
+   * @returns Everything received on stderr so far.
+   * @throws Error when the text does not arrive in time.
+   */
+  async waitForStderr(text: string, timeoutMs = 10_000): Promise<string> {
+    const deadline = Date.now() + timeoutMs;
+    while (!this.stderr.includes(text)) {
+      if (Date.now() > deadline) {
+        throw new Error(`"${text}" never reached stderr. stderr: ${this.stderr}`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    return this.stderr;
+  }
+
+  /**
    * Waits for the process to exit.
    *
    * @param timeoutMs - How long to wait.

@@ -103,29 +103,4 @@ export class SecretRegistry {
     }
     return result;
   }
-
-  /**
-   * Masks every string inside a JSON-like value (keys too), before it is
-   * serialised or truncated, so truncation can never cut a secret in half.
-   *
-   * @param value - Any JSON-like value.
-   * @returns A copy with every string masked.
-   */
-  maskValue(value: unknown): unknown {
-    if (this.forms.length === 0) {
-      return value;
-    }
-    if (typeof value === 'string') {
-      return this.mask(value);
-    }
-    if (Array.isArray(value)) {
-      return value.map((item) => this.maskValue(item));
-    }
-    if (typeof value === 'object' && value !== null) {
-      return Object.fromEntries(
-        Object.entries(value).map(([key, item]) => [this.mask(key), this.maskValue(item)]),
-      );
-    }
-    return value;
-  }
 }

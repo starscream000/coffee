@@ -150,7 +150,6 @@ describe('MessageWriter with secrets', () => {
       maxBytes: 2_000,
       fieldBytes: 200,
       mask: (text) => secrets.mask(text),
-      maskValue: (value) => secrets.maskValue(value),
     });
     // The secret starts just before the truncation point of the 200-byte field.
     const actual = `${'a'.repeat(160)}${secret}${'b'.repeat(5_000)}`;

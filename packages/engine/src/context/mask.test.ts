@@ -58,15 +58,4 @@ describe('SecretRegistry', () => {
     registry.clear();
     expect(registry.mask('session=s3ss10n')).toBe('session=s3ss10n');
   });
-
-  it('masks every string and key inside a value', () => {
-    const registry = new SecretRegistry();
-    registry.register('topsecret');
-    expect(
-      registry.maskValue({ a: ['x topsecret', 1, null], topsecret: { b: 'topsecret' } }),
-    ).toEqual({
-      a: [`x ${MASK}`, 1, null],
-      [MASK]: { b: MASK },
-    });
-  });
 });

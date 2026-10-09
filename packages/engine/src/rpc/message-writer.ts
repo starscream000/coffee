@@ -1,25 +1,28 @@
-// Writes protocol messages to stdout, one JSON object per line, after passing
-// each through the single masking hook (ADR 0014) and the size rules of ADR 0005:
-// truncate long strings first; if still too large, replace the message.
+// Writes protocol messages to stdout, one JSON object per line. Each message is
+// masked field by field with the protocol's masking rules (ADR 0014), never as
+// serialised text, so it stays valid JSON with its identifiers intact; then the
+// size rules of ADR 0005 apply: truncate long strings; if still too large,
+// replace the message. Masking comes first, so truncation never cuts a secret.
 
 import {
   ERROR_CODES,
   EVENTS,
   MAX_MESSAGE_BYTES,
   TRUNCATED_FIELD_BYTES,
+  maskMessage,
   truncationMarker,
 } from '@cfe/protocol';
 
 /**
- * Masks secrets in a serialised message before it is written. Until secrets
- * exist (plan branch 5) the engine uses {@link identityMask}.
+ * Masks secrets in one string. Until secrets exist the engine uses
+ * {@link identityMask}.
  */
 export type MaskHook = (text: string) => string;
 
 /**
  * A mask that changes nothing.
  *
- * @param text - Serialised message.
+ * @param text - A string from a message.
  * @returns The same text.
  */
 export const identityMask: MaskHook = (text) => text;
@@ -36,17 +39,15 @@ export interface LineSink {
  * Options for {@link MessageWriter}.
  */
 export interface MessageWriterOptions {
-  /** The masking hook; defaults to {@link identityMask}. */
+  /**
+   * Masks secrets in one string. Applied to the free-text fields of each
+   * message, as the protocol's masking rules say; defaults to {@link identityMask}.
+   */
   mask?: MaskHook;
   /** Largest line in bytes; defaults to the protocol's `MAX_MESSAGE_BYTES`. */
   maxBytes?: number;
   /** Longest string field in bytes before truncation; defaults to 64 KiB. */
   fieldBytes?: number;
-  /**
-   * Masks every string inside a message before it is measured or truncated, so
-   * truncation never cuts a secret in half (ADR 0014). Defaults to no masking.
-   */
-  maskValue?: (value: unknown) => unknown;
 }
 
 type JsonObject = Record<string, unknown>;
@@ -65,7 +66,6 @@ export class MessageWriter {
   private readonly mask: MaskHook;
   private readonly maxBytes: number;
   private readonly fieldBytes: number;
-  private readonly maskValue: (value: unknown) => unknown;
 
   /**
    * @param sink - Where lines go, normally `process.stdout`.
@@ -76,7 +76,6 @@ export class MessageWriter {
     this.mask = options.mask ?? identityMask;
     this.maxBytes = options.maxBytes ?? MAX_MESSAGE_BYTES;
     this.fieldBytes = options.fieldBytes ?? TRUNCATED_FIELD_BYTES;
-    this.maskValue = options.maskValue ?? ((value) => value);
   }
 
   /**
@@ -108,20 +107,16 @@ export class MessageWriter {
    */
   render(message: JsonObject): string {
     // Mask first: a secret cut in half by truncation could no longer be found.
-    const masked = this.maskValue(message) as JsonObject;
-    const first = this.serialise(masked);
+    const masked = maskMessage(message, this.mask) as JsonObject;
+    const first = JSON.stringify(masked);
     if (Buffer.byteLength(first) <= this.maxBytes) {
       return first;
     }
-    const truncated = this.serialise(truncateStrings(masked, this.fieldBytes) as JsonObject);
+    const truncated = JSON.stringify(truncateStrings(masked, this.fieldBytes));
     if (Buffer.byteLength(truncated) <= this.maxBytes) {
       return truncated;
     }
-    return this.serialise(this.replacementFor(masked));
-  }
-
-  private serialise(message: JsonObject): string {
-    return this.mask(JSON.stringify(message));
+    return JSON.stringify(this.replacementFor(masked));
   }
 
   private replacementFor(message: JsonObject): JsonObject {
