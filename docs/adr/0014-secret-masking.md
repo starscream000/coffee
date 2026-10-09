@@ -47,7 +47,10 @@ field, following one table next to the protocol schemas
   and error names, and the fields the protocol defines as identifiers or fixed
   values: `runId`, `testId`, `stepId`, `parentStepId`, `seq`, `section`,
   `action`, `page`, `status`, `level`, `severity`, `code`, `state`, every file
-  and folder path, environment names, login names, numbers and booleans.
+  and folder path, environment names, login names, numbers and booleans. Also
+  an action's `paramsSchema` in `listActions`: it comes from action code in the
+  repository, like an identifier, and a masked word (a secret `string` or
+  `password`) would break the schema clients build their forms from.
 - **Masked:** every string inside a field that carries free text or user data:
   `message`, `hint`, `expected`, `actual`, a step's `params`, `candidate`,
   `data`, `title`, `reason` where it is free text, log text, and any field the
@@ -56,7 +59,9 @@ field, following one table next to the protocol schemas
   name.
 - **Walked:** containers (`result`, `error`, an event's `params`,
   `diagnostics`, `locators`, …), whose fields are looked up in the table in
-  turn.
+  turn. A `log` event's `data` is walked too: the identifiers the table knows
+  (the `target` and `candidateIndex` of a `LocatorFallback` warning) are kept,
+  and every field it does not know is masked.
 
 The reason identifiers can be kept: they come from files in the repository
 (step files, action files, the config) and from the engine itself, and the

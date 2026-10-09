@@ -28,6 +28,9 @@ export const MASK_RULES: Readonly<Record<string, MaskRule>> = {
   result: 'walk',
   error: 'walk',
   'error.data': 'walk',
+  // A log event's facts for its code (`LocatorFallback`: target, candidateIndex):
+  // known identifiers are kept, every other field is masked.
+  'params.data': 'walk',
   // Identifiers and fixed values
   runId: 'keep',
   testId: 'keep',
@@ -73,6 +76,9 @@ export const MASK_RULES: Readonly<Record<string, MaskRule>> = {
   configFile: 'keep',
   resultsDir: 'keep',
   screenshot: 'keep',
+  // An action's parameter schema comes from action code in the repository, like
+  // an identifier; a masked word would break the schema clients build forms from.
+  paramsSchema: 'keep',
   // Numbers and booleans
   line: 'keep',
   column: 'keep',
@@ -124,7 +130,6 @@ export const MASK_RULES: Readonly<Record<string, MaskRule>> = {
   data: 'mask',
   title: 'mask',
   description: 'mask',
-  paramsSchema: 'mask',
   text: 'mask',
   'snapshot.reason': 'mask',
 };
@@ -139,7 +144,7 @@ export const MASK_RULES: Readonly<Record<string, MaskRule>> = {
  * @example
  * ```ts
  * maskRuleFor('data', 'error'); // "walk"
- * maskRuleFor('data', 'params'); // "mask"
+ * maskRuleFor('data'); // "mask"
  * ```
  */
 export function maskRuleFor(field: string, parent?: string): MaskRule {

@@ -33,7 +33,8 @@ describe('MASK_RULES', () => {
 
   it('prefers a parent.field rule over the plain field rule', () => {
     expect(maskRuleFor('data', 'error')).toBe('walk');
-    expect(maskRuleFor('data', 'params')).toBe('mask');
+    expect(maskRuleFor('data', 'params')).toBe('walk');
+    expect(maskRuleFor('data')).toBe('mask');
     expect(maskRuleFor('reason', 'snapshot')).toBe('mask');
     expect(maskRuleFor('reason', 'params')).toBe('keep');
     expect(maskRuleFor('somethingNew')).toBe('mask');
@@ -95,6 +96,34 @@ describe('maskMessage', () => {
           name: 'StepFilesInvalid',
           diagnostics: [{ file: 'hunter22.test.yaml', message: '•••' }],
         },
+      },
+    });
+  });
+
+  // Review 0005, finding 4.
+  it("walks a log event's data: keeps known identifiers, masks every other field", () => {
+    const warning = {
+      jsonrpc: '2.0',
+      method: 'log',
+      params: {
+        runId: 'r',
+        seq: 3,
+        level: 'warn',
+        code: 'LocatorFallback',
+        message: 'Target "hunter22.submit" was found by its candidate 1',
+        data: { target: 'hunter22.submit', candidateIndex: 1, note: 'saw hunter22' },
+      },
+    };
+    expect(maskMessage(warning, mask)).toEqual({
+      jsonrpc: '2.0',
+      method: 'log',
+      params: {
+        runId: 'r',
+        seq: 3,
+        level: 'warn',
+        code: 'LocatorFallback',
+        message: 'Target "•••.submit" was found by its candidate 1',
+        data: { target: 'hunter22.submit', candidateIndex: 1, note: 'saw •••' },
       },
     });
   });

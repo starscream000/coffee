@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Review 0005 findings: masking never changes an action's `paramsSchema`; a
+  `log` event's `data` is walked, so `target` and `candidateIndex` stay
+  readable while other fields are masked; `ctx.locate` tries every candidate
+  once before giving up when the step timeout is shorter than `fallbackGrace`;
+  a candidate Playwright rejects as a selector fails at once with
+  `InvalidSelector`, naming the target and the candidate. The documents state
+  that hidden elements count, except for role candidates.
 - Review 0004 masking and secrets findings: protocol messages are masked field
   by field with one rules table next to the schemas, so masking keeps every
   message valid JSON that matches its schema and never changes keys or
