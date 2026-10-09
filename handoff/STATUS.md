@@ -3,11 +3,8 @@
 Written only by the reviewer. The implementer reads this first.
 
 - Updated: 2026-10-09
-- **Open instruction:** none. Instruction 0004 is reviewed: #10, #11 and #12
-  are approved and merged; #13 has changes requested and stays open. The
-  changes will come in instruction 0005. Do not push to `feat/context-secrets`
-  until then.
-- Waiting on: owner
+- **Open instruction:** [0005: masking and loader fixes, locators, the demo app](instructions/0005-masking-loader-locators-demo-app.md)
+- Waiting on: implementer
 
 ## Instructions
 
@@ -17,6 +14,7 @@ Written only by the reviewer. The implementer reads this first.
 | 0002 | Review fixes and the final names                  | merged            | [0002](reports/0002-review-fixes-and-names.md)  | [0002](reviews/0002-review-fixes-and-names.md)    | #3, #4                                               |
 | 0003 | Milestone 1 foundation                            | merged            | [0003](reports/0003-milestone-1-foundation.md)  | [0003](reviews/0003-milestone-1-foundation.md)    | #5, #6, #7, #8, #9                                   |
 | 0004 | Review fixes, user actions, variables and secrets | changes requested | on branch `feat/context-secrets`                | [0004](reviews/0004-fixes-actions-and-secrets.md) | #10, #11, #12 merged; #13 open                       |
+| 0005 | Masking and loader fixes, locators, the demo app  | open              | –                                               | –                                                 | continues #13                                        |
 
 States: `open` (published, no review yet), `changes requested`, `approved`,
 `merged`, `replaced`.
@@ -25,19 +23,20 @@ States: `open` (published, no review yet), `changes requested`, `approved`,
 
 Milestone 0 is finished. Of the 16 branches in
 [the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 4 are on `main`.
-Branch 5 (`feat/context-secrets`) is written and waits for one fix.
+Branch 5 (`feat/context-secrets`) waits for the masking fix in instruction
+0005, which also covers branches 6 and 7.
 
 ## Owner decisions on record
 
 - 2026-10-09: the command name is `cfe`; the Milestone 1 plan is approved; ADR
   0018 is approved; merge first, then fix the findings of review 0003;
-  `${row.…}` stays unavailable inside flows.
+  `${row.…}` stays unavailable inside flows; no `cfe validate` command.
 
 ## Waiting on the owner
 
-- `next`, for instruction 0005.
 - How to write a regular expression for a URL (review 0004): keep `/regex/`,
-  or require the prefix `regex:`. The review recommends the prefix.
+  or require the prefix `regex:`. The review recommends the prefix. Needed
+  before plan branch 12, which is the first to use URL patterns.
 - npm: create the organisation `cfe` to hold the `@cfe` scope. A free name can
   be taken at any time.
 - Repository visibility: it is public. Decide whether it should be private.
