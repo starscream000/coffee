@@ -1,12 +1,12 @@
 // Integration tests: when the engine exits during a run, for any reason, no
 // browser process is left behind (instruction 0006, task 9). Each case starts
-// an engine whose temporary folder marks its browser's processes, starts a
-// long run, makes the engine exit, and waits until no marked process remains.
-import { rmSync, writeFileSync } from 'node:fs';
+// a long run, records the engine's browser processes, makes the engine exit,
+// and waits until none of those processes is running.
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { startDemoApp, type DemoApp } from '../testing/demo-app.js';
-import { browserProcessCount, markedTemp, waitForNoBrowser } from '../testing/processes.js';
+import { browserProcessIds, waitUntilGone } from '../testing/processes.js';
 
 const ACTIONS = `// Actions for the cleanup tests.
 import { defineAction, z } from '@cfe/engine/sdk';
@@ -61,8 +61,7 @@ async function exitDuringRun(
   file: keyof typeof TESTS,
   exit: (app: DemoApp) => void,
 ): Promise<{ exitCode: number | null; methods: string[] }> {
-  const mark = markedTemp();
-  const app = await startDemoApp({ env: { ...mark.env, DEMO_PASSWORD: 'demo-password-1234' } });
+  const app = await startDemoApp({ env: { DEMO_PASSWORD: 'demo-password-1234' } });
   try {
     writeFileSync(join(app.root, 'actions', 'cleanup.ts'), ACTIONS);
     writeFileSync(join(app.root, 'tests', `${file}.test.yaml`), `${TESTS[file].join('\n')}\n`);
@@ -82,7 +81,8 @@ async function exitDuringRun(
       if (typeof message.method === 'string') methods.push(message.method);
       if (message.method === 'stepStarted') break;
     }
-    expect(browserProcessCount(mark.marker)).toBeGreaterThan(0);
+    const browser = browserProcessIds(app.engine.child.pid ?? -1);
+    expect(browser.length).toBeGreaterThan(0);
 
     exit(app);
     const exitCode = await app.engine.exitCode(45_000);
@@ -95,11 +95,10 @@ async function exitDuringRun(
         break;
       }
     }
-    expect(await waitForNoBrowser(mark.marker)).toBe(0);
+    expect(await waitUntilGone(browser)).toEqual([]);
     return { exitCode, methods };
   } finally {
     await app.close();
-    rmSync(mark.folder, { recursive: true, force: true });
   }
 }
 
