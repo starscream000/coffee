@@ -69,4 +69,22 @@ jobs:
       - run: dotnet restore apps/desktop/Desktop.slnx --locked-mode
       - run: dotnet format apps/desktop/Desktop.slnx --verify-no-changes --no-restore
       - run: dotnet build apps/desktop/Desktop.slnx --no-restore -c Release
-      - run: dotnet test apps/desktop/Desktop.slnx --no-build -c Release
+      - run: dotnet test apps/desktop/Desktop.slnx --no-build -c Release --logger trx --results-directory apps/desktop/TestResults
+      # Shows each failed test, with its message, on the pull request itself.
+      - name: Report failed tests
+        if: failure()
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem apps/desktop/TestResults -Filter *.trx -Recurse -ErrorAction SilentlyContinue
+          if (-not $files) { Write-Output "::error title=No test results::dotnet test wrote no result file; a test process may have crashed." }
+          foreach ($file in $files) {
+            [xml]$trx = Get-Content $file.FullName
+            $failed = @($trx.TestRun.Results.UnitTestResult | Where-Object { $_.outcome -eq 'Failed' })
+            foreach ($test in $failed | Select-Object -First 9) {
+              $text = "$($test.Output.ErrorInfo.Message)`n$($test.Output.ErrorInfo.StackTrace)"
+              if ($text.Length -gt 3000) { $text = $text.Substring(0, 3000) }
+              $text = $text.Replace('%', '%25').Replace("`r", '').Replace("`n", '%0A')
+              Write-Output "::error title=$($test.testName)::$text"
+            }
+            if ($failed.Count -gt 9) { Write-Output "::error title=More failures::$($failed.Count) tests failed in $($file.Name); the first 9 are shown." }
+          }
