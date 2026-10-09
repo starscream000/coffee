@@ -76,8 +76,12 @@ async function exitDuringRun(
     });
     const methods: string[] = [];
     for (;;) {
-      // Shorter than the test's timeout, so a failure shows the engine's stderr.
-      const message = await app.engine.next(20_000);
+      // Shorter than the test's timeout, so a failure says what did arrive.
+      const message = await app.engine.next(20_000).catch((error: unknown) => {
+        throw new Error(
+          `${error instanceof Error ? error.message : String(error)} Received so far: ${methods.join(', ') || 'nothing'}; not JSON: ${JSON.stringify(app.engine.notJson)}`,
+        );
+      });
       if (typeof message.method === 'string') methods.push(message.method);
       if (message.method === 'stepStarted') break;
     }
