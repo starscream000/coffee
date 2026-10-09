@@ -1,0 +1,8 @@
+# F6: the YAML itself is broken (a list item is indented one space too far);
+# the error is reported at that item, with its line and column.
+# expect: 8:4 YamlSyntax
+version: 1
+name: Broken YAML
+steps:
+  - goto: /forms
+   - back

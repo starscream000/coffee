@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `openProject` and `validate` requests: the engine finds a project's files
+  from its config, and validation adds the cross-file checks (targets and their
+  cycles, flows with their parameters and cycles, pages, logins, data files,
+  `${…}` namespaces, declared secrets and environment values). The demo app
+  has its config and the invalid fixtures for checks F4, F5 and F6.
 - Step-file schemas in the engine: tests, flows, shared targets and the config,
   the specs of all 25 built-in actions, and per-file validation that reports
   every problem with file, line and column (with "did you mean" hints) and

@@ -1,0 +1,18 @@
+# Project configuration of the demo app used by the integration tests.
+# Files under fixtures/ are not matched by "tests", so they run only when named.
+version: 1
+tests: ['tests/**/*.test.yaml']
+flows: ['flows/**/*.flow.yaml', 'fixtures/**/*.flow.yaml']
+targets: ['targets/**/*.targets.yaml']
+
+defaults:
+  environment: local
+  browser: chromium
+
+environments:
+  local:
+    baseUrl: http://localhost:4310
+    values:
+      apiUrl: http://localhost:4310/api
+
+secrets: [DEMO_PASSWORD]
