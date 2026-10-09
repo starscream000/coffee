@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unsaved changes are never lost by accident (instruction D0002, task 14):
+  closing a tab, the project or the window, or opening another project, asks
+  whether to save, discard or cancel; Save all saves every changed tab; and
+  opening the same project again (after a config or action change, or an
+  engine restart) keeps the open tabs and their unsaved text.
 - Step files are editable (instruction D0002, tasks 9 to 13): an editor
   (Avalonia.AvaloniaEdit 12.0.0, ADR D0006) with line numbers, undo and
   redo and problem lines marked; Save (Ctrl+S, Cmd+S) and Revert, keeping the

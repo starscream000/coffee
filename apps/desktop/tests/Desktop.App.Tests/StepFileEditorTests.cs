@@ -1,11 +1,12 @@
 // The step file editor's view model, without a window (instruction D0002,
 // tasks 10 to 14): changed state, save, revert, line endings, a failed save,
 // validation while typing with time under the test's control, changes on disk,
-// and the question before overwriting. The tests run on Avalonia's headless UI
+// and the questions before closing. The tests run on Avalonia's headless UI
 // thread, because the editor's document may only be used from the thread that
 // created it, as in the app.
 
 using Avalonia.Headless.XUnit;
+using Desktop.App.Services;
 using Desktop.App.Tests.Fakes;
 using Desktop.App.ViewModels;
 using Desktop.Protocol.Messages;
@@ -259,6 +260,44 @@ public sealed class StepFileEditorTests
         Assert.True(await tab.SaveAsync());
         Assert.Equal("a\n", setup.Files.Files[File]);
         Assert.False(tab.IsDeletedOnDisk);
+        Assert.Empty(setup.Dialogs.Asked);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(UnsavedChangesChoice.Save, true, "a\nb\n")]
+    [InlineData(UnsavedChangesChoice.Discard, true, "a\n")]
+    [InlineData(UnsavedChangesChoice.Cancel, false, "a\n")]
+    public async Task Closing_a_tab_with_unsaved_changes_asks(UnsavedChangesChoice choice, bool closes, string onDisk)
+    {
+        var setup = new Setup();
+        var tab = setup.Open("a\n");
+        Type(tab, "b\n");
+        setup.Dialogs.UnsavedAnswer = choice;
+
+        Assert.Equal(closes, await tab.ConfirmCloseAsync());
+
+        Assert.Equal(["unsaved " + File], setup.Dialogs.Asked);
+        Assert.Equal(onDisk, setup.Files.Files[File]);
+    }
+
+    [AvaloniaFact]
+    public async Task Closing_a_tab_whose_save_fails_does_not_close_it()
+    {
+        var setup = new Setup();
+        var tab = setup.Open("a\n");
+        Type(tab, "b\n");
+        setup.Dialogs.UnsavedAnswer = UnsavedChangesChoice.Save;
+        setup.Files.WriteFailures[File] = new UnauthorizedAccessException("read-only");
+
+        Assert.False(await tab.ConfirmCloseAsync());
+    }
+
+    [AvaloniaFact]
+    public async Task Closing_a_tab_without_changes_does_not_ask()
+    {
+        var setup = new Setup();
+        var tab = setup.Open("a\n");
+        Assert.True(await tab.ConfirmCloseAsync());
         Assert.Empty(setup.Dialogs.Asked);
     }
 
