@@ -91,15 +91,20 @@ process. Clients never import engine code. ESLint enforces this.
 ## Git rules
 
 - `main` is always stable: it builds, lints and passes all tests. Never commit
-  directly to `main` and never force-push or rewrite its history.
+  directly to `main` and never force-push or rewrite its history. One
+  exception: the reviewer commits handoff files (instructions, reviews and
+  `handoff/STATUS.md`) directly to `main`, and nothing else.
+- Only the reviewer merges into `main`, on the owner's word and after CI is
+  green. The implementer pushes branches and opens pull requests; it does not
+  merge into `main` or push to it.
 - One branch per unit of work: `feat/...`, `fix/...`, `docs/...`, `chore/...`,
   `test/...`.
 - Small commits using Conventional Commits (`feat:`, `fix:`, `docs:`,
   `refactor:`, `test:`, `chore:`), each with a body explaining why when it is
   not obvious.
-- Before merging a branch: run lint, type check and all tests
-  (`pnpm verify`). Merge only if everything passes. Use a merge commit
-  (`git merge --no-ff`) so each feature stays visible.
+- Before opening a pull request: run lint, type check and all tests
+  (`pnpm verify`). A branch is merged only if everything passes, with a merge
+  commit (never squash or rebase) so each feature stays visible.
 - If a GitHub remote exists, push branches and open pull requests with a clear
   description. Ask the owner before creating a remote or pushing for the first
   time.
@@ -109,6 +114,18 @@ process. Clients never import engine code. ESLint enforces this.
 - CI runs lint, type check and tests on Windows, macOS and Linux.
 
 ## How to work
+
+Work is passed through files in `handoff/`. Read
+[handoff/README.md](handoff/README.md) once, then at the start of every session:
+
+1. `git switch main` and `git pull --ff-only`.
+2. Read `handoff/STATUS.md` and open the instruction it names. If none is open,
+   do nothing and say so.
+3. Carry out that instruction and nothing else, on the branches it names.
+4. Write the report in `handoff/reports/` on the work branch, run
+   `pnpm verify`, push, open the pull request, and stop.
+
+Also:
 
 - Before each milestone, give the owner a short plan and wait for the go-ahead.
 - If anything is unclear or seems wrong, ask instead of guessing.

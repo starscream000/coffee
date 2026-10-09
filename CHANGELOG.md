@@ -20,3 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Design proposals: architecture, step file format, actions and engine
   protocol, with architecture decision records in `docs/adr/`, and the
   v0.1.0 definition of done.
+- Handoff protocol in `handoff/`: numbered instructions, reports and reviews
+  that pass work between the reviewer and the implementer.
+
+### Changed
+
+- Git rules: pull requests are merged into `main` only by the reviewer, on the
+  owner's word.

@@ -23,11 +23,14 @@ summarises the day-to-day workflow.
 ## Branches and commits
 
 - `main` is always stable. Never commit to it directly; never rewrite its history.
+  (The reviewer's handoff files are the one exception; see
+  [handoff/README.md](handoff/README.md).)
 - One branch per unit of work: `feat/…`, `fix/…`, `docs/…`, `chore/…`, `test/…`.
 - [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`,
   `docs:`, `refactor:`, `test:`, `chore:`. Add a body that explains _why_ when
   it is not obvious.
-- Before merging, run `pnpm verify`. Merge with `git merge --no-ff`.
+- Before opening a pull request, run `pnpm verify`. Pull requests are merged by
+  the reviewer as merge commits, never squashed or rebased.
 - Update [CHANGELOG.md](CHANGELOG.md) under "Unreleased" in the same branch as
   the change.
 
