@@ -7,7 +7,9 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { maskRuleFor, protocolSchemas, type MaskRule } from '@cfe/protocol';
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
+import { BUILTIN_SPECS } from '../actions/builtin-specs.js';
 import { MIN_SECRET_LENGTH, SecretRegistry } from '../context/mask.js';
+import { summariseAction } from '../project/handlers.js';
 import { MessageWriter, type LineSink } from './message-writer.js';
 
 const fixtureDir = new URL('../../../protocol/test/fixtures/protocol-examples/', import.meta.url);
@@ -178,6 +180,44 @@ describe('masking keeps every protocol example message intact', () => {
       for (const path of masked) {
         expect(String(at(parsed, path)), `${what}: ${path.join('.')}`).not.toContain(secret);
       }
+    }
+  });
+});
+
+// Review 0005, finding 1: a parameter schema comes from action code, like an
+// identifier, and clients build forms from it, so masking never changes it.
+describe('masking keeps every parameter schema of listActions intact', () => {
+  const result = {
+    actions: BUILTIN_SPECS.map((spec) =>
+      summariseAction({ spec, run: undefined, source: { kind: 'builtin' } }),
+    ),
+  };
+  const message: Json = { jsonrpc: '2.0', id: 1, result };
+  const secrets = [
+    ...keysAndStrings(
+      result.actions.map((action) => action.paramsSchema),
+      new Set(),
+    ),
+  ].filter((text) => text.length >= MIN_SECRET_LENGTH);
+
+  it('has built-in actions and schema words to try', () => {
+    expect(result.actions.length).toBeGreaterThan(10);
+    expect(secrets).toContain('string');
+  });
+
+  it('with a secret taken from each string inside the schemas', () => {
+    for (const secret of secrets) {
+      const registry = new SecretRegistry();
+      registry.register(secret);
+      const writer = new MessageWriter(new NullSink(), { mask: (text) => registry.mask(text) });
+      const parsed = JSON.parse(writer.render(message)) as {
+        result: { actions: { paramsSchema: unknown }[] };
+      };
+      parsed.result.actions.forEach((action, index) => {
+        expect(action.paramsSchema, `secret ${JSON.stringify(secret)}`).toEqual(
+          result.actions[index]?.paramsSchema,
+        );
+      });
     }
   });
 });
