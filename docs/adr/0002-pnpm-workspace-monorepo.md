@@ -1,6 +1,6 @@
 # 0002. Use a pnpm workspace with tsc project references
 
-- Status: Accepted
+- Status: Accepted (owner, 2026-10-09)
 - Date: 2026-10-09
 
 ## Context
@@ -21,8 +21,22 @@ packages and a strict dependency rule between them.
 - Root scripts call tools directly instead of nested `pnpm` calls, so they work
   when pnpm is only available as `corepack pnpm`.
 
+## Alternatives rejected
+
+- pnpm 12: does not start through the Corepack shipped with Node 24.11.
+- npm or Yarn workspaces: the brief chose pnpm.
+- A bundler (tsup, esbuild) for our own packages: unnecessary for Node-only
+  ESM packages and one more tool to configure.
+
 ## Consequences
 
 Packages resolve each other through their built `dist`, so on a fresh clone the
 type check (which builds) must run before lint and tests. `pnpm verify` and CI
-do this. No bundler is needed for the engine or CLI.
+do this.
+
+## Revisit when
+
+- Corepack in the pinned Node version can run pnpm 12 (or pnpm 10 leaves
+  maintenance), or
+- Node stops bundling Corepack for the pinned major version, or
+- a full `tsc -b` on CI takes longer than 60 seconds.
