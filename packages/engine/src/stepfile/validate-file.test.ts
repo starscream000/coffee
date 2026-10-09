@@ -155,7 +155,7 @@ describe('step normalisation', () => {
         'steps: [back]',
       ),
     );
-    expect(brief(result.diagnostics)).toEqual(['5:12 FrameWithWithin']);
+    expect(brief(result.diagnostics)).toEqual(['5:5 FrameWithWithin']);
   });
 
   it('accepts ${…} where a number or boolean is expected', () => {

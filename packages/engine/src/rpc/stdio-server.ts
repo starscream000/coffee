@@ -2,7 +2,9 @@
 // codes of docs/protocol.md: 0 after `shutdown` or when stdin closes, 1 on an
 // unexpected internal error, 3 after a refused handshake.
 
+import { BUILTIN_SPECS_BY_NAME } from '../actions/builtin-specs.js';
 import { getEngineInfo } from '../engine-info.js';
+import { registerProjectHandlers } from '../project/handlers.js';
 import { redirectConsoleToStderr } from './console.js';
 import { LineReader } from './line-reader.js';
 import { MessageWriter } from './message-writer.js';
@@ -51,6 +53,7 @@ export function runStdioServer(): Session {
     },
     logError,
   });
+  registerProjectHandlers(session, BUILTIN_SPECS_BY_NAME);
 
   const reader = new LineReader();
   process.stdin.on('data', (chunk: Buffer) => {
