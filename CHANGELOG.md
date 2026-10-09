@@ -30,10 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - The demo web server (`examples/demo-app/server/`): Node only, no
-  dependency, with the pages that samples S10, S11, S12, S14, F1, F2, F3 and F7 of the
-  runner will need (to-dos, locator fallback, slow render, nested frames) and
-  a reset endpoint that proves `after` steps ran. The pages are listed in
-  `examples/demo-app/README.md`.
+  dependency, with the pages that samples S10, S11, S12, S14, F1, F2, F3 and
+  F7 of the runner will need (to-dos, locator fallback, slow render, nested
+  frames) and a reset endpoint that proves `after` steps ran. The pages are
+  listed in `examples/demo-app/README.md`.
 - The demo app harness for integration tests: starts the server on a free
   port and the engine as a child process, opens a copy of the demo project
   whose base URL is the server's, and cleans both up. An integration test
