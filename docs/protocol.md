@@ -1,6 +1,6 @@
 # Engine protocol
 
-> Status: **Proposal, revised after the first review** (2026-10-09). Protocol
+> Status: **Proposal, revised after the second review** (2026-10-09). Protocol
 > version `0.1.0` once implemented. This document is a **public contract**:
 > every client (CLI, desktop app, a future VS Code extension, the server)
 > relies on it.
@@ -213,20 +213,21 @@ Events are JSON-RPC notifications. Every event's params include `runId` and
 `seq`, a number that increases by one per event within a run, so a client can
 detect gaps. Times are ISO 8601 UTC strings; durations are milliseconds.
 
-| Event             | Extra fields                                                                                                                 |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `runStarted`      | `env`, `browser`, `startedAt`, `tests`: `{ testId, file, name, row? }[]`                                                     |
-| `testStarted`     | `testId`, `startedAt`                                                                                                        |
-| `stepStarted`     | `testId`, `stepId`, `parentStepId?`, `section` (`before`, `steps`, `after`), `action`, `params`, `page`, `title`, `location` |
-| `stepPassed`      | `testId`, `stepId`, `durationMs`, `locators`: `LocatorUse[]`                                                                 |
-| `stepFailed`      | `testId`, `stepId`, `durationMs`, `error`: `ErrorInfo`, `locators`: `LocatorUse[]`                                           |
-| `stepSkipped`     | `testId`, `stepId`, `reason` (`previousFailure`, `cancelled`)                                                                |
-| `screenshotReady` | `testId`, `stepId`, `page`, `path`, `width`, `height`                                                                        |
-| `snapshotReady`   | `testId`, `stepId`, `page`                                                                                                   |
-| `pageOpened`      | `testId`, `stepId`, `page`, `automatic` (`true` when no step named it)                                                       |
-| `log`             | `level` (`debug`, `info`, `warn`, `error`), `message`, `code?`, `testId?`, `stepId?`, `location?`                            |
-| `testFinished`    | `testId`, `status` (`passed`, `failed`, `cancelled`), `durationMs`                                                           |
-| `runFinished`     | `status`, `durationMs`, `totals`: `{ passed, failed, cancelled }`                                                            |
+| Event             | Extra fields                                                                                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `runStarted`      | `env`, `browser`, `settings`: `{ viewport, locale, timezone }`, `startedAt`, `tests`: `{ testId, file, name, row?, skip? }[]` |
+| `testStarted`     | `testId`, `startedAt`                                                                                                         |
+| `stepStarted`     | `testId`, `stepId`, `parentStepId?`, `section` (`before`, `steps`, `after`), `action`, `params`, `page`, `title`, `location`  |
+| `stepPassed`      | `testId`, `stepId`, `durationMs`, `locators`: `LocatorUse[]`                                                                  |
+| `stepFailed`      | `testId`, `stepId`, `durationMs`, `error`: `ErrorInfo`, `locators`: `LocatorUse[]`                                            |
+| `stepSkipped`     | `testId`, `stepId`, `reason` (`previousFailure`, `cancelled`, `variableNotSet`), `message`, `variable?`                       |
+| `screenshotReady` | `testId`, `stepId`, `page`, `path`, `width`, `height`                                                                         |
+| `snapshotReady`   | `testId`, `stepId`, `page`                                                                                                    |
+| `pageOpened`      | `testId`, `stepId`, `page`, `automatic` (`true` when no step named it)                                                        |
+| `log`             | `level` (`debug`, `info`, `warn`, `error`), `message`, `code?`, `testId?`, `stepId?`, `location?`                             |
+| `testSkipped`     | `testId`, `reason`: the test's `skip` text (sent instead of `testStarted` … `testFinished`)                                   |
+| `testFinished`    | `testId`, `status` (`passed`, `failed`, `cancelled`), `durationMs`                                                            |
+| `runFinished`     | `status`, `durationMs`, `totals`: `{ passed, failed, cancelled, skipped }`                                                    |
 
 - `stepStarted.params` is the step's **canonical long form** with variables
   still uninterpolated (`${secrets.…}` is never resolved in events).
@@ -235,6 +236,14 @@ detect gaps. Times are ISO 8601 UTC strings; durations are milliseconds.
   candidates no longer match; clients can show this as a target to refresh.
 - An unnamed new page produces `pageOpened` with `automatic: true` and a `log`
   event with level `warn`, code `UnnamedPage` and the step's `location`.
+- An `after` step that uses a variable that was never set produces
+  `stepSkipped` with reason `variableNotSet`, `variable` (the name) and
+  `message` "skipped: orderNumber was never set". It is not a failure.
+- A test with `skip` produces one `testSkipped` per data row and counts in
+  `totals.skipped`.
+- Other `warn` codes in 0.1.0: `StrayActionCode` (a user action kept running
+  after its step ended), `PageReplaced` (a closed page was replaced for an
+  `after` step), `SdkVersionMismatch`.
 
 Example line on stdout (shown wrapped):
 
@@ -279,10 +288,12 @@ interface Diagnostic extends Location {
 }
 
 interface LocatorUse {
-  param: string; // parameter name, e.g. "target", "from", "to"
+  param: string; // parameter name, e.g. "target", "from", "to"; "frame" / "within" when nested
   target?: string; // target name; absent for inline targets
   candidateIndex: number | null; // null when no candidate matched
-  candidate: Record<string, unknown> | null;
+  candidate: Record<string, unknown> | null; // after interpolation, secrets masked
+  frame?: LocatorUse; // how the target's frame was found
+  within?: LocatorUse; // how the target's containing element was found
 }
 
 interface ErrorInfo {

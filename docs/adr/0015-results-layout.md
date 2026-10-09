@@ -16,7 +16,9 @@ Everything the engine writes lives in the git-ignored data folder
 
 ```
 .coffee/
-  logins/<env>/<login>.json             saved login storage state
+  logins/.key                           HMAC key for login cache keys (ADR 0018)
+  logins/<key>.json                     saved login storage state
+  logins/<key>.meta.json                createdAt, env and login name; no parameter values
   cache/actions/<hash>.mjs              compiled user actions (+ .map)
   runs/
     <runId>/                            runId: 20261009-054902-1a2b (UTC time + 4 random hex)

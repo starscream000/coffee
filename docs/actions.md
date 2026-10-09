@@ -1,6 +1,6 @@
 # Actions
 
-> Status: **Proposal, revised after the first review** (2026-10-09).
+> Status: **Proposal, revised after the second review** (2026-10-09).
 
 Every step calls an action. Built-in actions and the user's own actions are
 defined the same way, with `defineAction`, and live in the same registry.
@@ -99,12 +99,35 @@ target name or an inline candidate list; in `run` it is an unresolved
 - Each file is bundled with esbuild into `.coffee/cache/actions/` and imported
   by the engine ([ADR 0008](adr/0008-loading-user-actions.md)). Files may import
   other files and packages installed in the user's repository.
-- The user installs `@test-tool/engine` as a dev dependency for types and
-  `defineAction`. The engine accepts any object with the right shape, so a
-  different version of the package in the user's repository still works.
+- **One SDK copy: the running engine's.** When bundling, every import of
+  `@test-tool/engine/sdk` in a user action is redirected to the SDK module of
+  the engine that is running, never to a copy in the user's `node_modules`.
+  `defineAction`, `target()`, `z` and the error classes are therefore always
+  the engine's own. The user may install the package as a dev dependency so
+  their editor and `tsc` know the types; if its version differs from the
+  engine's, the engine reports a warning (`SdkVersionMismatch`) because the
+  types the user sees may not match what runs.
 - A file that fails to compile, fails to load or breaks a naming rule is
   reported as a diagnostic with file and line. Tests that use a missing action
   fail validation; other tests still run.
+
+### Trust model
+
+**Opening a project runs its code.** User actions are ordinary TypeScript that
+the engine imports into its own process when a project is opened, before any
+test is selected. They run with the same rights as the engine: they can read
+and write files, start processes, use the network and read any environment
+variable through `process.env`. The engine does not sandbox them, and step
+files can send requests anywhere through `api`. Opening a repository in the
+engine therefore requires the same trust as running `npm test` in it: open only
+repositories you trust.
+
+What the engine does guarantee: it never runs code from step files themselves
+(YAML is data; only named actions run), it reads environment variables for
+step files only through declared secrets, and it masks every declared secret in
+its own output. What it cannot guarantee: an action that reads `process.env`
+directly, or sends a secret somewhere itself, bypasses those rules. In the
+server (v0.4.0) the isolation boundary is the container each project runs in.
 
 ### Failing an action
 
@@ -122,6 +145,12 @@ throw new ActionError('The product is out of stock', {
 Any other thrown value is reported as `ActionError` with its message. The
 engine adds the step's file and line, masks secrets in the message, and
 attaches the screenshot.
+
+The engine recognises SDK errors by a **tag field**, not by `instanceof`: every
+SDK error carries `sdkError: 'ActionError'` or `sdkError: 'AssertionError'`
+(and the fields `expected`, `actual`, `hint` where given). The tag still works
+if an error crosses a module or bundling boundary that would break
+`instanceof`.
 
 ## The context (`ctx`)
 
@@ -146,6 +175,12 @@ element, polling until the step timeout or until `ctx.signal` is aborted. If no
 candidate matches, it throws `TargetNotFound` listing every candidate and how
 many elements each matched ([ADR 0010](adr/0010-locator-candidates.md)).
 
+It supports the long form of targets: it resolves the `frame` chain from the
+outside in (each frame target must match exactly one `<iframe>`), then the
+`within` chain, then the element's candidates inside that scope, interpolating
+`${…}` in every target with the current step's values
+([step-format.md](step-format.md#targets)).
+
 Condition from the review: **the step result reports which candidate matched.**
 Every `ctx.locate` call is recorded, and `stepPassed` / `stepFailed` carry a
 `locators` list with the parameter, the target name, the index of the matching
@@ -165,6 +200,25 @@ the review: **every built-in action honours it.** In practice:
 
 User actions should pass `ctx.signal` on to anything that accepts one
 (`fetch`, timers) and stop when it is aborted.
+
+**A user action that ignores the signal.** When a step times out (or is
+cancelled), the engine aborts `ctx.signal` and gives `run` 2 seconds to
+return. If it has not returned by then:
+
+1. The step is marked **failed** with `ActionTimeout` (or `Cancelled`) and the
+   hint "The action did not stop when ctx.signal was aborted".
+2. The engine **closes that step's page**, so code still running in the action
+   cannot click, type or navigate during the `after` steps; its Playwright
+   calls fail against the closed page.
+3. The step's `ctx` is sealed: later calls to `ctx.vars.set`, `ctx.log` and
+   `ctx.locate` from the stray code are ignored and reported once as a `warn`
+   log (`StrayActionCode`).
+4. If an `after` step uses that page name, it gets a new blank page in the same
+   browser context (same cookies and login), and the engine logs that the page
+   was replaced.
+
+The stray JavaScript itself cannot be stopped from outside; closing the page
+removes its ability to affect the browser.
 
 ### Internal extensions
 

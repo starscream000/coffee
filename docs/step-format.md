@@ -1,8 +1,9 @@
 # Step file format
 
-> Status: **Proposal, revised after the first review** (2026-10-09). File and
-> folder names use the placeholder product name "Coffee"
-> ([ADR 0017](adr/0017-product-identity.md)).
+> Status: **Proposal, revised after the second review** (2026-10-09). The
+> display name "Coffee" is final; the command, data-folder and config-file names
+> used below (`coffee`, `.coffee/`, `coffee.config.yaml`) are interim until the
+> owner chooses them ([ADR 0019](adr/0019-four-product-names.md)).
 
 Step files are YAML documents in the user's Git repository. They are the source
 of truth: the engine, the CLI and the desktop app only read and write them. The
@@ -33,8 +34,8 @@ description: A visitor without an account buys one product.
 tags: [smoke, checkout]
 
 data:
-  - { product: Desk lamp, price: '€20.00' }
-  - { product: Chair, price: '€45.00' }
+  - { product: Desk lamp, sku: desk-lamp, price: '€20.00' }
+  - { product: Chair, sku: chair, price: '€45.00' }
 
 targets:
   addToCart:
@@ -59,7 +60,7 @@ steps:
   - call:
       flow: flows/checkout-as-guest.flow.yaml
       with:
-        email: guest+${row.product}@example.com
+        email: guest+${row.sku}@example.com
   - expect.text: { target: order.total, equals: '${row.price}' }
   - extract: { target: order.number, as: orderNumber }
   - click: order.printReceipt
@@ -68,6 +69,7 @@ steps:
     page: receipt
 
 after:
+  # Skipped (not failed) if the test stopped before orderNumber was extracted.
   - api:
       method: DELETE
       url: ${env.apiUrl}/orders/${vars.orderNumber}
@@ -76,20 +78,32 @@ after:
 
 ## Test files
 
-| Key           | Required | Meaning                                                                    |
-| ------------- | -------- | -------------------------------------------------------------------------- |
-| `version`     | yes      | Format version, currently `1`                                              |
-| `name`        | yes      | Human-readable name. May use `${row.…}` so data rows have distinct names   |
-| `description` | no       | Free text                                                                  |
-| `tags`        | no       | List of strings, used to select tests (`--tag smoke`)                      |
-| `login`       | no       | Saved login for the default page `main` (shorthand for `pages.main.login`) |
-| `pages`       | no       | Named pages for multi-tab or multi-user flows, see [Pages](#pages)         |
-| `data`        | no       | Data rows; the test runs once per row, see [Data rows](#data-rows)         |
-| `vars`        | no       | Initial variables                                                          |
-| `targets`     | no       | Targets used only in this file                                             |
-| `before`      | no       | Setup steps                                                                |
-| `steps`       | yes      | The test itself                                                            |
-| `after`       | no       | Clean-up steps; **always run**, see [Execution rules](#execution-rules)    |
+| Key           | Required | Meaning                                                                          |
+| ------------- | -------- | -------------------------------------------------------------------------------- |
+| `version`     | yes      | Format version, currently `1`                                                    |
+| `name`        | yes      | Human-readable name. May use `${row.…}` so data rows have distinct names         |
+| `description` | no       | Free text                                                                        |
+| `tags`        | no       | List of strings, used to select tests (`--tag smoke`)                            |
+| `skip`        | no       | A non-empty reason; the test is not run, see [Skipping a test](#skipping-a-test) |
+| `login`       | no       | Saved login for the default page `main` (shorthand for `pages.main.login`)       |
+| `freshLogin`  | no       | `true`: sign in from scratch, see [Saved logins](#saved-logins)                  |
+| `pages`       | no       | Named pages for multi-tab or multi-user flows, see [Pages](#pages)               |
+| `data`        | no       | Data rows; the test runs once per row, see [Data rows](#data-rows)               |
+| `vars`        | no       | Initial variables                                                                |
+| `targets`     | no       | Targets used only in this file                                                   |
+| `before`      | no       | Setup steps                                                                      |
+| `steps`       | yes      | The test itself                                                                  |
+| `after`       | no       | Clean-up steps; **always run**, see [Execution rules](#execution-rules)          |
+
+### Skipping a test
+
+```yaml
+skip: 'Checkout is down on staging until ticket SHOP-412 is fixed'
+```
+
+A skipped test is still **validated** (so it does not rot), but not run. It
+appears in results with status `skipped` and its reason, once per data row.
+`skip` takes a reason, never just `true`.
 
 ## Steps
 
@@ -142,6 +156,10 @@ A target describes one element. It stores several **locator candidates in order
 of reliability**; the engine tries them in that order and reports which one it
 used ([ADR 0010](adr/0010-locator-candidates.md)).
 
+### Short form and long form
+
+The short form is just the list of candidates:
+
 ```yaml
 checkoutButton:
   - role: button # 1. ARIA role and accessible name
@@ -149,6 +167,26 @@ checkoutButton:
   - testId: checkout # 2. test ID attribute (data-testid by default)
   - css: '#cart .btn-primary' # 3. CSS, last resort
 ```
+
+The long form adds where to look. The short form above is normalised to
+`{ candidates: [...] }`:
+
+```yaml
+checkoutButton:
+  frame: shopFrame # optional: the iframe the element is in
+  within: cartPanel # optional: an element the element is inside
+  candidates:
+    - role: button
+      name: Check out
+```
+
+| Key          | Meaning                                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------- |
+| `candidates` | Ordered list of candidates (required)                                                           |
+| `frame`      | A target for the `<iframe>` element that contains this one; see [Frames](#frames)               |
+| `within`     | A target for an element that contains this one; see [Scoping with within](#scoping-with-within) |
+
+### Candidates
 
 Candidate kinds, in the order the recorder will write them:
 
@@ -164,7 +202,67 @@ Candidate kinds, in the order the recorder will write them:
 Text-like fields (`name`, `label`, `placeholder`, `text`) match exactly by
 default; add `exact: false` for substring matching. Any candidate may add
 `nth: 0` to pick one of several matches, which the recorder only writes when
-nothing else is unique.
+nothing else is unique. Candidate values may use `${…}` interpolation.
+
+### Frames
+
+`frame` is a target (a name, or an inline target) for the `<iframe>` element.
+The frame's own target may have a `frame` too, for frames inside frames:
+
+```yaml
+targets:
+  checkoutFrame:
+    - css: 'iframe#checkout'
+  paymentFrame:
+    frame: checkoutFrame # the payment iframe sits inside the checkout iframe
+    candidates:
+      - css: 'iframe[title="Secure payment"]'
+  cardNumber:
+    frame: paymentFrame
+    candidates:
+      - label: Card number
+```
+
+`ctx.locate` resolves the outermost frame first, then each inner frame inside
+it, then the element's candidates inside the innermost frame. Each frame target
+must match exactly one `<iframe>`, using the same candidate rules as any target.
+
+### Scoping with `within`
+
+`within` is a target for a containing element. The candidates are only
+searched inside the one element that `within` resolves to. Together with
+interpolation, this finds an element in a particular row or card without a
+custom action:
+
+```yaml
+targets:
+  productRow:
+    - role: row
+      name: ${row.product}
+  deleteProduct:
+    within: productRow
+    candidates:
+      - role: button
+        name: Delete
+
+steps:
+  - click: deleteProduct # the Delete button in the row named after the data row
+```
+
+Rules for `frame` and `within`:
+
+- Both accept a target name or an inline target, and may be nested to any depth.
+- A target with `within` takes its frame from the `within` target; giving both
+  `frame` and `within` on the same target is a validation error ("put `frame`
+  on the outer target").
+- Interpolation in a target is resolved **when the step runs**, with that
+  step's `vars`, `row`, `params` and `env`.
+- A reference cycle (`a within b`, `b within a`) is a validation error that
+  prints the chain.
+- Step results report the candidate used at every level (frame, within and the
+  element itself).
+
+### Referring to targets
 
 A step refers to a target in one of two ways:
 
@@ -172,7 +270,8 @@ A step refers to a target in one of two ways:
   `targets`, then in the project's shared `*.targets.yaml` files. Shared target
   names must be unique across the project; a test file may not reuse a shared
   name (both are validation errors with both locations).
-- **Inline** (`target:` followed by a list of candidates), for one-off elements.
+- **Inline** (`target:` followed by a list of candidates, or a long-form
+  mapping), for one-off elements.
 
 Names may contain dots as a naming convention (`cart.count`, `order.total`).
 
@@ -197,8 +296,12 @@ Rules:
 - There are no expressions, operators or functions. Anything computed belongs in
   a user action.
 - An unknown namespace is a validation error. An unknown `env` value or
-  `secrets` name is a validation error. An unknown `vars` name is a runtime
-  error naming the step and listing the variables that do exist.
+  `secrets` name is a validation error.
+- A `vars` name that was never set is a runtime error in `before` and `steps`,
+  naming the step and listing the variables that do exist. **In `after` steps
+  it is not an error:** the step is skipped and reported as
+  "skipped: orderNumber was never set", because clean-up often depends on
+  values the failed test never produced.
 - **There is no access to the process environment.** `${env.…}` is the
   environment profile from the config. Environment variables reach a test only
   as declared secrets.
@@ -260,6 +363,9 @@ data: ./data/users.csv
 - Supported files: CSV (first line is the header) and YAML (a list of
   mappings). Values are strings in CSV and keep their YAML types otherwise.
 - `data` is allowed in tests only, not in flows.
+- A value used in a URL or e-mail address should be URL-safe; add a column for
+  it (like `sku` in the example above) rather than reusing a display name with
+  spaces.
 
 Repeating a flow per row inside a test (`forEach` on `call`) is **not** part of
 v0.1.0. The format keeps room for it: `call` takes a mapping, so a later
@@ -289,7 +395,7 @@ steps:
 - Flows can call flows. A cycle (A calls B calls A) is a validation error that
   prints the chain.
 - Flows may declare `targets`; they resolve like a test's.
-- A flow has only `steps`: `before`, `after` and `data` belong to tests.
+- A flow has only `steps`: `before`, `after`, `data` and `skip` belong to tests.
 
 ## Project configuration
 
@@ -306,6 +412,9 @@ defaults:
   browser: chromium
   timeout: 10s
   testIdAttribute: data-testid
+  viewport: { width: 1280, height: 720 }
+  locale: en-US
+  timezone: UTC
 
 environments:
   local:
@@ -314,6 +423,8 @@ environments:
       apiUrl: http://localhost:5173/api
   staging:
     baseUrl: https://staging.example.com
+    locale: de-DE # overrides defaults.locale for this environment
+    timezone: Europe/Berlin
     values:
       apiUrl: https://staging.example.com/api
 
@@ -326,11 +437,26 @@ logins:
   admin:
     flow: flows/login.flow.yaml
     with: { user: admin@example.com, password: '${secrets.SHOP_ADMIN_PASSWORD}' }
+    maxAge: 2h
 ```
 
 `defaults.browser` is validated against the browsers the engine reports in
 `capabilities.browsers` (only `chromium` in v0.1.0); an unsupported value is a
 config error listing the supported ones.
+
+### Viewport, locale and timezone
+
+So that runs look the same on every machine, every browser context is created
+with a fixed viewport, locale and timezone, also in headed mode:
+
+| Setting    | Default                        | Overridable in an environment |
+| ---------- | ------------------------------ | ----------------------------- |
+| `viewport` | `{ width: 1280, height: 720 }` | yes                           |
+| `locale`   | `en-US`                        | yes                           |
+| `timezone` | `UTC`                          | yes                           |
+
+The device scale factor is fixed at 1 so screenshots have the same pixel size
+everywhere. The values used are reported in `runStarted`.
 
 ### Environments
 
@@ -350,20 +476,40 @@ characters are rejected, because masking them would damage ordinary output
 
 ### Saved logins
 
-A saved login is a named flow that signs in. The engine runs it once, saves the
-browser storage state to `.coffee/logins/<env>/<login>.json` (git-ignored) and
-reuses it for every page that names the login. It is refreshed when it is
-missing, when the flow file or its parameters change, or on `--refresh-logins`.
+A saved login is a named flow that signs in. The engine runs it, saves the
+browser storage state, and reuses it for every page that names the login
+([ADR 0018](adr/0018-saved-logins.md)).
+
+| Key      | Meaning                                                            |
+| -------- | ------------------------------------------------------------------ |
+| `flow`   | The login flow                                                     |
+| `with`   | Parameters for the flow                                            |
+| `maxAge` | How long a saved state may be reused: `30m`, `12h` (default `12h`) |
+
+- The saved state is stored under a **cache key**: a SHA-256 hash of the
+  environment name, the login name, the flow file's content and the resolved
+  `with` values (including secrets). Only the hash is stored, never the
+  parameter values. Changing a password, the flow or the environment therefore
+  produces a new key, and the old state is not used.
+- A saved state older than `maxAge` is not used; the flow runs again and
+  replaces it. `--refresh-logins` forces this for the whole run.
+- A test with **`freshLogin: true`** signs in from scratch for every page that
+  has a login, without reading the saved state and without writing a new one.
+  Use it for tests of the login itself or of session handling.
 
 ## Execution rules
 
-1. Each test instance (one per data row) gets a fresh browser context per login.
-2. `before` steps run, then `steps`. The first failure stops the remaining
+1. A test with `skip` is validated and reported as skipped, and nothing else
+   happens.
+2. Each test instance (one per data row) gets a fresh browser context per login.
+3. `before` steps run, then `steps`. The first failure stops the remaining
    steps; they are reported as skipped.
-3. `after` steps always run: after success, failure or cancellation. Each `after`
-   step runs even if a previous one failed; all failures are reported.
-4. A failure in `before` is reported as a setup failure.
-5. Actions auto-wait up to the step timeout; `expect.*` actions retry until they
+4. `after` steps always run: after success, failure or cancellation. Each `after`
+   step runs even if a previous one failed; all failures are reported. An
+   `after` step that uses a variable that was never set is skipped with that
+   reason, not failed.
+5. A failure in `before` is reported as a setup failure.
+6. Actions auto-wait up to the step timeout; `expect.*` actions retry until they
    pass or time out. Every wait stops promptly when the run is cancelled.
 
 ## Validation errors
@@ -392,3 +538,20 @@ The recorder and the desktop app edit step files through the `yaml` library's
 document model, which keeps comments, key order and formatting. A file edited in
 the desktop app should produce a minimal Git diff. Tools write the form the user
 wrote (shorthand stays shorthand); normalisation happens only in memory.
+
+## Not in v0.1.0
+
+These are **deliberate gaps**, not oversights. Each can be added later without
+breaking existing step files.
+
+| Gap                                            | What happens in v0.1.0                                                                                       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Browser dialogs (`alert`, `confirm`, `prompt`) | Playwright's default: dialogs are dismissed automatically. No action accepts them or checks their text.      |
+| Downloads                                      | No action waits for or checks a download.                                                                    |
+| Scrolling                                      | No scroll action. Playwright scrolls elements into view before acting on them.                               |
+| Typing key by key                              | `fill` sets the whole value at once; `press` sends one key or chord. No action types text one key at a time. |
+| Assertions that continue after failure         | Every failing `expect.*` stops the test (no "soft" assertions).                                              |
+| Retries                                        | A failed test is not run again automatically.                                                                |
+| Whole-test timeout                             | Only per-step timeouts; a test has no overall time limit.                                                    |
+| Other named pages inside an action             | `ctx.page` is the step's page only; an action cannot reach other named pages.                                |
+| Stable IDs for data rows                       | A row is identified by its position (`#0`, `#1`); reordering rows changes `testId`s.                         |

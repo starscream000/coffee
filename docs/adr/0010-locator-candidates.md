@@ -17,9 +17,17 @@ first one that matches **exactly one** element. Candidates that match zero or
 several elements are skipped. When time runs out, fail with `TargetNotFound`,
 listing every candidate and its last match count.
 
+A target's `frame` and `within` (each itself a target, nestable) are resolved
+first with the same rule, from the outside in: each frame target must match
+exactly one `<iframe>`, whose content becomes the search scope; each `within`
+target must match exactly one element, which becomes the scope. `${…}` in any
+of these targets is interpolated with the current step's values before each
+attempt.
+
 Every call is recorded as a `LocatorUse` (`param`, `target`, `candidateIndex`,
-`candidate`) and reported in `stepPassed.locators` / `stepFailed.locators`. The
-engine never rewrites step files on its own.
+`candidate`, and nested `frame` / `within` uses) and reported in
+`stepPassed.locators` / `stepFailed.locators`. The engine never rewrites step
+files on its own.
 
 ## Alternatives rejected
 
