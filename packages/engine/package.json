@@ -12,7 +12,9 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./main": "./dist/main.js",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"
