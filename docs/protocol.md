@@ -1,6 +1,6 @@
 # Engine protocol
 
-> Status: **Proposal, revised after the second review** (2026-10-09). Protocol
+> Status: **Accepted design, revised for instruction 0001** (2026-10-09). Protocol
 > version `0.1.0` once implemented. This document is a **public contract**:
 > every client (CLI, desktop app, a future VS Code extension, the server)
 > relies on it.
@@ -19,6 +19,22 @@
   notifications (events, without `id`). The engine sends no requests in `0.x`.
 - Every message the engine writes passes through secret masking first
   ([ADR 0014](adr/0014-secret-masking.md)).
+- **No file contents.** Messages never carry the contents of screenshots,
+  snapshots, results or other artifacts; they carry absolute paths, and clients
+  read the files. (`validate` with `content` carries an unsaved step file,
+  which is input, not an artifact.)
+- **Maximum message size: 4 MiB** of UTF-8 per line, in both directions
+  (`MAX_MESSAGE_BYTES` in `@test-tool/protocol`, [ADR 0005](adr/0005-json-rpc-over-stdio.md)):
+  - The engine never sends a longer line. It first truncates long string fields
+    (`message`, `expected`, `actual`, log text) to 64 KiB each, marked
+    `… [truncated N characters]`. If the message is still too large, a response
+    becomes the error `MessageTooLarge` and an event is replaced by a `log`
+    event (level `error`, code `MessageTooLarge`) naming the event type, test
+    and step. The run continues.
+  - A line from the client over the limit is discarded unparsed; the engine
+    answers `MessageTooLarge` with `id: null` and keeps the session open.
+  - A client that receives a line over the limit discards it, reports an engine
+    error to its user and may end the session; it must not crash.
 - When stdin closes, the engine cancels any run (still running `after` steps,
   with a 30-second limit), closes browsers and exits.
 
@@ -204,8 +220,12 @@ follow. Tests not yet started are reported as cancelled.
 ### `openSnapshot`
 
 `{ "runId": "…", "testId": "…", "stepId": "…" }` → `null`. Opens the saved page
-state of that step in a test-browser window. Fails with `SnapshotNotFound`. The
-snapshot format is an engine detail and not part of the protocol.
+state of that step in a test-browser window. Fails with `SnapshotNotFound` when
+the step has no snapshot (for example with `snapshots: off`), and with
+`SnapshotUnavailable` when the snapshot exists but cannot be shown (for example
+the viewer failed to start); that error's `data.screenshot` holds the step's
+screenshot path so the client can show it instead. The snapshot format is an
+engine detail and not part of the protocol.
 
 ## Events
 
@@ -218,8 +238,8 @@ detect gaps. Times are ISO 8601 UTC strings; durations are milliseconds.
 | `runStarted`      | `env`, `browser`, `settings`: `{ viewport, locale, timezone }`, `startedAt`, `tests`: `{ testId, file, name, row?, skip? }[]` |
 | `testStarted`     | `testId`, `startedAt`                                                                                                         |
 | `stepStarted`     | `testId`, `stepId`, `parentStepId?`, `section` (`before`, `steps`, `after`), `action`, `params`, `page`, `title`, `location`  |
-| `stepPassed`      | `testId`, `stepId`, `durationMs`, `locators`: `LocatorUse[]`                                                                  |
-| `stepFailed`      | `testId`, `stepId`, `durationMs`, `error`: `ErrorInfo`, `locators`: `LocatorUse[]`                                            |
+| `stepPassed`      | `testId`, `stepId`, `durationMs`, `locators`: `LocatorUse[]`, `snapshot`: `SnapshotStatus`                                    |
+| `stepFailed`      | `testId`, `stepId`, `durationMs`, `error`: `ErrorInfo`, `locators`: `LocatorUse[]`, `snapshot`: `SnapshotStatus`              |
 | `stepSkipped`     | `testId`, `stepId`, `reason` (`previousFailure`, `cancelled`, `variableNotSet`), `message`, `variable?`                       |
 | `screenshotReady` | `testId`, `stepId`, `page`, `path`, `width`, `height`                                                                         |
 | `snapshotReady`   | `testId`, `stepId`, `page`                                                                                                    |
@@ -241,9 +261,16 @@ detect gaps. Times are ISO 8601 UTC strings; durations are milliseconds.
   `message` "skipped: orderNumber was never set". It is not a failure.
 - A test with `skip` produces one `testSkipped` per data row and counts in
   `totals.skipped`.
+- Whenever a target is found by a candidate other than its first, at any level
+  (frame, `within`, element), the engine sends a `log` event with level
+  `warn`, code `LocatorFallback`, the target name, the index used and the
+  step's `location`.
+- `snapshot` in a step result says what happened to the page snapshot. A
+  snapshot problem never changes the step's own status.
 - Other `warn` codes in 0.1.0: `StrayActionCode` (a user action kept running
   after its step ended), `PageReplaced` (a closed page was replaced for an
-  `after` step), `SdkVersionMismatch`.
+  `after` step), `SdkVersionMismatch`, `RunCleanupFailed` (an old run folder
+  could not be deleted).
 
 Example line on stdout (shown wrapped):
 
@@ -253,7 +280,8 @@ Example line on stdout (shown wrapped):
 "testId":"tests/checkout/guest-checkout.test.yaml#1","stepId":"steps.3","durationMs":10012,
 "error":{"code":"AssertionFailed","message":"Text of \"cart.count\" is \"0\", expected \"1\".",
 "expected":"1","actual":"0","location":{"file":"tests/checkout/guest-checkout.test.yaml","line":31,"column":5}},
-"locators":[{"param":"target","target":"cart.count","candidateIndex":0,"candidate":{"testId":"cart-count"}}]}}
+"locators":[{"param":"target","target":"cart.count","candidateIndex":0,"candidate":{"testId":"cart-count"}}],
+"snapshot":{"state":"saved"}}}
 ```
 
 ### Identifiers
@@ -296,6 +324,11 @@ interface LocatorUse {
   within?: LocatorUse; // how the target's containing element was found
 }
 
+type SnapshotStatus =
+  | { state: 'saved' } // snapshotReady was sent
+  | { state: 'skipped' } // snapshots: off, or onFailure and the step passed
+  | { state: 'failed'; reason: string }; // recording or masking failed; screenshot only
+
 interface ErrorInfo {
   code: string; // e.g. "TargetNotFound", "AssertionFailed", "ActionTimeout", "Cancelled"
   message: string; // secrets already masked
@@ -323,6 +356,8 @@ plus:
 | `-32006` | `RunInProgress`        | `startRun` while a run is active                       |
 | `-32007` | `RunNotFound`          | `cancelRun` / `openSnapshot` with an unknown `runId`   |
 | `-32008` | `SnapshotNotFound`     | `openSnapshot` for a step without a snapshot           |
+| `-32009` | `MessageTooLarge`      | A message over 4 MiB (see [Transport](#transport))     |
+| `-32010` | `SnapshotUnavailable`  | Snapshot exists but cannot be shown; `data.screenshot` |
 
 Error responses carry `error.data.name` (the name above) so clients can switch on
 names instead of numbers.

@@ -80,8 +80,10 @@ target name or an inline candidate list; in `run` it is an unresolved
   letter and contain letters and digits.
 - **Names without a dot are reserved for built-in actions**, including future
   ones.
-- Proposed (open question 13): the namespaces `expect` and `wait` are also
-  reserved, because built-ins use them.
+- **Reserved namespaces**: `expect`, `wait`, `api` and the product's command
+  name (`coffee` while that name is interim). Built-ins keep their dotted names
+  (`expect.text`, `wait.url`). The engine keeps this list in one constant,
+  `RESERVED_NAMESPACES`, which both the built-ins and the name check use.
 - A user action that breaks these rules, or whose name is already taken, **fails
   at load time** with a diagnostic such as:
 
@@ -89,6 +91,11 @@ target name or an inline candidate list; in `run` it is an unresolved
   actions/auth.ts:4:9  error  ActionNameNotNamespaced
     Action "fillOtp" needs a namespace, for example "auth.fillOtp".
     Names without a dot are reserved for built-in actions.
+
+  actions/shop.ts:12:9  error  ActionNamespaceReserved
+    Action "expect.priceFormat" uses the namespace "expect", which is reserved
+    for built-in actions. Use your own namespace, for example
+    "shop.expectPriceFormat".
   ```
 
 ### Loading user actions
@@ -113,7 +120,8 @@ target name or an inline candidate list; in `run` it is an unresolved
 
 ### Trust model
 
-**Opening a project runs its code.** User actions are ordinary TypeScript that
+**User actions are code, and they run with the engine's full access to the
+machine and the network.** **Opening a project runs its code.** User actions are ordinary TypeScript that
 the engine imports into its own process when a project is opened, before any
 test is selected. They run with the same rights as the engine: they can read
 and write files, start processes, use the network and read any environment

@@ -1,7 +1,7 @@
 # Architecture
 
-> Status: **Proposal, revised after the second review** (2026-10-09). Nothing
-> here is implemented yet. Decisions from the reviews are listed in
+> Status: **Accepted design, revised for instruction 0001** (2026-10-09).
+> Nothing here is implemented yet. Decisions from the reviews are listed in
 > [Review decisions](#review-decisions); questions still open are in
 > [Open questions](#open-questions).
 
@@ -102,8 +102,12 @@ After each step the runner calls the internal `PageStateRecorder`, which saves
 a screenshot and a snapshot and can open a snapshot later. The snapshot format
 is hidden behind this interface, and clients only ever receive a screenshot
 path and a `snapshotReady` notice; they open a snapshot through the
-`openSnapshot` request. The recommended implementation is Playwright tracing
-with one trace chunk per step ([ADR 0007](adr/0007-page-snapshot-format.md)).
+`openSnapshot` request. The implementation is Playwright tracing with one
+trace chunk per step ([ADR 0007](adr/0007-page-snapshot-format.md)), measured at
+about 20 ms and 7 KB per step on a small page. The `snapshots` setting
+(`always` by default, `onFailure`, `off`) controls it. A snapshot that cannot
+be recorded, masked or opened never fails a test: the step keeps its
+screenshot and its result says the snapshot failed.
 
 ## Lifecycle of a run
 
@@ -235,17 +239,24 @@ Second review, 2026-10-09:
 | 27  | Deliberate gaps       | Listed in [step-format.md](step-format.md#not-in-v010)                                                                                    |
 | 28  | Release               | v0.1.0 is tagged only after CI passes on all three systems                                                                                |
 
+Instruction 0001, 2026-10-09 (settles open questions 13, 15 and 16):
+
+| #   | Topic                     | Decision                                                                                                                                    |
+| --- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 13  | Built-in names with a dot | Built-ins keep their dots; namespaces `expect`, `wait`, `api` and the command name are reserved ([ADR 0016](adr/0016-action-names.md))      |
+| 15  | Snapshot format           | Playwright tracing, one chunk per step, with a `snapshots` setting and a screenshot fallback ([ADR 0007](adr/0007-page-snapshot-format.md)) |
+| 16  | Run retention             | `keepRuns`, default 20, 0 keeps all, applied at the start of a run ([ADR 0015](adr/0015-results-layout.md))                                 |
+| 29  | Runner                    | Own runner on the Playwright library ([ADR 0012](adr/0012-own-runner.md))                                                                   |
+| 30  | Process                   | Work passes through `handoff/`; only the reviewer merges into `main`                                                                        |
+| 31  | History                   | `main` on GitHub reached `1c873f1` without a `--no-ff` merge; accepted once, no rewriting                                                   |
+| 32  | Protocol size             | No file contents in messages; 4 MiB maximum message size ([ADR 0005](adr/0005-json-rpc-over-stdio.md))                                      |
+| 33  | Locator fallback          | 1 s grace period for the first candidate, configurable, and a warning on every fallback ([ADR 0010](adr/0010-locator-candidates.md))        |
+| 34  | Sensitive headers         | `Cookie`, `Set-Cookie` and `Authorization` masked in traces by default ([ADR 0014](adr/0014-secret-masking.md))                             |
+
 ## Open questions
 
-13. **Built-in names with a dot.** Rule 8 reserves un-namespaced names for
-    built-ins, but `expect.text` and `wait.url` contain a dot. Proposed: also
-    reserve the `expect` and `wait` namespaces for built-ins. Alternative:
-    rename them to `expectText`, `waitForUrl` and so on. See
-    [ADR 0016](adr/0016-action-names.md).
-14. **Command, folder and npm scope names.** Three options proposed to the
-    owner; see [ADR 0019](adr/0019-four-product-names.md).
-15. **Snapshot format.** Approve Playwright tracing per step
-    ([ADR 0007](adr/0007-page-snapshot-format.md)), or keep MHTML?
-16. **Run retention.** Page states take disk space on every run. Should v0.1.0
-    keep all runs (users delete `.coffee/runs` themselves) or add a
-    `keepRuns` setting?
+14. **Command, folder and npm scope names.** Three options are in
+    [report 0001](../handoff/reports/0001-finish-milestone-0-docs.md); see also
+    [ADR 0019](adr/0019-four-product-names.md).
+15. **ADR 0018 (saved logins).** Written after the second chat review and not
+    yet reviewed: approve the HMAC-keyed cache design or ask for changes.

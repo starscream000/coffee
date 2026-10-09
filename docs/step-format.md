@@ -412,6 +412,9 @@ defaults:
   browser: chromium
   timeout: 10s
   testIdAttribute: data-testid
+  fallbackGrace: 1s
+  snapshots: always
+  keepRuns: 20
   viewport: { width: 1280, height: 720 }
   locale: en-US
   timezone: UTC
@@ -457,6 +460,16 @@ with a fixed viewport, locale and timezone, also in headed mode:
 
 The device scale factor is fixed at 1 so screenshots have the same pixel size
 everywhere. The values used are reported in `runStarted`.
+
+### Other defaults
+
+| Setting           | Default       | Overridable in an environment | Meaning                                                                                                                |
+| ----------------- | ------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `timeout`         | `10s`         | yes                           | Default step timeout                                                                                                   |
+| `testIdAttribute` | `data-testid` | no                            | Attribute used by `testId` candidates                                                                                  |
+| `fallbackGrace`   | `1s`          | yes                           | How long only a target's first candidate is tried before fallbacks ([ADR 0010](adr/0010-locator-candidates.md))        |
+| `snapshots`       | `always`      | yes                           | `always`, `onFailure` or `off` ([ADR 0007](adr/0007-page-snapshot-format.md))                                          |
+| `keepRuns`        | `20`          | no                            | Run folders kept; older ones are deleted at the start of a run; `0` keeps all ([ADR 0015](adr/0015-results-layout.md)) |
 
 ### Environments
 
