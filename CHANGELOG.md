@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Engine over stdio: `node packages/engine/dist/main.js --stdio` speaks the
+  protocol line by line, with the version handshake (refusing an incompatible
+  client with exit code 3), the 4 MiB message limit and truncation, standard
+  JSON-RPC errors, `shutdown`, and `console` output redirected to stderr.
 - Protocol 0.1.0 in `@cfe/protocol`: every request, response, event and shared
   type as a Zod schema with inferred types; JSON Schema files generated into
   `packages/protocol/schema/` (`pnpm generate:schemas`); `MAX_MESSAGE_BYTES`,
