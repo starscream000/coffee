@@ -1,0 +1,102 @@
+{
+  "title": "event.runStarted (protocol 0.1.0)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "runId": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "env": {
+      "type": "string"
+    },
+    "browser": {
+      "type": "string"
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "viewport": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "additionalProperties": {}
+        },
+        "locale": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "viewport",
+        "locale",
+        "timezone"
+      ],
+      "additionalProperties": {}
+    },
+    "startedAt": {
+      "type": "string"
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "testId": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "row": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "skip": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "testId",
+          "file",
+          "name"
+        ],
+        "additionalProperties": {}
+      }
+    }
+  },
+  "required": [
+    "runId",
+    "seq",
+    "env",
+    "browser",
+    "settings",
+    "startedAt",
+    "tests"
+  ],
+  "additionalProperties": {}
+}

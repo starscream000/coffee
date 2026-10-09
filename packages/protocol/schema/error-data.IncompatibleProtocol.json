@@ -1,0 +1,27 @@
+{
+  "title": "error-data.IncompatibleProtocol (protocol 0.1.0)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "IncompatibleProtocol"
+    },
+    "clientProtocolVersion": {
+      "type": "string"
+    },
+    "engineProtocolVersion": {
+      "type": "string"
+    },
+    "engineVersion": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "clientProtocolVersion",
+    "engineProtocolVersion",
+    "engineVersion"
+  ],
+  "additionalProperties": {}
+}

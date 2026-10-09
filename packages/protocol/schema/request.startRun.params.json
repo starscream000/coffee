@@ -1,0 +1,38 @@
+{
+  "title": "request.startRun.params (protocol 0.1.0)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "env": {
+      "type": "string"
+    },
+    "options": {
+      "type": "object",
+      "properties": {
+        "headed": {
+          "type": "boolean"
+        },
+        "browser": {
+          "type": "string"
+        },
+        "refreshLogins": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": {}
+    }
+  },
+  "additionalProperties": {}
+}

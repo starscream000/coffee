@@ -11,14 +11,15 @@ summarises the day-to-day workflow.
 
 ## Everyday commands
 
-| Command          | What it does                                      |
-| ---------------- | ------------------------------------------------- |
-| `pnpm build`     | Compile all packages                              |
-| `pnpm lint`      | ESLint (type-aware, strict)                       |
-| `pnpm format`    | Format with Prettier (`format:check` only checks) |
-| `pnpm typecheck` | Type check sources and tests                      |
-| `pnpm test`      | Build, then run all Vitest tests                  |
-| `pnpm verify`    | Everything above; must pass before any merge      |
+| Command                 | What it does                                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `pnpm build`            | Compile all packages                                                                            |
+| `pnpm lint`             | ESLint (type-aware, strict)                                                                     |
+| `pnpm format`           | Format with Prettier (`format:check` only checks)                                               |
+| `pnpm typecheck`        | Type check sources and tests                                                                    |
+| `pnpm test`             | Build, then run all Vitest tests                                                                |
+| `pnpm verify`           | Everything above; must pass before any merge                                                    |
+| `pnpm generate:schemas` | Regenerate the protocol's JSON Schema files after changing a protocol schema; commit the result |
 
 ## Branches and commits
 

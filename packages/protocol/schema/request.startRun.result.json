@@ -1,0 +1,18 @@
+{
+  "title": "request.startRun.result (protocol 0.1.0)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "runId": {
+      "type": "string"
+    },
+    "resultsDir": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "runId",
+    "resultsDir"
+  ],
+  "additionalProperties": {}
+}

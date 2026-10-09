@@ -1,19 +1,18 @@
-// Public entry point of the engine protocol package: message and event types
-// shared by the engine and every client, and the product identity. Message
-// types are added in Milestone 1 once docs/protocol.md is approved.
+// Public entry point of the engine protocol package: every message as a Zod
+// schema with its inferred type (ADR 0020), the version rule, the size limits,
+// the error codes and the product identity. Shared by the engine and clients.
 
 export { PRODUCT } from './product.js';
-
-/**
- * Version of the engine protocol described in `docs/protocol.md`.
- *
- * Clients send the version they support in `initialize`; the engine refuses a
- * client whose version is incompatible. `0.0.0` means "not yet released".
- *
- * @example
- * ```ts
- * import { PROTOCOL_VERSION } from '@cfe/protocol';
- * console.log(`speaking protocol ${PROTOCOL_VERSION}`);
- * ```
- */
-export const PROTOCOL_VERSION = '0.0.0';
+export {
+  PROTOCOL_VERSION,
+  isCompatibleProtocol,
+  parseProtocolVersion,
+  type ProtocolVersionParts,
+} from './version.js';
+export { MAX_MESSAGE_BYTES, TRUNCATED_FIELD_BYTES, truncationMarker } from './limits.js';
+export { ERROR_CODES, ERROR_NAMES, errorNameOf, type ErrorCode, type ErrorName } from './errors.js';
+export * from './shared.js';
+export * from './jsonrpc.js';
+export * from './requests.js';
+export * from './events.js';
+export { protocolSchemas, schemaFileContents } from './schema-files.js';

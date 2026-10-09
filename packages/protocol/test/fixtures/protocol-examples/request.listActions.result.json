@@ -1,0 +1,18 @@
+{
+  "actions": [
+    {
+      "name": "fill",
+      "description": "Clears a field and types a value.",
+      "shorthand": null,
+      "paramsSchema": {},
+      "source": { "kind": "builtin" }
+    },
+    {
+      "name": "shop.addToCart",
+      "description": "Opens a product page and adds the product to the cart.",
+      "shorthand": "product",
+      "paramsSchema": {},
+      "source": { "kind": "file", "file": "actions/shop/add-to-cart.ts" }
+    }
+  ]
+}

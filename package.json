@@ -16,7 +16,8 @@
     "format:check": "prettier --check .",
     "test": "tsc -b && vitest run",
     "verify": "tsc -b && tsc -p tsconfig.check.json && eslint . && prettier --check . && vitest run",
-    "clean": "tsc -b --clean"
+    "clean": "tsc -b --clean",
+    "generate:schemas": "tsc -b && node packages/protocol/scripts/generate-schemas.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
