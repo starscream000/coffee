@@ -11,6 +11,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
@@ -181,8 +182,10 @@ async function bundle(root: string, file: string, entry: CacheEntry): Promise<Di
  */
 function loadErrorHint(error: unknown, root: string, file: string): string {
   const origin = firstStackFile(error);
-  const actionFile = posix(join(root, file)).toLowerCase();
-  if (origin === actionFile) {
+  const actionFile = join(root, file);
+  // Node reports the real path: on macOS the temporary folder /var is /private/var.
+  const actionPaths = [actionFile, realPathOf(actionFile)].map((path) => posix(path).toLowerCase());
+  if (origin !== undefined && actionPaths.includes(origin)) {
     return 'Code at the top level of an action file runs when the project is opened; move work into run().';
   }
   const pkg = /\/node_modules\/((?:@[^/]+\/)?[^/]+)\//.exec(origin ?? '')?.[1];
@@ -190,6 +193,15 @@ function loadErrorHint(error: unknown, root: string, file: string): string {
     return `The error comes from the package "${pkg}", which this action imports. Check that it works in Node.js ${process.versions.node}, or import it inside run().`;
   }
   return 'The action file, and every file it imports, runs when the project is opened; the error came from code that runs at that point.';
+}
+
+/** The path with symbolic links resolved, or the path itself when it cannot be resolved. */
+function realPathOf(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
+  }
 }
 
 /** The file of the first stack frame that is not Node's own, lower-case with forward slashes. */
