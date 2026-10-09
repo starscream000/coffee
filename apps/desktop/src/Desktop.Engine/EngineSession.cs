@@ -1,5 +1,6 @@
 // Owns one engine process for the app: starts it, runs the handshake, exposes
 // the typed client, and notices when the engine stops on its own (a crash).
+// Starts and stops run one at a time, in the order they were asked for.
 
 using Desktop.Protocol.Messages;
 
@@ -24,6 +25,14 @@ public enum EngineState
 /// One engine for the app. Events are raised on background threads; the app
 /// moves them onto its UI thread.
 /// </summary>
+/// <remarks>
+/// <see cref="StartAsync"/>, <see cref="StopAsync"/> and <see cref="CloseAsync"/>
+/// are queued and run one at a time in the order they were called. So two starts
+/// at once leave one engine (the second replaces the first), a stop asked for
+/// during a start runs after it and leaves no engine, and after
+/// <see cref="CloseAsync"/> every start fails with <see cref="EngineClosedException"/>
+/// without starting anything.
+/// </remarks>
 /// <example>
 /// <code>
 /// await using var session = new EngineSession(EngineProcess.Start);
@@ -36,6 +45,8 @@ public sealed class EngineSession : IAsyncDisposable
 {
     private readonly Func<EngineLaunch, Action<string>, IEngineTransport> _startTransport;
     private readonly Lock _gate = new();
+    private Task _queueTail = Task.CompletedTask;
+    private bool _closed;
     private IEngineTransport? _transport;
     private JsonRpcConnection? _connection;
     private EngineClient? _client;
@@ -69,23 +80,116 @@ public sealed class EngineSession : IAsyncDisposable
     /// <summary>Why the session failed, when <see cref="State"/> is <see cref="EngineState.Failed"/>.</summary>
     public Exception? Failure { get; private set; }
 
-    /// <summary>The typed client.</summary>
-    /// <exception cref="InvalidOperationException">The session is not ready.</exception>
-    public EngineClient Client => State == EngineState.Ready && _client is not null
-        ? _client
-        : throw new InvalidOperationException($"The engine is not ready (it is {State}). Start it first.");
+    /// <summary>True once <see cref="CloseAsync"/> was called: no engine will be started again.</summary>
+    public bool IsClosed
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _closed;
+            }
+        }
+    }
 
-    /// <summary>Starts an engine and runs the handshake. Stops any engine this session already runs.</summary>
+    /// <summary>The typed client.</summary>
+    /// <exception cref="EngineNotReadyException">The session is not ready.</exception>
+    public EngineClient Client
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return State == EngineState.Ready && _client is not null ? _client : throw new EngineNotReadyException(State);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Starts an engine and runs the handshake, after every start and stop asked
+    /// for earlier. Stops any engine this session already runs.
+    /// </summary>
     /// <param name="launch">What to start.</param>
     /// <param name="clientVersion">This app's version, sent in <c>initialize</c>.</param>
     /// <param name="cancellationToken">Stops waiting for the handshake; the engine is then stopped.</param>
     /// <returns>The engine's versions and capabilities.</returns>
+    /// <exception cref="EngineClosedException">The session was closed; nothing was started.</exception>
     /// <exception cref="EngineStartException">Node could not be started.</exception>
     /// <exception cref="IncompatibleEngineException">The engine refused this client's protocol version.</exception>
     /// <exception cref="EngineExitedException">The engine stopped during the handshake.</exception>
-    public async Task<InitializeResult> StartAsync(EngineLaunch launch, string clientVersion, CancellationToken cancellationToken = default)
+    public Task<InitializeResult> StartAsync(EngineLaunch launch, string clientVersion, CancellationToken cancellationToken = default)
     {
-        await StopAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        lock (_gate)
+        {
+            if (_closed)
+            {
+                return Task.FromException<InitializeResult>(new EngineClosedException());
+            }
+        }
+
+        return Enqueue(() =>
+        {
+            lock (_gate)
+            {
+                if (_closed)
+                {
+                    throw new EngineClosedException();
+                }
+            }
+
+            return StartCoreAsync(launch, clientVersion, cancellationToken);
+        });
+    }
+
+    /// <summary>
+    /// After every start and stop asked for earlier, sends <c>shutdown</c> and
+    /// waits for the engine to exit; kills it if it does not answer within
+    /// <paramref name="grace"/>. When no engine runs, only moves a failed session to
+    /// <see cref="EngineState.Stopped"/>.
+    /// </summary>
+    /// <param name="grace">How long to wait for a clean exit; 10 seconds when null.</param>
+    /// <param name="cancellationToken">Stops waiting; the engine is then killed.</param>
+    /// <returns>A task that completes when the engine is gone.</returns>
+    public Task StopAsync(TimeSpan? grace = null, CancellationToken cancellationToken = default) =>
+        Enqueue(async () =>
+        {
+            await StopCoreAsync(grace, cancellationToken).ConfigureAwait(false);
+            return true;
+        });
+
+    /// <summary>
+    /// Stops the engine for good: from now on every start fails with
+    /// <see cref="EngineClosedException"/>, including starts already queued.
+    /// Called when the app shuts down.
+    /// </summary>
+    /// <param name="grace">How long to wait for a clean exit; 10 seconds when null.</param>
+    /// <returns>A task that completes when the engine is gone.</returns>
+    public Task CloseAsync(TimeSpan? grace = null)
+    {
+        lock (_gate)
+        {
+            _closed = true;
+        }
+
+        return StopAsync(grace);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync() => await CloseAsync().ConfigureAwait(false);
+
+    private Task<T> Enqueue<T>(Func<Task<T>> operation)
+    {
+        lock (_gate)
+        {
+            var run = _queueTail.ContinueWith(_ => operation(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default).Unwrap();
+            _queueTail = run.ContinueWith(_ => { }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+            return run;
+        }
+    }
+
+    private async Task<InitializeResult> StartCoreAsync(EngineLaunch launch, string clientVersion, CancellationToken cancellationToken)
+    {
+        await StopCoreAsync(null, cancellationToken).ConfigureAwait(false);
         SetState(EngineState.Starting);
         try
         {
@@ -93,16 +197,17 @@ public sealed class EngineSession : IAsyncDisposable
             var connection = new JsonRpcConnection(transport);
             connection.EventReceived += (_, e) => EventReceived?.Invoke(this, e);
             connection.ProblemReported += (_, p) => ProblemReported?.Invoke(this, p);
+            var client = new EngineClient(connection);
             lock (_gate)
             {
                 _transport = transport;
                 _connection = connection;
-                _client = new EngineClient(connection);
+                _client = client;
             }
 
             connection.Start();
             _ = WatchForExitAsync(connection);
-            var result = await _client.InitializeAsync(clientVersion, cancellationToken).ConfigureAwait(false);
+            var result = await client.InitializeAsync(clientVersion, cancellationToken).ConfigureAwait(false);
             Engine = result;
             Failure = null;
             SetState(EngineState.Ready);
@@ -117,15 +222,7 @@ public sealed class EngineSession : IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// Sends <c>shutdown</c> and waits for the engine to exit; kills it if it
-    /// does not answer within <paramref name="grace"/>. Does nothing when no
-    /// engine runs.
-    /// </summary>
-    /// <param name="grace">How long to wait for a clean exit; 10 seconds when null.</param>
-    /// <param name="cancellationToken">Stops waiting; the engine is then killed.</param>
-    /// <returns>A task that completes when the engine is gone.</returns>
-    public async Task StopAsync(TimeSpan? grace = null, CancellationToken cancellationToken = default)
+    private async Task StopCoreAsync(TimeSpan? grace, CancellationToken cancellationToken)
     {
         EngineClient? client;
         IEngineTransport? transport;
@@ -137,6 +234,13 @@ public sealed class EngineSession : IAsyncDisposable
 
         if (transport is null)
         {
+            // Nothing runs; a session that had failed is now simply stopped.
+            if (State == EngineState.Failed)
+            {
+                Engine = null;
+                SetState(EngineState.Stopped);
+            }
+
             return;
         }
 
@@ -161,9 +265,6 @@ public sealed class EngineSession : IAsyncDisposable
         Engine = null;
         SetState(EngineState.Stopped);
     }
-
-    /// <inheritdoc />
-    public async ValueTask DisposeAsync() => await StopAsync().ConfigureAwait(false);
 
     private async Task WatchForExitAsync(JsonRpcConnection connection)
     {
@@ -207,12 +308,16 @@ public sealed class EngineSession : IAsyncDisposable
 
     private void SetState(EngineState state)
     {
-        if (State == state)
+        lock (_gate)
         {
-            return;
+            if (State == state)
+            {
+                return;
+            }
+
+            State = state;
         }
 
-        State = state;
         StateChanged?.Invoke(this, state);
     }
 }

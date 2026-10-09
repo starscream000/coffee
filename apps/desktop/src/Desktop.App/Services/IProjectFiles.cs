@@ -26,7 +26,8 @@ public interface IProjectFiles
     IReadOnlyList<string> FindTestFiles(string root);
 
     /// <summary>
-    /// Watches the root for changes to YAML files. Changes are gathered for a
+    /// Watches the root for changes to YAML files and user-action sources
+    /// (<see cref="ProjectFileKinds.IsWatched"/>). Changes are gathered for a
     /// short while, then reported together on a background thread.
     /// </summary>
     /// <param name="root">The project root.</param>
@@ -137,7 +138,7 @@ public sealed class DiskProjectFiles : IProjectFiles
 
             try
             {
-                foreach (var file in Directory.EnumerateFiles(fullPath, "*.yaml", SearchOption.AllDirectories))
+                foreach (var file in Directory.EnumerateFiles(fullPath, "*", SearchOption.AllDirectories))
                 {
                     Add(file);
                 }
@@ -151,8 +152,7 @@ public sealed class DiskProjectFiles : IProjectFiles
         private void Add(string fullPath)
         {
             var relative = ToRelative(_root, fullPath);
-            var ignored = relative.Split('/').Any(part => part.StartsWith('.') || part == "node_modules");
-            if (ignored || !relative.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase))
+            if (!ProjectFileKinds.IsWatched(relative))
             {
                 return;
             }

@@ -61,11 +61,13 @@ public sealed class ServicesTests : IDisposable
 
         Write("root.test.yaml");
         Write("tests/new-folder/new.test.yaml");
+        Write("actions/new-action.ts", "export default {};");
         Write("notes.txt", "ignored");
 
         var batch = await reported.Task.WaitAsync(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken);
         Assert.Contains("root.test.yaml", batch);
         Assert.Contains("tests/new-folder/new.test.yaml", batch);
+        Assert.Contains("actions/new-action.ts", batch);
         Assert.DoesNotContain("notes.txt", batch);
     }
 

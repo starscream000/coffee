@@ -16,6 +16,7 @@ public sealed class EngineService : IEngineService, IAsyncDisposable
     private readonly IUiDispatcher _dispatcher;
     private readonly Func<string?, string?, EngineSearchInput> _searchInput;
     private Exception? _failure;
+    private volatile bool _shuttingDown;
 
     /// <summary>Creates the service.</summary>
     /// <param name="settings">Where the Node and engine paths are stored.</param>
@@ -64,6 +65,11 @@ public sealed class EngineService : IEngineService, IAsyncDisposable
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        if (_shuttingDown)
+        {
+            return;
+        }
+
         _failure = null;
         var settings = _settings.Load();
         EngineLocation location;
@@ -95,16 +101,29 @@ public sealed class EngineService : IEngineService, IAsyncDisposable
             var info = await _session.StartAsync(location.Launch, AppVersion, cancellationToken).ConfigureAwait(false);
             Log(EngineLogSource.App, $"Engine {info.Engine.Name} {info.Engine.Version} ready, protocol {info.ProtocolVersion} (this app speaks {ProtocolVersion.Current}).");
         }
+        catch (EngineClosedException)
+        {
+            // The app is shutting down: starting nothing is the point.
+        }
         catch (EngineException ex)
         {
             Log(EngineLogSource.App, ex.Message);
         }
+        catch (Exception ex)
+        {
+            // Not an engine error, so a bug or an operating-system failure; keep the detail.
+            _failure = ex;
+            Log(EngineLogSource.App, $"Starting the engine failed unexpectedly: {ex}");
+            _dispatcher.Post(() => StateChanged?.Invoke(this, EventArgs.Empty));
+        }
     }
 
     /// <inheritdoc />
-    public async Task StopAsync()
+    public async Task ShutdownAsync()
     {
-        await _session.StopAsync().ConfigureAwait(false);
+        _shuttingDown = true;
+        _failure = null;
+        await _session.CloseAsync().ConfigureAwait(false);
         Log(EngineLogSource.App, "Engine stopped.");
     }
 
@@ -134,7 +153,7 @@ public sealed class EngineService : IEngineService, IAsyncDisposable
         files.Count == 0 ? [] : (await _session.Client.ValidateFilesAsync(files, cancellationToken).ConfigureAwait(false)).Diagnostics;
 
     /// <inheritdoc />
-    public ValueTask DisposeAsync() => _session.DisposeAsync();
+    public async ValueTask DisposeAsync() => await ShutdownAsync().ConfigureAwait(false);
 
     private void Log(EngineLogSource source, string text)
     {

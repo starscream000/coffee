@@ -144,3 +144,51 @@ public sealed class IncompatibleEngineException : EngineException
     /// <summary>The engine's protocol version.</summary>
     public string EngineProtocolVersion { get; }
 }
+
+/// <summary>A request was made while the engine is not ready (starting, stopped, failed or closing).</summary>
+public sealed class EngineNotReadyException : EngineException
+{
+    /// <summary>Creates the exception.</summary>
+    /// <param name="state">The engine's state at the time.</param>
+    public EngineNotReadyException(EngineState state)
+        : base($"The engine is not ready (it is {state}). Start or restart it, then try again.")
+    {
+        State = state;
+    }
+
+    /// <summary>The engine's state at the time.</summary>
+    public EngineState State { get; }
+}
+
+/// <summary>A start was asked for after the session was closed, because the app is shutting down.</summary>
+public sealed class EngineClosedException : EngineException
+{
+    /// <summary>Creates the exception.</summary>
+    public EngineClosedException()
+        : base("The engine is not started because the app is shutting down.")
+    {
+    }
+}
+
+/// <summary>The engine sent an answer that does not fit the protocol, such as a result of the wrong shape.</summary>
+public sealed class ProtocolViolationException : EngineException
+{
+    /// <summary>Creates the exception.</summary>
+    /// <param name="message">What did not fit and what to do.</param>
+    /// <param name="inner">The cause.</param>
+    public ProtocolViolationException(string message, Exception? inner = null)
+        : base(message, inner)
+    {
+    }
+}
+
+/// <summary>The connection stopped reading the engine's output for a reason other than the engine exiting.</summary>
+public sealed class EngineConnectionFailedException : EngineException
+{
+    /// <summary>Creates the exception.</summary>
+    /// <param name="inner">What went wrong in the connection.</param>
+    public EngineConnectionFailedException(Exception inner)
+        : base($"The connection to the engine failed: {inner?.Message} Restart the engine.", inner)
+    {
+    }
+}
