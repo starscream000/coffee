@@ -1,0 +1,68 @@
+<!-- The application: theme, shared resources and styles. -->
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Desktop.App.App"
+             RequestedThemeVariant="Default">
+  <Application.Resources>
+    <FontFamily x:Key="CodeFont">Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace</FontFamily>
+    <SolidColorBrush x:Key="ErrorBrush" Color="#D13438" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#C78A00" />
+    <SolidColorBrush x:Key="OkBrush" Color="#2E8B57" />
+    <SolidColorBrush x:Key="MutedBrush" Color="#808080" />
+    <SolidColorBrush x:Key="ErrorLineBrush" Color="#33D13438" />
+    <SolidColorBrush x:Key="WarningLineBrush" Color="#33C78A00" />
+  </Application.Resources>
+  <Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+    </Style>
+    <Style Selector="TextBlock.small">
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.code, SelectableTextBlock.code">
+      <Setter Property="FontFamily" Value="{StaticResource CodeFont}" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="Border.badge">
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="6,0" />
+      <Setter Property="Margin" Value="4,0,0,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
+    </Style>
+    <Style Selector="Border.badge.error">
+      <Setter Property="Background" Value="{StaticResource ErrorBrush}" />
+    </Style>
+    <Style Selector="Border.badge.warning">
+      <Setter Property="Background" Value="{StaticResource WarningBrush}" />
+    </Style>
+    <Style Selector="Border.badge.error > TextBlock, Border.badge.warning > TextBlock">
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Ellipse.status">
+      <Setter Property="Width" Value="10" />
+      <Setter Property="Height" Value="10" />
+      <Setter Property="Fill" Value="{StaticResource MutedBrush}" />
+    </Style>
+    <Style Selector="Ellipse.status.ready">
+      <Setter Property="Fill" Value="{StaticResource OkBrush}" />
+    </Style>
+    <Style Selector="Ellipse.status.busy">
+      <Setter Property="Fill" Value="{StaticResource WarningBrush}" />
+    </Style>
+    <Style Selector="Ellipse.status.failed">
+      <Setter Property="Fill" Value="{StaticResource ErrorBrush}" />
+    </Style>
+    <Style Selector="Border.panelHeader">
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+    </Style>
+  </Application.Styles>
+</Application>

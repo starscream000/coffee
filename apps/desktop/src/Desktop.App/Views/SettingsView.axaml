@@ -1,0 +1,30 @@
+<!-- The settings panel: Node and engine paths. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Desktop.App.ViewModels"
+             x:Class="Desktop.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel"
+             Width="560">
+  <Border Padding="20" CornerRadius="8" Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+          BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+    <StackPanel Spacing="12">
+      <TextBlock Text="Settings" FontSize="20" FontWeight="SemiBold" />
+      <StackPanel Spacing="4">
+        <TextBlock Classes="heading" Text="Engine (dist/main.js)" />
+        <TextBox Text="{Binding EnginePath}" PlaceholderText="Search automatically" />
+        <TextBlock Text="{Binding EngineHelp}" Classes="muted small" TextWrapping="Wrap" />
+      </StackPanel>
+      <StackPanel Spacing="4">
+        <TextBlock Classes="heading" Text="Node" />
+        <TextBox Text="{Binding NodePath}" PlaceholderText="Search automatically" />
+        <TextBlock Text="{Binding NodeHelp}" Classes="muted small" TextWrapping="Wrap" />
+      </StackPanel>
+      <TextBlock Text="{Binding Error}" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap"
+                 IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button Content="Cancel" Command="{Binding CancelCommand}" />
+        <Button Content="Save and restart engine" Classes="accent" Command="{Binding SaveCommand}" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

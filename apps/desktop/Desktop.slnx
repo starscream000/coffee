@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Desktop.Protocol/Desktop.Protocol.csproj" />
+    <Project Path="src/Desktop.Engine/Desktop.Engine.csproj" />
+    <Project Path="src/Desktop.App/Desktop.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Desktop.Protocol.Tests/Desktop.Protocol.Tests.csproj" />
+    <Project Path="tests/Desktop.Engine.Tests/Desktop.Engine.Tests.csproj" />
+    <Project Path="tests/Desktop.App.Tests/Desktop.App.Tests.csproj" />
+  </Folder>
+</Solution>
