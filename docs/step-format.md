@@ -316,8 +316,13 @@ Values may contain `${namespace.path}`:
 Rules:
 
 - If a value is exactly one `${…}`, it keeps its type (number, boolean, object).
-  Otherwise the result is a string.
-- Paths use dots: `${vars.order.items.0.name}`.
+  Otherwise the result is a string: numbers and booleans are written as they
+  are (`3`, `true`), `null` is written as `null`, and objects and lists are
+  written as JSON text (`{"id":"A-1"}`, `[1,2]`).
+- Paths use dots: `${vars.order.items.0.name}`. A path reaches only the value's
+  own fields and list positions: `${vars.order.constructor}` or
+  `${vars.order.items.9}` on a two-item list is a runtime error
+  (`PathNotFound`).
 - `$${` writes a literal `${`.
 - There are no expressions, operators or functions. Anything computed belongs in
   a user action.
@@ -532,7 +537,9 @@ committed; they cannot read process environment variables.
 
 Secrets are only named in the config. Their values come from the process
 environment variable of the same name, or a git-ignored `.env` file at the
-project root. A secret that is declared but has no value fails validation of
+project root. The environment variable wins when both are set; an environment
+variable set to the empty string counts as unset, so the `.env` value is used.
+A secret that is declared but has no value fails validation of
 the tests that use it, naming the variable to set. Secrets shorter than 4
 characters are rejected, because masking them would damage ordinary output
 ([ADR 0014](adr/0014-secret-masking.md)).
