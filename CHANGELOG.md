@@ -37,3 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   per step, measured at about 20 ms and 7 KB per step on a small page), user
   actions use the engine's single SDK copy, built-in names keep their dots with
   `expect`, `wait`, `api` and the command name reserved as namespaces.
+- Review 0001 fixes: sensitive response headers keep their real values in
+  variables and are registered as secrets for the rest of the run; old saved
+  logins are deleted at the start of a run; the login cache key is described
+  the same way everywhere; the plan splits the runner into two branches.

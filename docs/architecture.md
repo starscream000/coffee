@@ -207,20 +207,20 @@ The protocol carries the same fields, so clients show identical messages.
 
 Answers from the owner's review of 2026-10-09, folded into the documents:
 
-| #   | Topic                   | Decision                                                                                                           |
-| --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| 1   | Product name            | "Coffee", defined once; later split into four names ([ADR 0019](adr/0019-four-product-names.md))                   |
-| 2   | `ctx.env`               | The selected environment profile; raw process environment never exposed; secrets only via `ctx.secrets`            |
-| 3   | Data rows               | Whole test only in v0.1.0, each row its own test instance; no `forEach` ([ADR 0013](adr/0013-data-rows.md))        |
-| 4   | Browsers                | Chromium only in v0.1.0; browser stays a config field; no Chromium assumption in protocol or public API            |
-| 5   | Snapshot format         | Investigated Playwright tracing; recommendation in [ADR 0007](adr/0007-page-snapshot-format.md), awaiting approval |
-| 6   | New tabs                | `opens` is a step-level field for any action; unnamed new pages get an automatic name and a warning                |
-| 7   | Protocol versioning     | Approved, with a handshake that refuses incompatible clients ([ADR 0011](adr/0011-protocol-versioning.md))         |
-| 8   | Action names            | User actions must be namespaced; un-namespaced names are reserved ([ADR 0016](adr/0016-action-names.md))           |
-| 9   | Additions               | `description`, `shorthand`, `ctx.locate`, `ctx.signal` approved with conditions (see actions.md)                   |
-| 10  | CLI → engine dependency | Accepted for locating the executable only ([ADR 0009](adr/0009-clients-locate-engine.md))                          |
-| 11  | Node pin                | Raise to the current 24 LTS patch after the owner confirms the local upgrade; CI uses `.nvmrc`                     |
-| 12  | Copyright holder        | starscream000                                                                                                      |
+| #   | Topic                   | Decision                                                                                                            |
+| --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 1   | Product name            | "Coffee", defined once; later split into four names ([ADR 0019](adr/0019-four-product-names.md))                    |
+| 2   | `ctx.env`               | The selected environment profile; raw process environment never exposed; secrets only via `ctx.secrets`             |
+| 3   | Data rows               | Whole test only in v0.1.0, each row its own test instance; no `forEach` ([ADR 0013](adr/0013-data-rows.md))         |
+| 4   | Browsers                | Chromium only in v0.1.0; browser stays a config field; no Chromium assumption in protocol or public API             |
+| 5   | Snapshot format         | Playwright tracing, one chunk per step; settled by decision 15 below ([ADR 0007](adr/0007-page-snapshot-format.md)) |
+| 6   | New tabs                | `opens` is a step-level field for any action; unnamed new pages get an automatic name and a warning                 |
+| 7   | Protocol versioning     | Approved, with a handshake that refuses incompatible clients ([ADR 0011](adr/0011-protocol-versioning.md))          |
+| 8   | Action names            | User actions must be namespaced; un-namespaced names are reserved ([ADR 0016](adr/0016-action-names.md))            |
+| 9   | Additions               | `description`, `shorthand`, `ctx.locate`, `ctx.signal` approved with conditions (see actions.md)                    |
+| 10  | CLI → engine dependency | Accepted for locating the executable only ([ADR 0009](adr/0009-clients-locate-engine.md))                           |
+| 11  | Node pin                | Raise to the current 24 LTS patch after the owner confirms the local upgrade; CI uses `.nvmrc`                      |
+| 12  | Copyright holder        | starscream000                                                                                                       |
 
 Second review, 2026-10-09:
 
@@ -255,8 +255,10 @@ Instruction 0001, 2026-10-09 (settles open questions 13, 15 and 16):
 
 ## Open questions
 
-14. **Command, folder and npm scope names.** Three options are in
-    [report 0001](../handoff/reports/0001-finish-milestone-0-docs.md); see also
-    [ADR 0019](adr/0019-four-product-names.md).
-15. **ADR 0018 (saved logins).** Written after the second chat review and not
-    yet reviewed: approve the HMAC-keyed cache design or ask for changes.
+Numbered after the review decisions above, so no number is used twice.
+
+- **Q14. Command, folder and npm scope names.** Three options are in
+  [report 0001](../handoff/reports/0001-finish-milestone-0-docs.md); see also
+  [ADR 0019](adr/0019-four-product-names.md).
+- **Q35. ADR 0018 (saved logins).** Written after the second chat review and
+  not yet reviewed: approve the HMAC-keyed cache design or ask for changes.
