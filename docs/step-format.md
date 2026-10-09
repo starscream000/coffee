@@ -415,11 +415,22 @@ data: ./data/users.csv
   `after`, and its own result.
 - Supported files: CSV (first line is the header) and YAML (a list of
   mappings). Values are strings in CSV and keep their YAML types otherwise.
-- CSV is read as written here and no further: one row per line, values
-  separated by commas, spaces around a value ignored, blank lines skipped.
-  Quoting is not supported, so a value cannot contain a comma, a double quote
-  or a line break; a CSV file with a double quote fails validation
-  (`DataFileInvalid`). Use a YAML data file for such values.
+- CSV files are read as spreadsheets write them
+  ([RFC 4180](https://www.rfc-editor.org/rfc/rfc4180)):
+  - values are separated by commas, one record per line; lines may end in LF
+    or CRLF;
+  - a value may be wrapped in double quotes. Inside quotes, a comma and a line
+    break are part of the value, and a double quote is written twice:
+    `"Smith, J."`, `"He said ""hi"""`;
+  - an unquoted value has the spaces around it removed; a quoted value is kept
+    exactly, spaces included;
+  - blank lines are skipped.
+
+  A file that breaks these rules (a quote that is never closed, text after a
+  closing quote, a quote inside an unquoted value, a record with more or fewer
+  values than the header) fails validation with `DataFileInvalid`, reported in
+  the CSV file at the line of the problem.
+
 - `data` is allowed in tests only, not in flows.
 - A value used in a URL or e-mail address should be URL-safe; add a column for
   it (like `sku` in the example above) rather than reusing a display name with
@@ -589,9 +600,10 @@ browser storage state, and reuses it for every page that names the login
 3. `before` steps run, then `steps`. The first failure stops the remaining
    steps; they are reported as skipped.
 4. `after` steps always run: after success, failure or cancellation. Each `after`
-   step runs even if a previous one failed; all failures are reported. An
-   `after` step that uses a variable that was never set is skipped with that
-   reason, not failed.
+   step runs even if a previous one failed; all failures are reported. A
+   failing `after` step makes the test fail, even when every other step passed.
+   An `after` step that uses a variable that was never set is skipped with that
+   reason, not failed, and does not make the test fail.
 5. A failure in `before` is reported as a setup failure.
 6. Actions auto-wait up to the step timeout; `expect.*` actions retry until they
    pass or time out. Every wait stops promptly when the run is cancelled.
@@ -630,7 +642,7 @@ errors.
 
 - Regular expressions are compiled when validating: `matches`, `extract`'s
   `pattern` (which must have exactly one capturing group), and URL patterns
-  written as `/regex/`. A value that contains `${…}` is checked when the step
+  that start with `regex:`. A value that contains `${…}` is checked when the step
   runs, after interpolation (`InvalidRegex`).
 - `validate` on a path that is a folder reports `NotAFile`; a path outside the
   project reports `FileOutsideProject`.

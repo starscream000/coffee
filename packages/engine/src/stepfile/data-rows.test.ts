@@ -1,10 +1,10 @@
-// Unit tests for data rows: inline rows, CSV read exactly as step-format.md
-// defines it, and YAML data files.
+// Unit tests for data rows: inline rows, CSV read as RFC 4180, and YAML data
+// files.
 import { describe, expect, it } from 'vitest';
 import { dataFilePath, parseCsvRows, parseYamlRows, readDataRows } from './data-rows.js';
 
-describe('parseCsvRows', () => {
-  it('reads the header and one row per line, values as strings', () => {
+describe('parseCsvRows (RFC 4180)', () => {
+  it('reads the header and one row per line, values as strings, trimmed, blank lines skipped', () => {
     expect(parseCsvRows('sku,price\r\ndesk-lamp, 25\n\nchair,120\n')).toEqual({
       rows: [
         { sku: 'desk-lamp', price: '25' },
@@ -13,13 +13,30 @@ describe('parseCsvRows', () => {
     });
   });
 
-  it('rejects what the definition does not cover instead of guessing', () => {
-    expect(parseCsvRows('name,city\n"Smith, J.",Paris\n').error).toMatch(
-      /^Quoted CSV values are not supported/,
-    );
-    expect(parseCsvRows('a,b\n1,2,3\n').error).toBe(
-      'Line 2 has 3 values, but the header has 2 columns.',
-    );
+  it('reads quoted values: commas, line breaks and doubled quotes inside, kept exactly', () => {
+    const text = 'name,note,city\r\n"Smith, J.","said ""hi""\nthen left", Paris\n" padded ",,"x"\n';
+    expect(parseCsvRows(text)).toEqual({
+      rows: [
+        { name: 'Smith, J.', note: 'said "hi"\nthen left', city: 'Paris' },
+        { name: ' padded ', note: '', city: 'x' },
+      ],
+    });
+  });
+
+  it('reports a broken file with the line where the problem is', () => {
+    expect(parseCsvRows('a,b\n1,2\n"open,3\n4,5\n')).toEqual({
+      error: 'The quote opened on line 3 is never closed.',
+      line: 3,
+    });
+    expect(parseCsvRows('a,b\n1,"2"x\n')).toMatchObject({ line: 2 });
+    expect(parseCsvRows('a,b\nsay "hi",2\n')).toMatchObject({ line: 2 });
+    expect(parseCsvRows('a,b\n1,2\n"multi\nline",2,3\n')).toEqual({
+      error: 'Line 3 has 3 values, but the header has 2 columns.',
+      line: 3,
+    });
+    expect(parseCsvRows('a,b\n1\n')).toMatchObject({
+      error: 'Line 2 has 1 values, but the header has 2 columns.',
+    });
     expect(parseCsvRows('a,,c\n1,2,3\n').error).toBe('Column 2 of the header has no name.');
     expect(parseCsvRows('a,a\n1,2\n').error).toBe('The header names the column "a" twice.');
     expect(parseCsvRows('a,b\n').error).toBe('The CSV file has a header but no rows.');

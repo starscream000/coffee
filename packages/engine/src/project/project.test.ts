@@ -274,6 +274,24 @@ describe('cross-file checks: pages, logins and data', () => {
       'tests/missing.test.yaml:3:7 DataFileNotFound',
     ]);
   });
+
+  it('reports a broken CSV file in that file, at the line of the problem', async () => {
+    const p = await project({
+      'tests/data/bad.csv': 'sku,title\nlamp,"Desk lamp"\nchair,"Office chair\n',
+      'tests/bad.test.yaml': lines(
+        'version: 1',
+        'name: T',
+        'data: ./data/bad.csv',
+        'steps: [back]',
+      ),
+    });
+    const diagnostics = p.validate({ files: ['tests/bad.test.yaml'] });
+    expect(brief(diagnostics)).toEqual(['tests/data/bad.csv:3:1 DataFileInvalid']);
+    expect(diagnostics[0]).toMatchObject({
+      message: 'The quote opened on line 3 is never closed.',
+      hint: 'Used by tests/bad.test.yaml.',
+    });
+  });
 });
 
 describe('cross-file checks: interpolation', () => {
