@@ -5,6 +5,7 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "paths": {
       "@cfe/engine/sdk": ["./packages/engine/src/sdk/index.ts"]
     }
@@ -14,6 +15,7 @@
     "examples/*/src",
     "vitest.config.ts",
     "vitest.integration.config.ts",
-    "examples/*/actions"
+    "examples/*/actions",
+    "examples/*/server"
   ]
 }
