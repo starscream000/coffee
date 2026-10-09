@@ -1,0 +1,8 @@
+# S11: the first candidate of order.placeOrder no longer matches, so the test
+# ID is used after fallbackGrace, with a LocatorFallback warning.
+version: 1
+name: A renamed button is found by its test ID
+steps:
+  - goto: /fallback
+  - click: order.placeOrder
+  - expect.text: { target: order.status, equals: Order placed }

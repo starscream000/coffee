@@ -1,0 +1,14 @@
+# F3: a before step fails; it is reported as a setup failure, the steps are
+# skipped, and the after steps still run.
+version: 1
+name: The setup fails
+before:
+  - goto: /todos
+  - expect.text: { target: todos.count, equals: 99 }
+    timeout: 1s
+steps:
+  - fill: { target: todos.new, value: Never added }
+  - click: todos.add
+after:
+  - goto: /todos
+  - click: todos.clearAll

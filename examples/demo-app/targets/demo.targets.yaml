@@ -1,0 +1,48 @@
+# Shared targets for the demo app's pages (examples/demo-app/README.md).
+version: 1
+targets:
+  todos.new:
+    - label: New to-do
+    - testId: new-todo
+  todos.add:
+    - role: button
+      name: Add
+  todos.count:
+    - testId: todo-count
+  todos.clearAll:
+    - role: button
+      name: Clear all
+  # S11: the button was renamed "Submit order"; only its test ID still matches.
+  order.placeOrder:
+    - role: button
+      name: Place order
+    - testId: place-order
+  order.status:
+    - testId: order-status
+  # S12: the placeholder matches the CSS fallback at once, the button 500 ms later.
+  cart.checkout:
+    - role: button
+      name: Check out
+    - css: .checkout-button
+  cart.status:
+    - testId: checkout-status
+  # S14: the payment form sits in an iframe inside an iframe.
+  checkoutFrame:
+    - css: iframe#checkout
+  paymentFrame:
+    frame: checkoutFrame
+    candidates:
+      - css: 'iframe[title="Secure payment"]'
+  payment.cardNumber:
+    frame: paymentFrame
+    candidates:
+      - label: Card number
+  payment.pay:
+    frame: paymentFrame
+    candidates:
+      - role: button
+        name: Pay
+  payment.status:
+    frame: paymentFrame
+    candidates:
+      - testId: payment-status
