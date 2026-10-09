@@ -46,5 +46,5 @@ summarises the day-to-day workflow.
 
 ## Secrets
 
-Never commit secrets, saved logins or run output. `.testtool/` and `.env*`
+Never commit secrets, saved logins or run output. the product data folder (`.coffee/`) and `.env*`
 files are ignored by Git for this reason.

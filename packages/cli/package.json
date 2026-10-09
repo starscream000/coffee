@@ -12,7 +12,7 @@
     "dist"
   ],
   "bin": {
-    "testtool": "./dist/main.js"
+    "coffee": "./dist/main.js"
   },
   "dependencies": {
     "@test-tool/protocol": "workspace:*"
