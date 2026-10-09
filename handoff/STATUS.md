@@ -49,11 +49,15 @@ merged after #16, on the owner's word.
   element (review 0005, question 1). It stays as implemented; instruction 0006
   writes the rule into the documents.
 
+- 2026-10-10: a regular expression for a URL is written with the prefix
+  `regex:` (as in `wait.url: 'regex:^/orders/\d+$'`); anything without the
+  prefix is a glob, so `/orders/` is always a path (review 0004, question 1).
+  Instruction 0006 was already open and leaves the old `/regex/` rule in
+  place; the next engine instruction changes the documents, the schemas and
+  the validator, before plan branch 12.
+
 ## Waiting on the owner
 
-- How to write a regular expression for a URL (review 0004): keep `/regex/`,
-  or require the prefix `regex:`. The review recommends the prefix. Needed
-  before plan branch 12, which is the first to use URL patterns.
 - npm: create the organisation `cfe` to hold the `@cfe` scope. A free name can
   be taken at any time.
 - Repository visibility: it is public. Decide whether it should be private.
