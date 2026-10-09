@@ -26,19 +26,36 @@ export const INSTALL_COMMAND = `npx playwright@${PLAYWRIGHT_VERSION} install chr
  *
  * Playwright names the folder of the full browser `chromium-<revision>` and the
  * headless shell `chromium_headless_shell-<revision>`, side by side, and writes
- * `INSTALLATION_COMPLETE` into each when its download has finished.
+ * `INSTALLATION_COMPLETE` into each when its download has finished. The
+ * executable lies two folders below `chromium-<revision>` on Windows and Linux,
+ * and deeper inside `Chromium.app` on macOS.
  *
+ * @param executable - Where Playwright expects the full browser's executable.
+ * @param exists - Tells whether a path exists; replaceable for tests.
  * @returns True when a run can start Chromium.
  */
+export function chromiumInstalledAt(
+  executable: string,
+  exists: (path: string) => boolean = existsSync,
+): boolean {
+  if (exists(executable)) return true;
+  for (let folder = dirname(executable); folder !== dirname(folder); folder = dirname(folder)) {
+    const revision = /^chromium-(\d+)$/.exec(basename(folder))?.[1];
+    if (revision !== undefined) {
+      const shellFolder = join(dirname(folder), `chromium_headless_shell-${revision}`);
+      return exists(join(shellFolder, 'INSTALLATION_COMPLETE'));
+    }
+  }
+  return false;
+}
+
+/**
+ * Tells whether the engine's Playwright can start Chromium.
+ *
+ * @returns True when the full browser or the headless shell is installed.
+ */
 export function chromiumInstalled(): boolean {
-  const executable = chromium.executablePath();
-  if (existsSync(executable)) return true;
-  // <browsers>/chromium-<rev>/<platform folder>/<executable>
-  const browserFolder = dirname(dirname(executable));
-  const revision = /^chromium-(\d+)$/.exec(basename(browserFolder))?.[1];
-  if (revision === undefined) return false;
-  const shellFolder = join(dirname(browserFolder), `chromium_headless_shell-${revision}`);
-  return existsSync(join(shellFolder, 'INSTALLATION_COMPLETE'));
+  return chromiumInstalledAt(chromium.executablePath());
 }
 
 /**
