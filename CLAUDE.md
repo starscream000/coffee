@@ -6,7 +6,7 @@ ask the owner instead of guessing.
 
 ## What we are building
 
-Coffee (placeholder name; the owner will supply the final one) is a desktop tool for recording, editing and running
+Coffee (final display name; command, folder and npm scope names are pending the owner's choice) is a desktop tool for recording, editing and running
 end-to-end web tests. It has three parts:
 
 1. **Engine**: a headless TypeScript program on Node.js that uses the
@@ -82,9 +82,10 @@ process. Clients never import engine code. ESLint enforces this.
 - Do not add a licence file. The project is "All rights reserved" for now
   (`"license": "UNLICENSED"` in every package.json). Copyright holder:
   starscream000.
-- Never write the product name literally in code. Use `PRODUCT` from
-  `packages/protocol/src/product.ts`, the single place to rename the product.
-  Its test checks the files that cannot import it.
+- Never write the product's names literally in code. Use `PRODUCT` from
+  `packages/protocol/src/product.ts`, which holds four independent names:
+  display name, command, data folder and npm scope. Its test checks the files
+  that cannot import it.
 - Do not add features the owner has not asked for.
 
 ## Git rules
