@@ -67,6 +67,18 @@ validator to `{ url: /products }` before anything else sees it. Consequences:
 line numbers), the TypeScript type of `params` in `run`, and a JSON Schema that
 clients receive through `listActions` to build editing forms.
 
+### Specs and runnable actions
+
+Everything in the table above except `run` is the action's **`ActionSpec`**:
+`name`, `description`, `shorthand` and `params`. A runnable action is an
+`ActionSpec` plus `run` ([ADR 0021](adr/0021-action-spec.md)).
+
+- The engine holds the specs of all built-in actions from the start, so the
+  validator can check every step before any action can run.
+- `defineAction` takes an `ActionSpec` plus `run` and returns a runnable action;
+  user actions are described by the same shape as built-ins.
+- `listActions` reports specs (with `params` as JSON Schema).
+
 `target()` is a schema helper for target parameters. In a step file it accepts a
 target name or an inline candidate list; in `run` it is an unresolved
 `TargetRef` that must be passed to `ctx.locate`.

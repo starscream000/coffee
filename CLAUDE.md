@@ -119,8 +119,9 @@ Work is passed through files in `handoff/`. Read
 [handoff/README.md](handoff/README.md) once, then at the start of every session:
 
 1. `git switch main` and `git pull --ff-only`.
-2. Read `handoff/STATUS.md` and open the instruction it names. If none is open,
-   do nothing and say so.
+2. Read `handoff/STATUS.md`. It lists the open instructions in the order to
+   carry them out; take them in that order, and stop if one cannot be
+   finished. If none is open, do nothing and say so.
 3. Carry out that instruction and nothing else, on the branches it names.
 4. Write the report in `handoff/reports/` on the work branch, run
    `pnpm verify`, push, open the pull request, and stop.

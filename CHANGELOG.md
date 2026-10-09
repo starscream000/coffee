@@ -43,3 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Final product names applied: command `cfe`, data folder `.cfe`, config file
   `cfe.config.yaml`, npm scope `@cfe` (`@cfe/protocol`, `@cfe/engine`,
   `@cfe/cli`); the repository's root package is `coffee`.
+- Milestone 1 approvals: the v0.1.0 plan and definition of done are approved,
+  ADR 0018 is accepted, and ADRs 0020 (the protocol is defined once, as Zod
+  schemas) and 0021 (actions are described by an `ActionSpec`, separate from
+  their code) record the reviewer's decisions.

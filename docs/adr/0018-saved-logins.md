@@ -1,6 +1,6 @@
 # 0018. Cache saved logins under a keyed hash with a maximum age
 
-- Status: Proposed
+- Status: Accepted (owner, 2026-10-09)
 - Date: 2026-10-09
 
 ## Context

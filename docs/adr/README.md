@@ -23,5 +23,7 @@ condition.
 | [0015](0015-results-layout.md)                | Write each run to its own folder with a fixed layout              | Accepted                  |
 | [0016](0016-action-names.md)                  | Namespace user actions; reserve plain names for built-ins         | Accepted                  |
 | [0017](0017-product-identity.md)              | Define the product identity in one constant                       | Accepted, amended by 0019 |
-| [0018](0018-saved-logins.md)                  | Cache saved logins under a keyed hash with a maximum age          | Proposed                  |
+| [0018](0018-saved-logins.md)                  | Cache saved logins under a keyed hash with a maximum age          | Accepted                  |
 | [0019](0019-four-product-names.md)            | Keep four independent product names                               | Accepted                  |
+| [0020](0020-protocol-as-zod-schemas.md)       | Define the protocol once, as Zod schemas                          | Accepted                  |
+| [0021](0021-action-spec.md)                   | Describe actions with an ActionSpec, separate from their code     | Accepted                  |
