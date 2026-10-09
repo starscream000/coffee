@@ -591,6 +591,12 @@ browser storage state, and reuses it for every page that names the login
 - A test with **`freshLogin: true`** signs in from scratch for every page that
   has a login, without reading the saved state and without writing a new one.
   Use it for tests of the login itself or of session handling.
+- A page with a login signs in when a step first uses it. The login flow runs
+  in a browser context of its own; its steps are not reported as steps of the
+  test, but a `log` event says whether the login signed in or reused a saved
+  state. The step's own timeout starts once its page is ready, so the login
+  flow's steps are limited by their own timeouts. A login flow that fails fails
+  that step with the flow step's error and its location in the flow file.
 
 ## Execution rules
 

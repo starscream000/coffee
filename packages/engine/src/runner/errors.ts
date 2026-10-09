@@ -38,6 +38,25 @@ export class StepError extends Error {
   }
 }
 
+/**
+ * A saved login's flow failed. Every step that needs the login fails with the
+ * flow's own error and location (ADR 0018).
+ */
+export class LoginFailedError extends Error {
+  /** The failing flow step's error, with its location in the flow file. */
+  readonly info: ErrorInfo;
+
+  /**
+   * @param login - The login's name.
+   * @param info - The error of the flow step that failed.
+   */
+  constructor(login: string, info: ErrorInfo) {
+    super(`The saved login "${login}" could not sign in: ${info.message}`);
+    this.name = 'LoginFailedError';
+    this.info = { ...info, message: this.message };
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -97,6 +116,9 @@ export function toErrorInfo(
       hint: 'Check that the page reaches the expected state, or give the step a longer "timeout".',
       ...at,
     };
+  }
+  if (error instanceof LoginFailedError) {
+    return error.info;
   }
   if (error instanceof StepError) {
     return {

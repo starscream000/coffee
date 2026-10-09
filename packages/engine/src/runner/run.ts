@@ -19,7 +19,7 @@ import { interpolate } from '../context/interpolate.js';
 import { VariableStore } from '../context/variables.js';
 import { readDataRows } from '../stepfile/data-rows.js';
 import { availableBrowsers, INSTALL_COMMAND, launchBrowser } from './browser.js';
-import { StepError } from './errors.js';
+import { LoginStore, loginsDir, pruneLogins, type LoginPruneResult } from './logins.js';
 import { DEFAULT_KEEP_RUNS, pruneRuns, type PruneResult } from './keep-runs.js';
 import { RunFolder, type RunFolderInfo } from './run-folder.js';
 import { runTest, type EmitEvent, type TestInstance, type TestStatus } from './test-run.js';
@@ -150,6 +150,8 @@ export class RunManager {
     // keepRuns is applied before the new run folder is created (ADR 0015).
     const runsDir = join(project.root, PRODUCT.dataDir, 'runs');
     const pruned = pruneRuns(runsDir, config.defaults?.keepRuns ?? DEFAULT_KEEP_RUNS);
+    // Saved logins that can no longer be used go before any test (ADR 0018).
+    const prunedLogins = pruneLogins(loginsDir(project.root), config, Date.now());
     const runId = newRunId(new Date());
     const resultsDir = join(runsDir, runId);
     mkdirSync(resultsDir, { recursive: true });
@@ -199,6 +201,8 @@ export class RunManager {
           emit,
           cancel: cancel.signal,
           cleanupFailures: pruned.failed,
+          loginCleanupFailures: prunedLogins.failed,
+          refreshLogins: params.options?.refreshLogins === true,
         }).finally(() => {
           this.current = undefined;
           resolve();
@@ -321,6 +325,8 @@ export class RunManager {
       emit: EmitEvent;
       cancel: AbortSignal;
       cleanupFailures: PruneResult['failed'];
+      loginCleanupFailures: LoginPruneResult['failed'];
+      refreshLogins: boolean;
     },
   ): Promise<void> {
     const { emit, profile } = run;
@@ -356,6 +362,13 @@ export class RunManager {
         ...(test.skip === undefined ? {} : { skip: test.skip }),
       })),
     });
+    for (const failure of run.loginCleanupFailures) {
+      emit('log', {
+        level: 'warn',
+        code: 'LoginCleanupFailed',
+        message: `The old saved login ${failure.file} could not be deleted; it is tried again at the next run: ${failure.reason}`,
+      });
+    }
     for (const failure of run.cleanupFailures) {
       emit('log', {
         level: 'warn',
@@ -368,6 +381,20 @@ export class RunManager {
     let browser: Browser | undefined;
     try {
       browser = await launchBrowser(run.headed);
+      const config = project.config;
+      if (config === undefined) throw new Error('The config is not valid.');
+      const logins = new LoginStore({
+        project,
+        config,
+        profile,
+        secrets: run.secrets,
+        registry: project.registry,
+        sharedTargets: project.sharedTargetValues(),
+        testIdAttribute: config.defaults?.testIdAttribute ?? 'data-testid',
+        browser,
+        refresh: run.refreshLogins,
+        engineVersion: this.info.engineVersion,
+      });
       for (const test of planned) {
         if (test.skip !== undefined) {
           emit('testSkipped', { testId: test.instance.testId, reason: test.skip });
@@ -391,13 +418,7 @@ export class RunManager {
             secrets: run.secrets,
             sharedTargets: project.sharedTargetValues(),
             testIdAttribute: project.config?.defaults?.testIdAttribute ?? 'data-testid',
-            logins: () => (login) =>
-              Promise.reject(
-                new StepError(
-                  'NotImplemented',
-                  `Saved logins ("${login}") cannot run yet in this engine version.`,
-                ),
-              ),
+            logins: (fresh) => logins.forTest(test.instance.testId, fresh, emit),
             cancel: run.cancel,
             emit,
           });
