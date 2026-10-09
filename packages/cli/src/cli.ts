@@ -1,8 +1,8 @@
-// Argument handling for the `testtool` command. Kept separate from main.ts so it
+// Argument handling for the command-line program. Kept separate from main.ts so it
 // can be unit tested without spawning a process. Running step files is added in
 // Milestone 1.
 
-import { PROTOCOL_VERSION } from '@test-tool/protocol';
+import { PRODUCT, PROTOCOL_VERSION } from '@test-tool/protocol';
 
 /** Version of the command-line client. */
 export const CLI_VERSION = '0.0.0';
@@ -12,7 +12,7 @@ export const EXIT_OK = 0;
 /** Exit code: the command line could not be understood. */
 export const EXIT_USAGE = 2;
 
-const USAGE = `Usage: testtool [options]
+const USAGE = `Usage: ${PRODUCT.command} [options]
 
 Options:
   --version   Print the CLI and protocol versions
@@ -47,9 +47,9 @@ export function runCli(args: readonly string[], out: Output, err: Output): numbe
     return EXIT_OK;
   }
   if (first === '--version') {
-    out.write(`testtool ${CLI_VERSION} (protocol ${PROTOCOL_VERSION})\n`);
+    out.write(`${PRODUCT.command} ${CLI_VERSION} (protocol ${PROTOCOL_VERSION})\n`);
     return EXIT_OK;
   }
-  err.write(`Unknown argument "${first}". Run "testtool --help" for usage.\n`);
+  err.write(`Unknown argument "${first}". Run "${PRODUCT.command} --help" for usage.\n`);
   return EXIT_USAGE;
 }
