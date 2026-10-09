@@ -206,5 +206,11 @@ export const REQUESTS = {
 /** Name of a request method, such as `"initialize"`. */
 export type RequestMethod = keyof typeof REQUESTS;
 
+/** Parameters of request method `M`, after checking. */
+export type RequestParams<M extends RequestMethod> = z.infer<(typeof REQUESTS)[M]['params']>;
+
+/** Result of request method `M`. */
+export type RequestResult<M extends RequestMethod> = z.infer<(typeof REQUESTS)[M]['result']>;
+
 /** Every request method name, in the order of `docs/protocol.md`. */
 export const REQUEST_METHODS = Object.keys(REQUESTS) as readonly RequestMethod[];
