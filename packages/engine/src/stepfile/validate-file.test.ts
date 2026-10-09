@@ -223,3 +223,46 @@ describe('file-level checks', () => {
     expect(brief(result.diagnostics)).toEqual(['3:1 UnknownKey']);
   });
 });
+
+describe('review 0003 fixes', () => {
+  it('finding 5: regular expressions must compile, and extract needs one group', () => {
+    const result = check(
+      lines(
+        'version: 1',
+        'name: T',
+        'steps:',
+        "  - expect.text: { target: a, matches: '(' }",
+        "  - wait.url: '/[/'",
+        "  - extract: { target: a, as: n, pattern: '(a)(b)' }",
+        "  - extract: { target: a, as: n, pattern: 'Order ([0-9]+)' }",
+        "  - expect.url: { matches: '${vars.pattern}' }",
+        "  - wait.url: '**/orders/*'",
+      ),
+    );
+    expect(brief(result.diagnostics)).toEqual([
+      '4:40 InvalidRegex',
+      '5:15 InvalidRegex',
+      '6:43 InvalidRegex',
+    ]);
+    expect(result.diagnostics[2]?.message).toContain('exactly one capturing group');
+  });
+
+  it('finding 6: a duration given as a number says it must be a duration', () => {
+    const result = check(
+      lines('version: 1', 'name: T', 'steps:', '  - click: go', '    timeout: 10'),
+    );
+    expect(result.diagnostics[0]?.message).toBe(
+      '"timeout" must be a duration such as 500ms, 10s, 2m or 12h.',
+    );
+  });
+
+  it('finding 6: a long-form target written straight after the action gets the target: hint', () => {
+    const result = check(
+      lines('version: 1', 'name: T', 'steps:', '  - click: { candidates: [{ css: a }] }'),
+    );
+    expect(brief(result.diagnostics)).toEqual(['4:12 MissingParameter', '4:14 UnknownKey']);
+    expect(result.diagnostics[1]?.hint).toBe(
+      'An inline target goes under "target:", for example: click: { target: { candidates: [ … ] } }',
+    );
+  });
+});

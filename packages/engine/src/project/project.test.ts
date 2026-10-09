@@ -324,3 +324,54 @@ describe('cross-file checks: interpolation', () => {
     ]);
   });
 });
+
+describe('review 0003 fixes', () => {
+  it('finding 3: validate on a folder is a diagnostic, not an internal error', () => {
+    const p = project({ 'tests/a.test.yaml': test('  - back') });
+    expect(brief(p.validate({ files: ['tests', '..'] }))).toEqual([
+      '..:1:1 FileOutsideProject',
+      'tests:1:1 NotAFile',
+    ]);
+  });
+
+  it('finding 4: an unclosed ${ is reported at its value', () => {
+    const p = project({
+      'tests/a.test.yaml': test("  - fill: { target: [{ css: a }], value: '${vars.email' }"),
+    });
+    const diagnostics = p.validate({ files: ['tests/a.test.yaml'] });
+    expect(brief(diagnostics)).toEqual(['tests/a.test.yaml:4:42 UnclosedInterpolation']);
+  });
+
+  it('finding 7: validate re-reads shared targets files', () => {
+    const p = project({ 'tests/a.test.yaml': test('  - click: go') });
+    expect(brief(p.validate({ files: ['tests/a.test.yaml'] }))).toEqual([
+      'tests/a.test.yaml:4:12 UnknownTarget',
+    ]);
+    mkdirSync(join(p.root, 'targets'));
+    writeFileSync(
+      join(p.root, 'targets/shop.targets.yaml'),
+      lines('version: 1', 'targets:', '  go: [{ css: "#go" }]'),
+      { flag: 'w' },
+    );
+    expect(p.validate({ files: ['tests/a.test.yaml'] })).toEqual([]);
+  });
+
+  it('finding 8: an environment value may not be named name or baseUrl', () => {
+    const p = project(
+      {},
+      lines(
+        'version: 1',
+        'environments:',
+        '  local:',
+        '    baseUrl: http://localhost:1',
+        '    values: { name: x, baseUrl: y, ok: z }',
+      ),
+    );
+    const diagnostics = p.summary().diagnostics;
+    expect(brief(diagnostics)).toEqual([
+      'cfe.config.yaml:5:15 ReservedEnvValue',
+      'cfe.config.yaml:5:24 ReservedEnvValue',
+    ]);
+    expect(diagnostics[0]?.message).toContain('is built in');
+  });
+});

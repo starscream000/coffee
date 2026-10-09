@@ -106,11 +106,25 @@ const overridable = {
 };
 
 /** One environment profile in the config. */
-export const EnvironmentSchema = z.strictObject({
-  baseUrl: z.url({ error: 'must be an absolute URL such as http://localhost:5173' }),
-  values: z.record(VarNameSchema, z.union([z.string(), z.number(), z.boolean()])).optional(),
-  ...overridable,
-});
+export const EnvironmentSchema = z
+  .strictObject({
+    baseUrl: z.url({ error: 'must be an absolute URL such as http://localhost:5173' }),
+    values: z.record(VarNameSchema, z.union([z.string(), z.number(), z.boolean()])).optional(),
+    ...overridable,
+  })
+  .superRefine((environment, ctx) => {
+    // ${env.X} reads values directly, so these names would be hidden.
+    for (const reserved of ['name', 'baseUrl']) {
+      if (environment.values !== undefined && reserved in environment.values) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['values', reserved],
+          message: `"${reserved}" is built in (\${env.${reserved}} is the environment's ${reserved === 'name' ? 'name' : 'base URL'}), so it cannot be a value; choose another name`,
+          params: { diagnostic: 'ReservedEnvValue', atKey: true },
+        });
+      }
+    }
+  });
 
 /** One environment profile. See {@link EnvironmentSchema}. */
 export type Environment = z.infer<typeof EnvironmentSchema>;

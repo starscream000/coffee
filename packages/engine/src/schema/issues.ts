@@ -18,6 +18,8 @@ export interface IssueContext {
   readonly missingCode: string;
   /** Keys allowed in the object at `path`, for "did you mean" hints. */
   readonly knownKeysAt?: (path: DataPath) => readonly string[] | undefined;
+  /** A specific hint for an unknown key, tried before "did you mean". */
+  readonly unknownKeyHint?: (key: string, path: DataPath) => string | undefined;
 }
 
 const TYPE_NOUNS: Record<string, string> = {
@@ -115,7 +117,8 @@ function reportIssue(
           [...path, key],
           'UnknownKey',
           `"${key}" is not a key of ${relative.length === 0 ? context.subject : what}.`,
-          didYouMeanHint(key, known) ??
+          context.unknownKeyHint?.(key, path) ??
+            didYouMeanHint(key, known) ??
             (known.length > 0 ? `Allowed keys: ${known.join(', ')}.` : undefined),
           true,
         );
@@ -127,10 +130,13 @@ function reportIssue(
         reportMissing(relative, path, sink, context);
         return;
       }
+      // A schema with its own message (such as a duration) says best what is wanted.
       sink.error(
         path,
         'InvalidValue',
-        `${what} must be ${TYPE_NOUNS[issue.expected] ?? issue.expected}.`,
+        issue.message.startsWith('Invalid input')
+          ? `${what} must be ${TYPE_NOUNS[issue.expected] ?? issue.expected}.`
+          : `${what} ${issue.message}.`,
       );
       return;
     }

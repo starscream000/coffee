@@ -4,7 +4,7 @@
 // spec. Bare and shorthand steps are normalised here and nowhere else.
 
 import { z } from 'zod';
-import { paramKeys, type ActionSpec } from '../actions/action-spec.js';
+import { paramKeys, targetParamKeys, type ActionSpec } from '../actions/action-spec.js';
 import { DurationSchema, PageNameSchema } from '../schema/common.js';
 import { reportIssues } from '../schema/issues.js';
 import { keysAt } from '../schema/shape.js';
@@ -222,6 +222,19 @@ function finish(
       subject: `"${spec.name}"`,
       missingCode: 'MissingParameter',
       knownKeysAt: (issuePath) => keysAt(spec.params, issuePath.slice(actionPath.length)),
+      unknownKeyHint: (key, issuePath) => {
+        const [targetKey] = targetParamKeys(spec);
+        const atTop = issuePath.length === actionPath.length;
+        return atTop && targetKey !== undefined && ['candidates', 'frame', 'within'].includes(key)
+          ? 'An inline target goes under "' +
+              targetKey +
+              ':", for example: ' +
+              spec.name +
+              ': { ' +
+              targetKey +
+              ': { candidates: [ … ] } }'
+          : undefined;
+      },
     });
   }
   return {

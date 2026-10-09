@@ -117,10 +117,13 @@ export type ListActionsResult = z.infer<typeof ListActionsResultSchema>;
 // validate
 
 /** Parameters of `validate`: files on disk, or one unsaved editor buffer. */
-export const ValidateParamsSchema = z.union([
-  z.looseObject({ files: z.array(z.string()) }),
-  z.looseObject({ content: z.looseObject({ file: z.string(), text: z.string() }) }),
-]);
+export const ValidateParamsSchema = z.union(
+  [
+    z.looseObject({ files: z.array(z.string()) }),
+    z.looseObject({ content: z.looseObject({ file: z.string(), text: z.string() }) }),
+  ],
+  { error: 'it needs "files" (a list of paths) or "content" (a file name and its text)' },
+);
 
 /** Parameters of `validate`. See {@link ValidateParamsSchema}. */
 export type ValidateParams = z.infer<typeof ValidateParamsSchema>;

@@ -17,6 +17,8 @@ export interface Reference {
   readonly path: readonly string[];
   /** Data path of the string value that contains the reference. */
   readonly at: DataPath;
+  /** True when a `${` has no closing `}`; then `expression` is the rest of the text. */
+  readonly unclosed?: boolean;
 }
 
 const REFERENCE = /\$(\$?)\{([^{}]*)\}/g;
@@ -43,6 +45,14 @@ export function referencesIn(text: string, at: DataPath): Reference[] {
     const expression = (match[2] ?? '').trim();
     const [namespace = '', ...path] = expression.split('.');
     found.push({ expression, namespace, path, at });
+  }
+  // A `${` left over after removing every complete reference (and every
+  // literal `$${…}`) has no closing brace.
+  const rest = text.replace(REFERENCE, '');
+  const open = /(?:^|[^$])\$\{/.exec(rest);
+  if (open !== null) {
+    const expression = rest.slice(open.index + open[0].length).trim();
+    found.push({ expression, namespace: '', path: [], at, unclosed: true });
   }
   return found;
 }

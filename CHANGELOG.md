@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Review 0003: no console method can write to stdout; the engine answers every
+  received request before exiting when stdin closes; `validate` on a folder is
+  a diagnostic; an unclosed `${` is reported; regular expressions are checked
+  when validating; clearer messages for a numeric duration, an empty
+  `validate` and a target written straight after an action; shared targets are
+  re-read on every `validate`; environment values may not be named `name` or
+  `baseUrl`.
+
 ### Added
 
 - `openProject` and `validate` requests: the engine finds a project's files
