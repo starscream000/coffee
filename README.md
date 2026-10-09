@@ -8,7 +8,7 @@ Test Tool records, edits and runs end-to-end web tests. Tests are readable YAML
 (a command-line runner first, a desktop app later).
 
 ```yaml
-# tests/checkout/guest-checkout.test.yaml (proposed format)
+# tests/checkout/guest-checkout.test.yaml (proposed format, see docs/step-format.md)
 name: Guest can check out
 steps:
   - goto: /products
@@ -40,6 +40,13 @@ pnpm verify            # lint, format check, type check, tests
 
 ## Documentation
 
+The design documents below are **proposals** awaiting approval.
+
+- [Architecture](docs/architecture.md) (includes the open questions)
+- [Step file format](docs/step-format.md)
+- [Actions](docs/actions.md)
+- [Engine protocol](docs/protocol.md)
+- [Architecture decision records](docs/adr/)
 - [Contributing](CONTRIBUTING.md) and [Changelog](CHANGELOG.md)
 
 ## Copyright

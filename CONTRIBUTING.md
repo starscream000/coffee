@@ -44,6 +44,12 @@ summarises the day-to-day workflow.
   separate process. ESLint enforces this.
 - Unit tests sit next to the code as `*.test.ts`.
 
+## Decisions
+
+Significant technical choices are recorded as ADRs in [docs/adr/](docs/adr/).
+Copy [the template](docs/adr/template.md), give it the next number, and add it
+to the [ADR index](docs/adr/README.md).
+
 ## Secrets
 
 Never commit secrets, saved logins or run output. `.testtool/` and `.env*`
