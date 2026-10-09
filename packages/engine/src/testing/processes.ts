@@ -1,77 +1,101 @@
-// Test helper: counts browser processes whose command line contains a marker.
-// An engine started with its temporary folder (TEMP, TMP, TMPDIR) set to a
-// folder named after the marker gives Chromium a profile folder under it, so
-// the browser's main process carries the marker on its command line. When
-// that process is gone, its helper processes go with it. Not part of the
-// engine build.
+// Test helper: finds the browser processes an engine started, by walking the
+// process tree down from the engine's process id, and checks later whether
+// those processes are gone. Process ids are recorded while the engine runs,
+// because once it exits its children are given to another parent and can no
+// longer be found through it. Not part of the engine build.
 
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
 
-/** A temporary folder for an engine, and the marker its browser processes carry. */
-export interface MarkedTemp {
-  /** The folder; pass it as TEMP, TMP and TMPDIR. */
-  readonly folder: string;
-  /** The folder's name, which appears in the browser's command line. */
-  readonly marker: string;
-  /** The environment variables that point an engine at the folder. */
-  readonly env: Readonly<Record<string, string>>;
+interface ProcessInfo {
+  readonly pid: number;
+  readonly ppid: number;
+  readonly command: string;
 }
 
-/**
- * Makes a temporary folder whose name marks the browser processes started
- * under it.
- *
- * @returns The folder, its marker and the environment for the engine.
- */
-export function markedTemp(): MarkedTemp {
-  // A short folder: Chromium puts a Unix socket under its profile folder, and
-  // macOS limits socket paths to 104 characters, which the deep
-  // /var/folders/… temporary folder would exceed.
-  const base = process.platform === 'win32' ? tmpdir() : '/tmp';
-  const folder = mkdtempSync(join(base, 'cfe-mark-'));
-  return { folder, marker: basename(folder), env: { TEMP: folder, TMP: folder, TMPDIR: folder } };
-}
-
-/**
- * Counts running browser processes whose command line contains `marker`.
- *
- * @param marker - Text unique to one engine's browser.
- * @returns How many such processes are running.
- */
-export function browserProcessCount(marker: string): number {
+/** Every running process with its parent and its command. */
+function listProcesses(): ProcessInfo[] {
   if (process.platform === 'win32') {
-    const script = `@(Get-CimInstance Win32_Process | Where-Object { $_.Name -like '*chrom*' -and $_.CommandLine -like '*${marker}*' }).Count`;
+    const script =
+      'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId)`t$($_.ParentProcessId)`t$($_.Name)" }';
     const output = execFileSync(
       'powershell.exe',
       ['-NoProfile', '-NonInteractive', '-Command', script],
-      {
-        encoding: 'utf8',
-      },
+      { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 },
     );
-    return Number(output.trim());
+    return output.split(/\r?\n/).flatMap((line) => {
+      const [pid, ppid, command = ''] = line.split('\t');
+      return pid === undefined || ppid === undefined || pid === ''
+        ? []
+        : [{ pid: Number(pid), ppid: Number(ppid), command }];
+    });
   }
-  const output = execFileSync('ps', ['-A', '-o', 'args='], { encoding: 'utf8' });
-  return output
-    .split('\n')
-    .filter((line) => line.includes(marker) && /chrom|headless_shell/i.test(line)).length;
+  const output = execFileSync('ps', ['-A', '-o', 'pid=,ppid=,comm='], {
+    encoding: 'utf8',
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  return output.split('\n').flatMap((line) => {
+    const match = /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(line);
+    return match === null
+      ? []
+      : [{ pid: Number(match[1]), ppid: Number(match[2]), command: match[3] ?? '' }];
+  });
 }
 
 /**
- * Waits until no browser process carries the marker any more.
+ * The ids of the browser processes below a process: Chromium's main process
+ * and its helpers.
  *
- * @param marker - Text unique to one engine's browser.
- * @param timeoutMs - How long to wait.
- * @returns The count when the wait ended: 0 unless processes were left behind.
+ * @param rootPid - The engine's process id.
+ * @returns Process ids whose command names Chromium or its headless shell.
  */
-export async function waitForNoBrowser(marker: string, timeoutMs = 10_000): Promise<number> {
-  const deadline = Date.now() + timeoutMs;
-  let count = browserProcessCount(marker);
-  while (count > 0 && Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 250));
-    count = browserProcessCount(marker);
+export function browserProcessIds(rootPid: number): number[] {
+  const all = listProcesses();
+  const below = new Set<number>([rootPid]);
+  // Parents do not always come before their children in the listing, so
+  // repeat until nothing is added.
+  for (let grown = true; grown;) {
+    grown = false;
+    for (const info of all) {
+      if (!below.has(info.pid) && below.has(info.ppid)) {
+        below.add(info.pid);
+        grown = true;
+      }
+    }
   }
-  return count;
+  return all
+    .filter((info) => info.pid !== rootPid && below.has(info.pid))
+    .filter((info) => /chrom|headless_shell/i.test(info.command))
+    .map((info) => info.pid);
+}
+
+/** Whether a process with this id is running. */
+function isRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    // EPERM: it exists but belongs to someone else.
+    return (error as NodeJS.ErrnoException).code === 'EPERM';
+  }
+}
+
+/**
+ * Waits until none of the given processes is running.
+ *
+ * @param pids - Process ids recorded earlier.
+ * @param timeoutMs - How long to wait.
+ * @returns The ids still running when the wait ended: empty unless processes
+ *   were left behind.
+ */
+export async function waitUntilGone(
+  pids: readonly number[],
+  timeoutMs = 10_000,
+): Promise<number[]> {
+  const deadline = Date.now() + timeoutMs;
+  let alive = pids.filter(isRunning);
+  while (alive.length > 0 && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    alive = alive.filter(isRunning);
+  }
+  return alive;
 }
