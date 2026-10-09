@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- App services and view models, tested without a window: the engine service
+  (start, stop, log, requests) with its status and a bounded engine log; the
+  test explorer (folder tree, search, tags, problem counts, and a fallback
+  for engines that cannot list tests yet); the problems panel; the read-only
+  step file view with problem lines marked; the action catalogue with the
+  parameters read from each action's schema; the settings panel and the
+  settings store; reading and watching project files.
 - The engine protocol in C# (`Desktop.Protocol`): every request, result,
   event and shared type of protocol 0.1.0, the version rule, the error table,
   newline framing with the 4 MiB limit, and tolerance for unknown fields,

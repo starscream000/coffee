@@ -337,6 +337,7 @@
           "Avalonia.Desktop": "[12.1.3, )",
           "Avalonia.Fonts.Inter": "[12.1.3, )",
           "Avalonia.Themes.Fluent": "[12.1.3, )",
+          "CommunityToolkit.Mvvm": "[8.4.2, )",
           "Desktop.Engine": "[0.0.0, )"
         }
       },
@@ -391,6 +392,12 @@
         "dependencies": {
           "Avalonia": "12.1.3"
         }
+      },
+      "CommunityToolkit.Mvvm": {
+        "type": "CentralTransitive",
+        "requested": "[8.4.2, )",
+        "resolved": "8.4.2",
+        "contentHash": "WadCzGEc2U+3e20avRLng4qNtt4zoOGWrdUISqJWrHe3/FSnrYjuM5Sb4yQb09LhkBXrrI4Zt3dLKgRMbItsrg=="
       }
     }
   }
