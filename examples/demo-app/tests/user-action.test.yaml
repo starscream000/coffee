@@ -1,0 +1,9 @@
+# S13: calls the user action demo.addTodo (actions/demo.ts) in shorthand and in
+# the long form. It validates now; it runs once the runner exists.
+version: 1
+name: Add to-do items with a user action
+tags: [smoke]
+steps:
+  - goto: /todos
+  - demo.addTodo: Buy milk
+  - demo.addTodo: { title: Walk the dog, done: true }

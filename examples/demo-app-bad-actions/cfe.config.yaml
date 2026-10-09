@@ -1,0 +1,5 @@
+# F9 / A7: a project whose user actions break the naming rules of ADR 0016.
+version: 1
+environments:
+  local:
+    baseUrl: http://localhost:4310

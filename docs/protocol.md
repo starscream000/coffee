@@ -174,6 +174,11 @@ replaces it. Fails with `ProjectInvalid` if no config file is found.
 
 ### `listActions`
 
+No params. Lists the built-in actions and the open project's user actions
+(only the built-ins when no project is open). `paramsSchema` is the JSON Schema
+of the action's canonical long form; it is `{}` for a user action whose schema
+cannot be converted.
+
 ```jsonc
 // result
 {

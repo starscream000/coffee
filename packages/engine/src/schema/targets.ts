@@ -81,6 +81,23 @@ export interface LongTarget {
 export type TargetValue = string | Candidate[] | LongTarget;
 
 /**
+ * Marks a schema as a target schema. A symbol from the global registry, so a
+ * target parameter is recognised even when the schema comes from another copy
+ * of this module (a user action bundled against the engine's SDK).
+ */
+export const TARGET_SCHEMA_MARK = Symbol.for('cfe.targetSchema');
+
+/**
+ * Tells whether a schema is the target schema.
+ *
+ * @param schema - Any schema.
+ * @returns True for the schema `target()` returns.
+ */
+export function isTargetSchema(schema: unknown): boolean {
+  return typeof schema === 'object' && schema !== null && TARGET_SCHEMA_MARK in schema;
+}
+
+/**
  * Schema of a target value. Recursive through `frame` and `within`; giving
  * both on one target is an error ("put frame on the outer target").
  */
@@ -109,6 +126,7 @@ export const TargetSchema: z.ZodType<TargetValue> = z.union([
       }
     }),
 ]);
+Object.defineProperty(TargetSchema, TARGET_SCHEMA_MARK, { value: true });
 
 /**
  * Brings any target value into the long form.

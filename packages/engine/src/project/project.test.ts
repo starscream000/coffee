@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { Diagnostic } from '@cfe/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
-import { BUILTIN_SPECS_BY_NAME } from '../actions/builtin-specs.js';
+import { BUILTIN_SPECS } from '../actions/builtin-specs.js';
 import { RpcError } from '../rpc/rpc-error.js';
 import { Project } from './project.js';
 
@@ -32,14 +32,14 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
 });
 
-function project(files: Record<string, string>, config = CONFIG): Project {
+async function project(files: Record<string, string>, config = CONFIG): Promise<Project> {
   const root = mkdtempSync(join(tmpdir(), 'cfe-project-'));
   roots.push(root);
   for (const [file, text] of Object.entries({ 'cfe.config.yaml': config, ...files })) {
     mkdirSync(dirname(join(root, file)), { recursive: true });
     writeFileSync(join(root, file), text);
   }
-  return Project.open(root, BUILTIN_SPECS_BY_NAME);
+  return Project.open(root, BUILTIN_SPECS);
 }
 
 const lines = (...l: string[]) => `${l.join('\n')}\n`;
@@ -49,8 +49,8 @@ const test = (...steps: string[]) => lines('version: 1', 'name: T', 'steps:', ..
 const login = lines('version: 1', 'name: Login', 'steps: [back]');
 
 describe('Project.open', () => {
-  it('summarises the config, with forward slashes in paths', () => {
-    const p = project({ 'flows/login.flow.yaml': login });
+  it('summarises the config, with forward slashes in paths', async () => {
+    const p = await project({ 'flows/login.flow.yaml': login });
     const summary = p.summary();
     expect(summary).toMatchObject({
       environments: ['local', 'staging'],
@@ -62,8 +62,8 @@ describe('Project.open', () => {
     expect(summary.root).not.toContain('\\');
   });
 
-  it('reports config problems as diagnostics, not as a failure', () => {
-    const p = project(
+  it('reports config problems as diagnostics, not as a failure', async () => {
+    const p = await project(
       {},
       lines(
         'version: 1',
@@ -78,17 +78,17 @@ describe('Project.open', () => {
     ]);
   });
 
-  it('throws ProjectInvalid when there is no config', () => {
+  it('throws ProjectInvalid when there is no config', async () => {
     const root = mkdtempSync(join(tmpdir(), 'cfe-empty-'));
     roots.push(root);
-    expect(() => Project.open(root, BUILTIN_SPECS_BY_NAME)).toThrow(RpcError);
-    expect(() => Project.open(join(root, 'missing'), BUILTIN_SPECS_BY_NAME)).toThrow(
+    await expect(Project.open(root, BUILTIN_SPECS)).rejects.toThrow(RpcError);
+    await expect(Project.open(join(root, 'missing'), BUILTIN_SPECS)).rejects.toThrow(
       /does not exist/,
     );
   });
 
-  it('finds files with the config globs, ignoring other folders', () => {
-    const p = project({
+  it('finds files with the config globs, ignoring other folders', async () => {
+    const p = await project({
       'tests/a.test.yaml': test('- back'),
       'other/b.test.yaml': test('- back'),
       'flows/login.flow.yaml': login,
@@ -99,8 +99,8 @@ describe('Project.open', () => {
 });
 
 describe('validate: files', () => {
-  it('reports missing files, unknown kinds and files outside the project', () => {
-    const p = project({ 'notes.yaml': 'x: 1\n' });
+  it('reports missing files, unknown kinds and files outside the project', async () => {
+    const p = await project({ 'notes.yaml': 'x: 1\n' });
     expect(
       brief(p.validate({ files: ['tests/none.test.yaml', 'notes.yaml', '../outside.test.yaml'] })),
     ).toEqual([
@@ -112,8 +112,8 @@ describe('validate: files', () => {
 });
 
 describe('cross-file checks: targets', () => {
-  it('finds targets in the file, then in shared files, and reports unknown ones', () => {
-    const p = project({
+  it('finds targets in the file, then in shared files, and reports unknown ones', async () => {
+    const p = await project({
       'targets/shop.targets.yaml': lines(
         'version: 1',
         'targets:',
@@ -135,8 +135,8 @@ describe('cross-file checks: targets', () => {
     expect(diagnostics[0]?.hint).toBe('Did you mean "cart.count"?');
   });
 
-  it('reports a test target that reuses a shared name, and duplicates across shared files', () => {
-    const p = project({
+  it('reports a test target that reuses a shared name, and duplicates across shared files', async () => {
+    const p = await project({
       'targets/a.targets.yaml': lines('version: 1', 'targets:', '  go: [{ css: a }]'),
       'targets/b.targets.yaml': lines('version: 1', 'targets:', '  go: [{ css: b }]'),
       'tests/a.test.yaml': lines(
@@ -153,8 +153,8 @@ describe('cross-file checks: targets', () => {
     expect(brief(p.summary().diagnostics)).toEqual(['targets/b.targets.yaml:3:3 DuplicateTarget']);
   });
 
-  it('checks frame and within references and reports cycles with the chain', () => {
-    const p = project({
+  it('checks frame and within references and reports cycles with the chain', async () => {
+    const p = await project({
       'tests/a.test.yaml': lines(
         'version: 1',
         'name: T',
@@ -186,8 +186,8 @@ describe('cross-file checks: flows', () => {
     'steps: [back]',
   );
 
-  it('checks the flow path and its parameters', () => {
-    const p = project({
+  it('checks the flow path and its parameters', async () => {
+    const p = await project({
       'flows/checkout.flow.yaml': flow,
       'tests/a.test.yaml': test(
         '  - call: flows/chekout.flow.yaml',
@@ -206,8 +206,8 @@ describe('cross-file checks: flows', () => {
     expect(diagnostics[0]?.hint).toBe('Did you mean "flows/checkout.flow.yaml"?');
   });
 
-  it("includes the called flow's own problems once, even when it is called twice", () => {
-    const p = project({
+  it("includes the called flow's own problems once, even when it is called twice", async () => {
+    const p = await project({
       'flows/broken.flow.yaml': lines('version: 1', 'name: Broken', 'steps:', '  - clik: x'),
       'tests/a.test.yaml': test(
         '  - call: flows/broken.flow.yaml',
@@ -221,8 +221,8 @@ describe('cross-file checks: flows', () => {
 });
 
 describe('cross-file checks: pages, logins and data', () => {
-  it('checks page names, opening order and duplicates', () => {
-    const p = project({
+  it('checks page names, opening order and duplicates', async () => {
+    const p = await project({
       'flows/login.flow.yaml': login,
       'tests/a.test.yaml': lines(
         'version: 1',
@@ -251,8 +251,8 @@ describe('cross-file checks: pages, logins and data', () => {
     expect(diagnostics[2]?.hint).toBe('Did you mean "admin"?');
   });
 
-  it('checks the data file', () => {
-    const p = project({
+  it('checks the data file', async () => {
+    const p = await project({
       'tests/rows.csv': 'a,b\n1,2\n',
       'tests/ok.test.yaml': lines('version: 1', 'name: T', 'data: ./rows.csv', 'steps: [back]'),
       'tests/missing.test.yaml': lines(
@@ -277,8 +277,8 @@ describe('cross-file checks: pages, logins and data', () => {
 });
 
 describe('cross-file checks: interpolation', () => {
-  it('checks namespaces, secrets and environment values in a test', () => {
-    const p = project({
+  it('checks namespaces, secrets and environment values in a test', async () => {
+    const p = await project({
       'tests/a.test.yaml': test(
         "  - goto: '${env.apiUrl}/x'",
         "  - goto: '${env.onlyStaging}'",
@@ -302,8 +302,8 @@ describe('cross-file checks: interpolation', () => {
     expect(diagnostics[1]?.hint).toBe('Did you mean "API_TOKEN"?');
   });
 
-  it('allows row in tests with data, and params of the flow in flows', () => {
-    const p = project({
+  it('allows row in tests with data, and params of the flow in flows', async () => {
+    const p = await project({
       'tests/a.test.yaml': lines(
         'version: 1',
         'name: T ${row.sku}',
@@ -326,24 +326,24 @@ describe('cross-file checks: interpolation', () => {
 });
 
 describe('review 0003 fixes', () => {
-  it('finding 3: validate on a folder is a diagnostic, not an internal error', () => {
-    const p = project({ 'tests/a.test.yaml': test('  - back') });
+  it('finding 3: validate on a folder is a diagnostic, not an internal error', async () => {
+    const p = await project({ 'tests/a.test.yaml': test('  - back') });
     expect(brief(p.validate({ files: ['tests', '..'] }))).toEqual([
       '..:1:1 FileOutsideProject',
       'tests:1:1 NotAFile',
     ]);
   });
 
-  it('finding 4: an unclosed ${ is reported at its value', () => {
-    const p = project({
+  it('finding 4: an unclosed ${ is reported at its value', async () => {
+    const p = await project({
       'tests/a.test.yaml': test("  - fill: { target: [{ css: a }], value: '${vars.email' }"),
     });
     const diagnostics = p.validate({ files: ['tests/a.test.yaml'] });
     expect(brief(diagnostics)).toEqual(['tests/a.test.yaml:4:42 UnclosedInterpolation']);
   });
 
-  it('finding 7: validate re-reads shared targets files', () => {
-    const p = project({ 'tests/a.test.yaml': test('  - click: go') });
+  it('finding 7: validate re-reads shared targets files', async () => {
+    const p = await project({ 'tests/a.test.yaml': test('  - click: go') });
     expect(brief(p.validate({ files: ['tests/a.test.yaml'] }))).toEqual([
       'tests/a.test.yaml:4:12 UnknownTarget',
     ]);
@@ -356,8 +356,8 @@ describe('review 0003 fixes', () => {
     expect(p.validate({ files: ['tests/a.test.yaml'] })).toEqual([]);
   });
 
-  it('finding 8: an environment value may not be named name or baseUrl', () => {
-    const p = project(
+  it('finding 8: an environment value may not be named name or baseUrl', async () => {
+    const p = await project(
       {},
       lines(
         'version: 1',

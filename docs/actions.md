@@ -128,7 +128,28 @@ target name or an inline candidate list; in `run` it is an unresolved
   types the user sees may not match what runs.
 - A file that fails to compile, fails to load or breaks a naming rule is
   reported as a diagnostic with file and line. Tests that use a missing action
-  fail validation; other tests still run.
+  fail validation; other tests still run. The diagnostics:
+
+  | Code                      | When                                                             |
+  | ------------------------- | ---------------------------------------------------------------- |
+  | `ActionCompileError`      | esbuild cannot bundle the file (at the line and column it names) |
+  | `ActionLoadError`         | the bundled file throws while it is imported                     |
+  | `InvalidActionExport`     | the default export is not an action or a list of actions         |
+  | `ActionNameNotNamespaced` | the name has no dot                                              |
+  | `ActionNamespaceReserved` | the namespace is `expect`, `wait`, `api` or the command name     |
+  | `InvalidActionName`       | the name is not `<namespace>.<name>` in letters and digits       |
+  | `ActionNameTaken`         | another action file already defines the name                     |
+  | `InvalidShorthand`        | `shorthand` names no parameter                                   |
+  | `SdkVersionMismatch`      | warning: the project has another version of the SDK installed    |
+
+  A step that calls an action rejected by these rules gets `ActionNotLoaded`,
+  naming the reason; a step calling an unknown namespaced action while some
+  action files failed to load gets `UnknownAction` with those files in its
+  hint.
+
+- Bundles are cached in `.cfe/cache/actions/` by the file's content. A cached
+  bundle is reused only while every file it was built from (including local
+  files it imports) is unchanged.
 
 ### Trust model
 
@@ -184,6 +205,10 @@ if an error crosses a module or bundling boundary that would break
 | `log`     | `Logger`                             | `debug`, `info`, `warn`; sent to clients as `log` events, secrets masked  |
 | `locate`  | `(t: TargetRef) => Promise<Locator>` | Resolves a target's candidates (approved addition)                        |
 | `signal`  | `AbortSignal`                        | Aborted on step timeout or run cancellation (approved addition)           |
+
+Until Playwright is added (plan branch 6), the SDK declares `Page`,
+`APIRequestContext` and `Locator` as placeholder types; that branch replaces
+them with Playwright's own types.
 
 `ctx.env` never contains the process environment. `ctx.secrets` is the only
 way to read an environment variable, and only one declared as a secret.

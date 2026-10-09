@@ -1,6 +1,6 @@
-// An open project: its config, the files its globs find, and the shared
-// targets. Answers `openProject` and `validate` (docs/protocol.md). User
-// actions are not loaded yet: plan branch 4 adds that to `Project.open`.
+// An open project: its config, its user actions, the files its globs find,
+// and the shared targets. Answers `openProject`, `validate` and
+// `listActions` (docs/protocol.md).
 
 import { existsSync, globSync, readFileSync, statSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
@@ -11,6 +11,8 @@ import {
   type ValidateParams,
 } from '@cfe/protocol';
 import type { ActionSpec } from '../actions/action-spec.js';
+import { checkSdkVersion, loadUserActions } from '../actions/loader.js';
+import { ActionRegistry } from '../actions/registry.js';
 import { DEFAULT_GLOBS, fileKindOf, type ConfigFile } from '../schema/files.js';
 import { TargetSchema } from '../schema/targets.js';
 import { validateFile, type FileValidation } from '../stepfile/validate-file.js';
@@ -88,7 +90,9 @@ export class Project {
   readonly config: ConfigFile | undefined;
   /** Files found by the config's globs; refreshed by every `validate`. */
   files: ProjectFiles = { tests: [], flows: [], targets: [] };
-  private readonly actions: ReadonlyMap<string, ActionSpec>;
+  /** Built-in and user actions. */
+  readonly registry: ActionRegistry;
+  private actionDiagnostics: readonly Diagnostic[] = [];
   private sharedTargets = new Map<string, SharedTarget>();
   private sharedTargetFiles: FileValidation[] = [];
   private readonly flowCache = new Map<string, FileValidation | undefined>();
@@ -97,12 +101,12 @@ export class Project {
     root: string,
     configFile: string,
     text: string,
-    actions: ReadonlyMap<string, ActionSpec>,
+    builtins: readonly ActionSpec[],
   ) {
     this.root = root;
     this.configFile = configFile;
-    this.actions = actions;
-    this.configValidation = validateFile(PRODUCT.configFile, text, 'config', actions);
+    this.registry = new ActionRegistry(builtins);
+    this.configValidation = validateFile(PRODUCT.configFile, text, 'config', this.registry.specs);
     const parsed = this.configValidation.parsed;
     this.config = parsed?.kind === 'config' ? parsed.data : undefined;
     this.refresh();
@@ -150,17 +154,17 @@ export class Project {
   }
 
   /**
-   * Opens the project in `root`. User actions are not loaded yet; plan branch
-   * 4 adds that here.
+   * Opens the project in `root` and loads its user actions (ADR 0008).
    *
    * @param root - The project's root folder, absolute or relative to the
    *   engine's working directory.
-   * @param actions - Every known action by name.
-   * @returns The open project.
+   * @param builtins - The built-in action specs.
+   * @returns The open project; problems with the config or the user actions are
+   *   in its summary's diagnostics.
    * @throws RpcError `ProjectInvalid` when the folder has no readable config
    *   file.
    */
-  static open(root: string, actions: ReadonlyMap<string, ActionSpec>): Project {
+  static async open(root: string, builtins: readonly ActionSpec[]): Promise<Project> {
     const absoluteRoot = resolve(root);
     const configFile = join(absoluteRoot, PRODUCT.configFile);
     let text: string;
@@ -177,7 +181,21 @@ export class Project {
           : `The folder "${posix(absoluteRoot)}" does not exist.`,
       );
     }
-    return new Project(absoluteRoot, configFile, text, actions);
+    const project = new Project(absoluteRoot, configFile, text, builtins);
+    await project.loadActions();
+    return project;
+  }
+
+  private async loadActions(): Promise<void> {
+    const raw = this.configValidation.source.data;
+    const value = isMapping(raw) ? raw.actions : undefined;
+    const patterns =
+      Array.isArray(value) && value.every((item) => typeof item === 'string')
+        ? value
+        : DEFAULT_GLOBS.actions;
+    const report = await loadUserActions(this.root, patterns, this.registry);
+    const sdk = checkSdkVersion(this.root);
+    this.actionDiagnostics = [...report.diagnostics, ...(sdk === undefined ? [] : [sdk])];
   }
 
   /**
@@ -202,6 +220,7 @@ export class Project {
       logins,
       diagnostics: tidyDiagnostics([
         ...this.configValidation.diagnostics,
+        ...this.actionDiagnostics,
         ...crossCheck(this.configValidation, this.context()),
         ...this.sharedTargetFiles.flatMap((file) => [
           ...file.diagnostics,
@@ -279,7 +298,9 @@ export class Project {
 
   private validateOne(file: string, text: string): FileValidation | undefined {
     const kind = fileKindOf(file, PRODUCT.configFile);
-    return kind === undefined ? undefined : validateFile(file, text, kind, this.actions);
+    return kind === undefined
+      ? undefined
+      : validateFile(file, text, kind, this.registry.specs, this.registry);
   }
 
   private toProjectPath(file: string): string {
@@ -291,7 +312,7 @@ export class Project {
     return {
       config: this.config,
       sharedTargets: this.sharedTargets,
-      actions: this.actions,
+      actions: this.registry.specs,
       loadFlow: (file) => {
         const projectPath = this.toProjectPath(file);
         if (!this.flowCache.has(projectPath)) {

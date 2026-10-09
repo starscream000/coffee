@@ -4,7 +4,10 @@
     "composite": false,
     "declaration": false,
     "declarationMap": false,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@cfe/engine/sdk": ["./packages/engine/src/sdk/index.ts"]
+    }
   },
-  "include": ["packages/*/src", "examples/*/src", "vitest.config.ts"]
+  "include": ["packages/*/src", "examples/*/src", "vitest.config.ts", "examples/*/actions"]
 }
