@@ -1,0 +1,10 @@
+{
+  "tests": [
+    {
+      "file": "tests/checkout/guest-checkout.test.yaml",
+      "name": "Guest checks out ${row.product}",
+      "tags": ["smoke"],
+      "rows": 2
+    }
+  ]
+}

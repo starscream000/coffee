@@ -1,0 +1,14 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32002,
+    "message": "This client speaks protocol 0.2.0 but the engine speaks 0.1.0. Update the engine to a version that supports protocol 0.2.",
+    "data": {
+      "name": "IncompatibleProtocol",
+      "clientProtocolVersion": "0.2.0",
+      "engineProtocolVersion": "0.1.0",
+      "engineVersion": "0.1.0"
+    }
+  }
+}

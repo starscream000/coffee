@@ -1,0 +1,47 @@
+{
+  "title": "request.initialize.result (protocol 0.1.0)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "protocolVersion": {
+      "type": "string"
+    },
+    "engine": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "additionalProperties": {}
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "browsers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "browsers"
+      ],
+      "additionalProperties": {}
+    }
+  },
+  "required": [
+    "protocolVersion",
+    "engine",
+    "capabilities"
+  ],
+  "additionalProperties": {}
+}

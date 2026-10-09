@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Protocol 0.1.0 in `@cfe/protocol`: every request, response, event and shared
+  type as a Zod schema with inferred types; JSON Schema files generated into
+  `packages/protocol/schema/` (`pnpm generate:schemas`); `MAX_MESSAGE_BYTES`,
+  the error-code table and the version-compatibility rule.
 - pnpm workspace monorepo with `protocol`, `engine` and `cli` packages.
 - TypeScript (strict), ESLint, Prettier and Vitest configuration.
 - CI workflow running lint, format check, type check and tests on Linux,

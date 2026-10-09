@@ -1,0 +1,56 @@
+{
+  "title": "type.LocatorUse (protocol 0.1.0)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/LocatorUse",
+  "$defs": {
+    "LocatorUse": {
+      "type": "object",
+      "properties": {
+        "param": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "candidateIndex": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidate": {
+          "anyOf": [
+            {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "frame": {
+          "$ref": "#/$defs/LocatorUse"
+        },
+        "within": {
+          "$ref": "#/$defs/LocatorUse"
+        }
+      },
+      "required": [
+        "param",
+        "candidateIndex",
+        "candidate"
+      ],
+      "additionalProperties": {}
+    }
+  }
+}

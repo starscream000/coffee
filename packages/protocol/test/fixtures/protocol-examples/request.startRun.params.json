@@ -1,0 +1,6 @@
+{
+  "files": ["tests/checkout/guest-checkout.test.yaml"],
+  "tags": ["smoke"],
+  "env": "local",
+  "options": { "headed": false, "browser": "chromium", "refreshLogins": false }
+}

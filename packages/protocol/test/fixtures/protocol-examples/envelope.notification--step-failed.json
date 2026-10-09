@@ -1,0 +1,27 @@
+{
+  "jsonrpc": "2.0",
+  "method": "stepFailed",
+  "params": {
+    "runId": "20261009-054902-1a2b",
+    "seq": 17,
+    "testId": "tests/checkout/guest-checkout.test.yaml#1",
+    "stepId": "steps.3",
+    "durationMs": 10012,
+    "error": {
+      "code": "AssertionFailed",
+      "message": "Text of \"cart.count\" is \"0\", expected \"1\".",
+      "expected": "1",
+      "actual": "0",
+      "location": { "file": "tests/checkout/guest-checkout.test.yaml", "line": 31, "column": 5 }
+    },
+    "locators": [
+      {
+        "param": "target",
+        "target": "cart.count",
+        "candidateIndex": 0,
+        "candidate": { "testId": "cart-count" }
+      }
+    ],
+    "snapshot": { "state": "saved" }
+  }
+}

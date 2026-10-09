@@ -1,0 +1,22 @@
+{
+  "title": "request.openSnapshot.params (protocol 0.1.0)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "runId": {
+      "type": "string"
+    },
+    "testId": {
+      "type": "string"
+    },
+    "stepId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "runId",
+    "testId",
+    "stepId"
+  ],
+  "additionalProperties": {}
+}

@@ -1,0 +1,31 @@
+{
+  "title": "request.initialize.params (protocol 0.1.0)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "protocolVersion": {
+      "type": "string"
+    },
+    "client": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "additionalProperties": {}
+    }
+  },
+  "required": [
+    "protocolVersion",
+    "client"
+  ],
+  "additionalProperties": {}
+}

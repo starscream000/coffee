@@ -1,0 +1,142 @@
+{
+  "title": "event.stepPassed (protocol 0.1.0)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "runId": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "testId": {
+      "type": "string"
+    },
+    "stepId": {
+      "type": "string"
+    },
+    "durationMs": {
+      "type": "number",
+      "minimum": 0
+    },
+    "locators": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/LocatorUse"
+      }
+    },
+    "snapshot": {
+      "$ref": "#/$defs/SnapshotStatus"
+    }
+  },
+  "required": [
+    "runId",
+    "seq",
+    "testId",
+    "stepId",
+    "durationMs",
+    "locators",
+    "snapshot"
+  ],
+  "additionalProperties": {},
+  "$defs": {
+    "LocatorUse": {
+      "type": "object",
+      "properties": {
+        "param": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "candidateIndex": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidate": {
+          "anyOf": [
+            {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "frame": {
+          "$ref": "#/$defs/LocatorUse"
+        },
+        "within": {
+          "$ref": "#/$defs/LocatorUse"
+        }
+      },
+      "required": [
+        "param",
+        "candidateIndex",
+        "candidate"
+      ],
+      "additionalProperties": {}
+    },
+    "SnapshotStatus": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "const": "saved"
+            }
+          },
+          "required": [
+            "state"
+          ],
+          "additionalProperties": {}
+        },
+        {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "const": "skipped"
+            }
+          },
+          "required": [
+            "state"
+          ],
+          "additionalProperties": {}
+        },
+        {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "const": "failed"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "reason"
+          ],
+          "additionalProperties": {}
+        }
+      ]
+    }
+  }
+}
