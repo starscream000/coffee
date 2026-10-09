@@ -17,5 +17,19 @@ export default defineAction({
       await ctx.page.getByLabel('Done').check();
     }
     await (await ctx.locate('todos.add')).click();
+    // Return only once the item is on the page. The page clears the field when
+    // the server has answered; returning earlier would let that answer wipe
+    // what the next step types (review 0006, finding 2).
+    const text = `${params.title}${params.done === true ? ' (done)' : ''}`;
+    await ctx.page
+      .getByTestId('todo-item')
+      .filter({ hasText: new RegExp(`^${escapeRegExp(text)}$`) })
+      .last()
+      .waitFor();
   },
 });
+
+/** Escapes text for use inside a regular expression. */
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
