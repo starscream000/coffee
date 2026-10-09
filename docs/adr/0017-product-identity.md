@@ -1,6 +1,6 @@
 # 0017. Define the product identity in one constant
 
-- Status: Accepted (owner, 2026-10-09)
+- Status: Superseded by [0019](0019-four-product-names.md)
 - Date: 2026-10-09
 
 ## Context
