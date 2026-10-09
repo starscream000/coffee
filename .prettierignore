@@ -4,3 +4,4 @@ pnpm-lock.yaml
 .cfe/
 packages/protocol/schema/
 examples/demo-app/fixtures/
+.playwright-browsers/

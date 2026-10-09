@@ -16,3 +16,4 @@ export * from './jsonrpc.js';
 export * from './requests.js';
 export * from './events.js';
 export { protocolSchemas, schemaFileContents } from './schema-files.js';
+export { MASK_RULES, maskMessage, maskRuleFor, type MaskRule } from './masking.js';

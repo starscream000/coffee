@@ -13,6 +13,18 @@ lost.
 | Reviewer    | Claude in the owner's chat session        | Instructions, reviews, `STATUS.md`             |
 | Implementer | Claude Code agent on the owner's computer | Code, docs and one report per instruction      |
 
+There are two implementers, each with its own track:
+
+- the **engine implementer** works on everything except `apps/desktop/` and is
+  directed through this folder;
+- the **desktop implementer** works only under `apps/desktop/` and is directed
+  through [apps/desktop/handoff/](../apps/desktop/handoff/), which follows this
+  page except where its own README says otherwise. Its files carry a `D`
+  (`D0002`), and it asks for changes outside its folder with requests (`R0001`).
+
+Neither implementer changes the other's files. The reviewer serves both and
+carries needs from one track to the other.
+
 The owner decides. The reviewer and the implementer never talk to each other
 directly: the reviewer writes an instruction, the implementer answers with a
 report, the reviewer answers with a review.
@@ -65,7 +77,8 @@ To the reviewer:
 | `next`  | Publishes the next instruction.                                                     |
 
 Words can be combined ("check and next"). They always run in the order check,
-merge, next. `merge` is skipped, and said to be skipped, when the review did not
+merge, next. A word covers both tracks unless the owner names one ("check
+desktop", "next for the engine"). `merge` is skipped, and said to be skipped, when the review did not
 approve.
 
 To the implementer, one sentence is enough: "Pull main and carry out the open
@@ -107,7 +120,8 @@ rewriting pushed history).
 2. **Each party writes only its own files.** The reviewer never edits a report;
    the implementer never edits an instruction, a review or `STATUS.md`.
 3. **Only the reviewer puts handoff files on `main` directly**, and only files
-   under `handoff/`. Everything else reaches `main` through a pull request.
+   under `handoff/` and `apps/desktop/handoff/`. Everything else reaches `main`
+   through a pull request.
 4. **Only the reviewer merges into `main`**, on the owner's word, after CI is
    green on Linux, Windows and macOS.
 5. **Nobody force-pushes `main`.** If it ever seems necessary, stop and ask the

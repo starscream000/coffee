@@ -5,7 +5,16 @@
 // Every problem becomes a diagnostic with file and line; other files still load.
 
 import { createHash } from 'node:crypto';
-import { existsSync, globSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  globSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import { isAbsolute, join, relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -16,11 +25,22 @@ import type { ActionLocation, ActionRegistry } from './registry.js';
 
 const require = createRequire(import.meta.url);
 
+// Stack traces of bundled actions point at the user's own files, so a load
+// error can tell top-level code from an imported package.
+process.setSourceMapsEnabled(true);
+
 /** File URL of the engine's own SDK, which every user action must use. */
 const SDK_URL = pathToFileURL(require.resolve(`${PRODUCT.npmScope}/engine/sdk`)).href;
 
 /** Bumped when the bundling settings change, so old cache entries are not reused. */
-const BUNDLE_FORMAT = '1';
+const BUNDLE_FORMAT = '3';
+
+/**
+ * Gives each bundle a working `require`, so bundled CommonJS packages can load
+ * Node's built-in modules (review 0004, finding 2).
+ */
+const REQUIRE_BANNER =
+  "import { createRequire as __cfeCreateRequire } from 'node:module'; const require = __cfeCreateRequire(import.meta.url);";
 
 /** What happened while loading the user actions. */
 export interface LoadReport {
@@ -30,6 +50,8 @@ export interface LoadReport {
   readonly files: readonly string[];
   /** Files bundled in this call (the others came from the cache). */
   readonly built: readonly string[];
+  /** Cache files deleted because no current action file maps to them. */
+  readonly removed: readonly string[];
 }
 
 function posix(path: string): string {
@@ -40,7 +62,10 @@ function sha256(text: string | Buffer): string {
   return createHash('sha256').update(text).digest('hex');
 }
 
-/** Redirects the SDK to the engine's copy. Playwright is redirected the same way once it is added. */
+/**
+ * Redirects the SDK and Playwright to the engine's own copies (ADR 0008), so a
+ * user action and the engine share one SDK and one Playwright.
+ */
 const sdkRedirect: Plugin = {
   name: 'cfe-sdk-redirect',
   setup(builder) {
@@ -48,7 +73,15 @@ const sdkRedirect: Plugin = {
       path: SDK_URL,
       external: true,
     }));
-    // When Playwright is added: redirect `playwright` to the engine's copy here too (ADR 0008).
+    builder.onResolve({ filter: /^playwright(?:\/.*)?$/ }, (args) => {
+      try {
+        return { path: import.meta.resolve(args.path), external: true };
+      } catch {
+        return {
+          errors: [{ text: `The engine's Playwright has no module "${args.path}".` }],
+        };
+      }
+    });
   },
 };
 
@@ -83,13 +116,18 @@ function messageToDiagnostic(message: Message, root: string, fallbackFile: strin
 }
 
 interface CacheEntry {
+  readonly key: string;
   readonly bundle: string;
   readonly inputsFile: string;
 }
 
 function cacheEntry(cacheDir: string, file: string, text: string): CacheEntry {
   const key = sha256(`${BUNDLE_FORMAT}\0${getEngineInfo().version}\0${file}\0${text}`).slice(0, 32);
-  return { bundle: join(cacheDir, `${key}.mjs`), inputsFile: join(cacheDir, `${key}.inputs.json`) };
+  return {
+    key,
+    bundle: join(cacheDir, `${key}.mjs`),
+    inputsFile: join(cacheDir, `${key}.inputs.json`),
+  };
 }
 
 /** A cached bundle is fresh when every file it was built from is unchanged. */
@@ -121,6 +159,7 @@ async function bundle(root: string, file: string, entry: CacheEntry): Promise<Di
       write: true,
       logLevel: 'silent',
       plugins: [sdkRedirect],
+      banner: { js: REQUIRE_BANNER },
     });
     const inputs: Record<string, string> = {};
     for (const input of Object.keys(result.metafile.inputs)) {
@@ -146,6 +185,64 @@ async function bundle(root: string, file: string, entry: CacheEntry): Promise<Di
       },
     ];
   }
+}
+
+/**
+ * Picks a hint that fits where a load error came from: the action file's own
+ * top-level code, a package it imports, or another file it imports.
+ */
+function loadErrorHint(error: unknown, root: string, file: string): string {
+  const origin = firstStackFile(error);
+  const actionFile = join(root, file);
+  // Node reports the real path: on macOS the temporary folder /var is /private/var.
+  const actionPaths = [actionFile, realPathOf(actionFile)].map((path) => posix(path).toLowerCase());
+  if (origin !== undefined && actionPaths.includes(origin)) {
+    return 'Code at the top level of an action file runs when the project is opened; move work into run().';
+  }
+  const pkg = /\/node_modules\/((?:@[^/]+\/)?[^/]+)\//.exec(origin ?? '')?.[1];
+  if (pkg !== undefined) {
+    return `The error comes from the package "${pkg}", which this action imports. Check that it works in Node.js ${process.versions.node}, or import it inside run().`;
+  }
+  return 'The action file, and every file it imports, runs when the project is opened; the error came from code that runs at that point.';
+}
+
+/** The path with symbolic links resolved, or the path itself when it cannot be resolved. */
+function realPathOf(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
+  }
+}
+
+/** The file of the first stack frame that is not Node's own, lower-case with forward slashes. */
+function firstStackFile(error: unknown): string | undefined {
+  const stack = error instanceof Error ? (error.stack ?? '') : '';
+  for (const line of stack.split('\n').slice(1)) {
+    const location = /\(([^()]+)\)\s*$/.exec(line)?.[1] ?? /^\s*at\s+(.+)$/.exec(line)?.[1];
+    if (location === undefined || location.startsWith('node:')) continue;
+    const path = location.replace(/:\d+:\d+$/, '').replace(/^file:\/\/\/?/, '');
+    return posix(decodeURI(path))
+      .replace(/^\/(?=[A-Za-z]:)/, '')
+      .toLowerCase();
+  }
+  return undefined;
+}
+
+/** Deletes cache files that no current action file maps to; skips any it cannot delete. */
+function removeStaleBundles(cacheDir: string, keys: ReadonlySet<string>): string[] {
+  const removed: string[] = [];
+  for (const name of readdirSync(cacheDir)) {
+    const key = name.split('.')[0] ?? '';
+    if (keys.has(key)) continue;
+    try {
+      unlinkSync(join(cacheDir, name));
+      removed.push(name);
+    } catch {
+      // In use or not a file: try again at the next openProject.
+    }
+  }
+  return removed;
 }
 
 /**
@@ -184,9 +281,11 @@ export async function loadUserActions(
 
   const diagnostics: Diagnostic[] = [];
   const built: string[] = [];
+  const keys = new Set<string>();
   for (const file of files) {
     const text = readFileSync(join(root, file), 'utf8');
     const entry = cacheEntry(cacheDir, file, text);
+    keys.add(entry.key);
     if (!isFresh(entry, root)) {
       built.push(file);
       const problems = await bundle(root, file, entry);
@@ -198,7 +297,10 @@ export async function loadUserActions(
     }
     let module: unknown;
     try {
-      module = await import(pathToFileURL(entry.bundle).href);
+      // The query changes whenever any input changes, so Node cannot answer
+      // from its module cache with old code (review 0004, finding 3).
+      const version = sha256(readFileSync(entry.inputsFile)).slice(0, 16);
+      module = await import(`${pathToFileURL(entry.bundle).href}?inputs=${version}`);
     } catch (error) {
       diagnostics.push({
         file,
@@ -207,7 +309,7 @@ export async function loadUserActions(
         severity: 'error',
         code: 'ActionLoadError',
         message: `This action file failed while loading: ${error instanceof Error ? error.message : String(error)}`,
-        hint: 'Code at the top level of an action file runs when the project is opened; move work into run().',
+        hint: loadErrorHint(error, root, file),
       });
       registry.addFailedFile(file);
       continue;
@@ -226,7 +328,7 @@ export async function loadUserActions(
       if (problem !== undefined) diagnostics.push(problem);
     }
   }
-  return { diagnostics, files, built };
+  return { diagnostics, files, built, removed: removeStaleBundles(cacheDir, keys) };
 }
 
 /**

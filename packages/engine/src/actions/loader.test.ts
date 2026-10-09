@@ -1,7 +1,7 @@
 // Unit tests for loading user actions: bundling, the content-hash cache,
 // compile and load errors, and the single SDK copy. Needs `tsc -b` first,
 // because bundles import the engine's built SDK.
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -122,5 +122,79 @@ describe('loadUserActions', () => {
       code: 'SdkVersionMismatch',
     });
     expect(checkSdkVersion(root)?.message).toContain('9.9.9');
+  });
+});
+
+const FIXTURE_PACKAGES = new URL('../../test/fixtures/packages/', import.meta.url);
+
+function installFixturePackage(root: string, name: string): void {
+  cpSync(new URL(`${name}/`, FIXTURE_PACKAGES), join(root, 'node_modules', name), {
+    recursive: true,
+  });
+}
+
+describe('review 0004 fixes', () => {
+  it('finding 2: an action importing a CommonJS package that requires Node built-ins loads', async () => {
+    const root = makeProject({
+      'actions/shop.ts': ACTION(
+        'shop.cjs',
+        "import pkg from 'cjs-uses-builtins';\nif (pkg.joined !== 'a/b' || !pkg.sameModule) throw new Error('wrong values');",
+      ),
+    });
+    installFixturePackage(root, 'cjs-uses-builtins');
+    const { registry, report } = await load(root);
+    expect(report.diagnostics).toEqual([]);
+    expect(registry.specs.has('shop.cjs')).toBe(true);
+  });
+
+  it('finding 2: the load-error hint fits the cause', async () => {
+    const root = makeProject({
+      'actions/own.ts': "throw new Error('own top-level code');\n",
+      'actions/dep.ts': ACTION('shop.dep', "import 'throws-on-load';"),
+    });
+    installFixturePackage(root, 'throws-on-load');
+    const { report } = await load(root);
+    const byFile = new Map(report.diagnostics.map((d) => [d.file, d]));
+    expect(byFile.get('actions/own.ts')?.hint).toContain('move work into run()');
+    expect(byFile.get('actions/dep.ts')?.hint).toContain('the package "throws-on-load"');
+    expect(byFile.get('actions/dep.ts')?.hint).not.toContain('move work into run()');
+  });
+
+  it('finding 3: a changed helper is used by a second load in the same process', async () => {
+    const root = makeProject({
+      'actions/shop.ts': `
+import { defineAction, z } from '@cfe/engine/sdk';
+import { label } from '../lib/helper.js';
+export default defineAction({
+  name: 'shop.helper',
+  description: label,
+  params: z.strictObject({}),
+  run: () => Promise.resolve(),
+});
+`,
+      'lib/helper.ts': "export const label = 'First version.';\n",
+    });
+    expect((await load(root)).registry.specs.get('shop.helper')?.description).toBe(
+      'First version.',
+    );
+    write(root, { 'lib/helper.ts': "export const label = 'Second version.';\n" });
+    expect((await load(root)).registry.specs.get('shop.helper')?.description).toBe(
+      'Second version.',
+    );
+  });
+
+  it('finding 7: bundles no current action file maps to are deleted, and one that cannot be is skipped', async () => {
+    const root = makeProject({ 'actions/shop.ts': ACTION('shop.one') });
+    await load(root);
+    const cacheDir = join(root, '.cfe', 'cache', 'actions');
+    const before = readdirSync(cacheDir);
+    expect(before.length).toBe(3);
+    mkdirSync(join(cacheDir, 'stale0123456789abcdef0123456789ab.mjs'));
+    write(root, { 'actions/shop.ts': ACTION('shop.two') });
+    const { report } = await load(root);
+    expect([...report.removed].sort()).toEqual([...before].sort());
+    const after = readdirSync(cacheDir);
+    expect(after).toContain('stale0123456789abcdef0123456789ab.mjs');
+    expect(after.filter((name) => !name.startsWith('stale'))).toHaveLength(3);
   });
 });

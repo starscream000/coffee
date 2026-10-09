@@ -14,6 +14,7 @@ export default tseslint.config(
       '**/coverage/**',
       '**/node_modules/**',
       '**/.cfe/**',
+      '.playwright-browsers/**',
       'packages/*/test/projects/**',
     ],
   },

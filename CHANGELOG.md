@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Review 0004 masking and secrets findings: protocol messages are masked field
+  by field with one rules table next to the schemas, so masking keeps every
+  message valid JSON that matches its schema and never changes keys or
+  identifiers; console output and internal error logs on stderr are masked;
+  `${…}` paths reach own properties only; an empty environment variable counts
+  as unset, so the `.env` value is used.
+- Review 0004 loader findings: user actions that import CommonJS packages
+  using Node built-ins load; the load-error hint fits the cause; a changed
+  imported file is picked up by the next `openProject` in the same engine; stale
+  bundles are removed from the action cache.
 - Review 0003: no console method can write to stdout; the engine answers every
   received request before exiting when stdin closes; `validate` on a folder is
   a diagnostic; an unclosed `${` is reported; regular expressions are checked
@@ -19,6 +29,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The demo web server (`examples/demo-app/server/`): Node only, no
+  dependency, with the pages that samples S10, S11, S12, S14, F1, F2, F3 and
+  F7 of the runner will need (to-dos, locator fallback, slow render, nested
+  frames) and a reset endpoint that proves `after` steps ran. The pages are
+  listed in `examples/demo-app/README.md`.
+- The demo app harness for integration tests: starts the server on a free
+  port and the engine as a child process, opens a copy of the demo project
+  whose base URL is the server's, and cleans both up. An integration test
+  finds every element the samples will use with `ctx.locate`.
+
+- `ctx.locate` in the engine: resolves a target (by name, file-local then
+  shared, or inline) to the Playwright locator of the first candidate that
+  matches exactly one element, with `frame` and `within` chains, `${…}` in
+  candidates, the `fallbackGrace` period, polling every 50 ms until the step's
+  deadline, at-once cancellation, and `TargetNotFound` listing every candidate's
+  last match count. Each call is reported as a `LocatorUse` and each fallback as
+  a `LocatorFallback` warning, through an interface the runner will implement.
+- Playwright 1.64.0 in the engine. The SDK's `Page`, `APIRequestContext` and
+  `Locator` are Playwright's own types, and user actions that import
+  `playwright` get the engine's copy.
+- `pnpm test:integration` runs the browser tests (`*.integration.test.ts`) in
+  headless Chromium; `pnpm verify` stays free of any browser. CI has a new
+  `integration` job on Linux, Windows and macOS with the browser download
+  cached.
+
+- Variables, run-time interpolation and environment profiles in the engine;
+  secrets loaded from the process environment and `.env`, rejected under 4
+  characters, and reported by `validate` where a test uses one without a value.
+  Every protocol message and every line on stderr is masked, before any
+  truncation.
 - User actions: `@cfe/engine/sdk` (`defineAction`, `target()`, `z`,
   `ActionError`, `AssertionError` and the type of `ctx`); one registry for
   built-in and user actions with the naming rules of ADR 0016; loading with

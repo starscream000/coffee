@@ -1,0 +1,7 @@
+{
+  "name": "throws-on-load",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test fixture: a CommonJS package that throws while it loads, for the load-error hint.",
+  "main": "index.js"
+}
