@@ -1,0 +1,5 @@
+# Test project for check I13: its action calls every console method while loading.
+version: 1
+environments:
+  local:
+    baseUrl: http://localhost:4310

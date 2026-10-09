@@ -8,7 +8,15 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', '.cfe/**'] },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/coverage/**',
+      '**/node_modules/**',
+      '**/.cfe/**',
+      'packages/*/test/projects/**',
+    ],
+  },
   eslint.configs.recommended,
   {
     files: ['**/*.ts'],

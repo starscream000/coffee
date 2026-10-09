@@ -17,6 +17,8 @@ export class EngineProcess {
   stdoutBytes = 0;
   /** Everything received on stderr so far. */
   stderr = '';
+  /** Lines on stdout that were not JSON: must stay empty. */
+  readonly notJson: string[] = [];
   private buffer = '';
   private readonly received: Record<string, unknown>[] = [];
   private waiters: (() => void)[] = [];
@@ -35,7 +37,12 @@ export class EngineProcess {
       this.buffer += text;
       let newline = this.buffer.indexOf('\n');
       while (newline !== -1) {
-        this.received.push(JSON.parse(this.buffer.slice(0, newline)) as Record<string, unknown>);
+        const line = this.buffer.slice(0, newline);
+        try {
+          this.received.push(JSON.parse(line) as Record<string, unknown>);
+        } catch {
+          this.notJson.push(line);
+        }
         this.buffer = this.buffer.slice(newline + 1);
         newline = this.buffer.indexOf('\n');
       }
