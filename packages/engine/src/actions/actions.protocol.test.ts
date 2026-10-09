@@ -119,6 +119,45 @@ describe('user actions through the protocol', () => {
     expect(JSON.stringify(listed)).toContain('"mismatch.check"');
   });
 
+  it("imports of playwright in a user action use the engine's copy, not the project's", async () => {
+    const root = mkdtempSync(join(tmpdir(), 'cfe-playwright-'));
+    roots.push(root);
+    const files: Record<string, string> = {
+      'cfe.config.yaml':
+        'version: 1\nenvironments:\n  local:\n    baseUrl: http://localhost:4310\n',
+      'package.json': JSON.stringify({ name: 'user-project', private: true }),
+      'node_modules/playwright/package.json': JSON.stringify({
+        name: 'playwright',
+        version: '0.0.1',
+        type: 'module',
+        exports: { '.': './index.js', './package.json': './package.json' },
+      }),
+      'node_modules/playwright/index.js':
+        "throw new Error('the project copy of playwright was loaded');\n",
+      'actions/browser.ts': [
+        "import { defineAction, z } from '@cfe/engine/sdk';",
+        "import { chromium, devices } from 'playwright';",
+        "if (typeof chromium.launch !== 'function' || devices['iPhone 15'] === undefined) {",
+        "  throw new Error('not the engine copy of playwright');",
+        '}',
+        'export default defineAction({',
+        "  name: 'browser.check',",
+        "  description: 'Proves the engine copy of Playwright is used.',",
+        '  params: z.strictObject({}),',
+        '  run: () => Promise.resolve(),',
+        '});',
+      ].join('\n'),
+    };
+    for (const [file, text] of Object.entries(files)) {
+      mkdirSync(join(root, file, '..'), { recursive: true });
+      writeFileSync(join(root, file), text);
+    }
+    const { engine, diagnostics } = await open(root);
+    expect(diagnostics).toEqual([]);
+    const listed = await engine.request(2, 'listActions');
+    expect(JSON.stringify(listed)).toContain('"browser.check"');
+  });
+
   it('I13: an action file that calls every console method leaves stdout to the protocol', async () => {
     const { engine, diagnostics } = await open(copyProject(join(TEST_PROJECTS, 'noisy-actions')));
     expect(diagnostics).toEqual([]);

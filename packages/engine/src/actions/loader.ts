@@ -33,7 +33,7 @@ process.setSourceMapsEnabled(true);
 const SDK_URL = pathToFileURL(require.resolve(`${PRODUCT.npmScope}/engine/sdk`)).href;
 
 /** Bumped when the bundling settings change, so old cache entries are not reused. */
-const BUNDLE_FORMAT = '2';
+const BUNDLE_FORMAT = '3';
 
 /**
  * Gives each bundle a working `require`, so bundled CommonJS packages can load
@@ -62,7 +62,10 @@ function sha256(text: string | Buffer): string {
   return createHash('sha256').update(text).digest('hex');
 }
 
-/** Redirects the SDK to the engine's copy. Playwright is redirected the same way once it is added. */
+/**
+ * Redirects the SDK and Playwright to the engine's own copies (ADR 0008), so a
+ * user action and the engine share one SDK and one Playwright.
+ */
 const sdkRedirect: Plugin = {
   name: 'cfe-sdk-redirect',
   setup(builder) {
@@ -70,7 +73,15 @@ const sdkRedirect: Plugin = {
       path: SDK_URL,
       external: true,
     }));
-    // When Playwright is added: redirect `playwright` to the engine's copy here too (ADR 0008).
+    builder.onResolve({ filter: /^playwright(?:\/.*)?$/ }, (args) => {
+      try {
+        return { path: import.meta.resolve(args.path), external: true };
+      } catch {
+        return {
+          errors: [{ text: `The engine's Playwright has no module "${args.path}".` }],
+        };
+      }
+    });
   },
 };
 
