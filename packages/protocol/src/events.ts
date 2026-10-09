@@ -138,6 +138,8 @@ export const LogEventSchema = EventBaseSchema.extend({
   testId: z.string().optional(),
   stepId: z.string().optional(),
   location: LocationSchema.optional(),
+  /** Facts that belong to `code`, such as `{ target, candidateIndex }` for `LocatorFallback`. */
+  data: z.record(z.string(), z.unknown()).optional(),
 });
 
 /** `log`. See {@link LogEventSchema}. */

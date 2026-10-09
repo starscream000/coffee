@@ -23,6 +23,9 @@ The file name decides the kind:
 Every file starts with `version: 1`. The engine refuses unknown versions with a
 message naming the supported ones, so the format can evolve safely.
 
+A file whose `version` is missing or not `1` gets that one diagnostic and
+nothing else is checked, because the rest of the format may not apply.
+
 ## A complete example
 
 ```yaml
@@ -141,6 +144,12 @@ Besides the action key, a step may have these common keys:
 A mapping with zero or two action keys is a validation error. Unknown keys are
 errors, with a "did you mean" hint where one is close (`exepct.text` →
 `expect.text`).
+
+A mapping after the action key is always the **long form of its parameters**.
+An inline target therefore goes under the target parameter:
+`click: { target: { candidates: [ … ] } }`. Writing
+`click: { candidates: [ … ] }` reports `candidates` as an unknown key, with the
+hint that an inline target goes under `target:`.
 
 Action names are listed in [actions.md](actions.md). User actions are always
 namespaced (`auth.fillOtp`); see [ADR 0016](adr/0016-action-names.md).
@@ -261,6 +270,24 @@ Rules for `frame` and `within`:
 - Step results report the candidate used at every level (frame, within and the
   element itself).
 
+### Shared targets files
+
+A `*.targets.yaml` file holds targets for the whole project, written exactly
+like the `targets:` key of a test:
+
+```yaml
+# targets/shop.targets.yaml
+version: 1
+targets:
+  cart.count:
+    - testId: cart-count
+  checkout.submit:
+    - role: button
+      name: Place order
+```
+
+The config's `targets` globs say which files are shared targets files.
+
 ### Referring to targets
 
 A step refers to a target in one of two ways:
@@ -307,6 +334,16 @@ Rules:
 - Secret values are masked as `•••` everywhere the engine writes data
   ([ADR 0014](adr/0014-secret-masking.md)).
 
+- **`${env.X}` reads `X` from the selected environment's `values` directly**
+  (`${env.apiUrl}`, not `${env.values.apiUrl}`). `${env.name}` and
+  `${env.baseUrl}` are built in, so `values` may not use those two names
+  (`ReservedEnvValue`). A value used in a step file must exist in every
+  environment; the diagnostic names the environments that lack it.
+- **`row` is not available inside flows.** A flow that needs values of the
+  current data row gets them as parameters: `with: { sku: '${row.sku}' }`.
+- A `${` without a closing `}` is a validation error (`UnclosedInterpolation`)
+  that points at the value.
+
 ## Pages
 
 Each test has a page called `main`. More pages are declared by name:
@@ -322,6 +359,11 @@ pages:
 - Pages with **different logins** get separate browser contexts: use this for
   multi-user flows.
 - A declared page is opened on first use.
+
+- Page names are checked when a test file is validated: a `page` must be
+  `main`, declared under `pages`, or opened by an earlier step's `opens`.
+  **Inside flows they are not checked when validating**, because a flow does
+  not know its caller's pages; they are checked when the step runs.
 
 ### New tabs and pop-ups: `opens`
 
@@ -396,6 +438,10 @@ steps:
 - Flows may declare `targets`; they resolve like a test's.
 - A flow has only `steps`: `before`, `after`, `data` and `skip` belong to tests.
 
+- **Paths in `call` are relative to the project root**
+  (`call: flows/checkout.flow.yaml`), wherever the calling file is. Data file
+  paths, in contrast, are relative to the test file that names them.
+
 ## Project configuration
 
 ```yaml
@@ -445,6 +491,11 @@ logins:
 `defaults.browser` is validated against the browsers the engine reports in
 `capabilities.browsers` (only `chromium` in v0.1.0); an unsupported value is a
 config error listing the supported ones.
+
+When the config leaves out `tests`, `flows` or `targets`, the defaults are
+`**/*.test.yaml`, `**/*.flow.yaml` and `**/*.targets.yaml`; `actions` defaults
+to `actions/**/*.ts`. Folders named `node_modules` and the data folder `.cfe/`
+are always skipped.
 
 ### Viewport, locale and timezone
 
@@ -545,6 +596,25 @@ flows/login.flow.yaml:3:1  error  FlowCycle
 The JSON Schema generated from the step-file schema is published so editors
 (for example VS Code with the YAML extension) can offer completion and inline
 errors.
+
+### Where a diagnostic points
+
+- A problem with a **key** (an unknown key, `frame` together with `within`, a
+  reserved environment value) points at the key.
+- A problem with a **value** points at the value.
+- A **missing parameter** points at the action's parameter mapping, or at its
+  value when the step uses shorthand.
+- A **duplicate key** in a mapping is a YAML error (`YamlSyntax`) at the second
+  occurrence.
+
+### Other checks
+
+- Regular expressions are compiled when validating: `matches`, `extract`'s
+  `pattern` (which must have exactly one capturing group), and URL patterns
+  written as `/regex/`. A value that contains `${…}` is checked when the step
+  runs, after interpolation (`InvalidRegex`).
+- `validate` on a path that is a folder reports `NotAFile`; a path outside the
+  project reports `FileOutsideProject`.
 
 ## Editing by tools
 

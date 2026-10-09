@@ -302,6 +302,11 @@ the headers it reads.
 All `expect.*` actions retry until they pass or the step times out, then fail
 with `AssertionFailed` showing expected and actual values.
 
+`matches` values, `extract`'s `pattern` and URL patterns written as `/regex/` are
+compiled when the step file is validated (`InvalidRegex`), unless they contain
+`${…}`; then they are checked when the step runs. `extract`'s pattern must have
+exactly one capturing group: the part to extract.
+
 | Action            | Short    | Parameters                                                                     |
 | ----------------- | -------- | ------------------------------------------------------------------------------ |
 | `expect.visible`  | `target` | `target`; `visible`: `true` (default) or `false`                               |
