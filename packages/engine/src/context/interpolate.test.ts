@@ -93,6 +93,28 @@ describe('interpolate', () => {
     });
   });
 
+  // Review 0004, finding 5.
+  it.each([
+    '${vars.order.constructor}',
+    '${vars.order.toString}',
+    '${vars.order.__proto__}',
+    '${vars.order.items.length}',
+    '${vars.order.items.5}',
+    '${env.constructor}',
+    '${env.toString}',
+    '${row.constructor}',
+  ])('reaches own properties only: %s is PathNotFound', (expression) => {
+    expect(() => interpolate(expression, scope())).toThrow(
+      expect.objectContaining({ code: 'PathNotFound' }) as Error,
+    );
+  });
+
+  it('reaches own properties only for params', () => {
+    expect(() => interpolate('${params.hasOwnProperty}', scope({ params: {} }))).toThrow(
+      expect.objectContaining({ code: 'PathNotFound' }) as Error,
+    );
+  });
+
   it('reports a namespace that is not available here', () => {
     expect(() => interpolate('${params.x}', scope())).toThrow(/not available here/);
     expect(() => interpolate('${env.missing}', scope())).toThrow(/has no value "missing"/);

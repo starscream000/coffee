@@ -55,6 +55,19 @@ describe('SecretStore', () => {
     expect(registry.mask('env-value file-value env-wins')).toBe('••• ••• •••');
   });
 
+  // Review 0004, finding 6.
+  it('treats an empty environment variable as unset, so the .env value is used', () => {
+    const registry = new SecretRegistry();
+    const store = SecretStore.load(
+      ['EMPTY_ENV', 'EMPTY_BOTH'],
+      project('EMPTY_ENV=file-value'),
+      { EMPTY_ENV: '', EMPTY_BOTH: '' },
+      registry,
+    );
+    expect(store.get('EMPTY_ENV')).toBe('file-value');
+    expect(store.problem('EMPTY_BOTH')).toBe('missing');
+  });
+
   it('notes a missing secret and one shorter than 4 characters, and names the variable to set', () => {
     const registry = new SecretRegistry();
     const store = SecretStore.load(['MISSING', 'SHORT'], project(), { SHORT: 'abc' }, registry);

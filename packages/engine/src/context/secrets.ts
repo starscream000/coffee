@@ -86,7 +86,12 @@ export class SecretStore implements Secrets {
     const values = new Map<string, string>();
     const problems = new Map<string, SecretProblem>();
     for (const name of declared) {
-      const value = environment[name] ?? dotEnv.get(name);
+      // An empty environment variable counts as unset, so the `.env` value is used.
+      const fromEnvironment = environment[name];
+      const value =
+        fromEnvironment === undefined || fromEnvironment === ''
+          ? dotEnv.get(name)
+          : fromEnvironment;
       if (value === undefined || value === '') {
         problems.set(name, 'missing');
       } else if (value.length < MIN_SECRET_LENGTH) {

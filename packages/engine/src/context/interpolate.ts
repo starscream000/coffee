@@ -60,9 +60,13 @@ function describeStep(scope: InterpolationScope): string {
 function walk(value: unknown, path: readonly string[], expression: string): unknown {
   let current = value;
   for (const segment of path) {
-    if (Array.isArray(current) && /^\d+$/.test(segment)) {
+    // Own properties only: `${vars.x.constructor}` must not reach the prototype.
+    if (Array.isArray(current)) {
+      if (!/^\d+$/.test(segment) || Number(segment) >= current.length) {
+        throw new InterpolationError('PathNotFound', `"\${${expression}}" has no "${segment}".`);
+      }
       current = current[Number(segment)];
-    } else if (typeof current === 'object' && current !== null && segment in current) {
+    } else if (typeof current === 'object' && current !== null && Object.hasOwn(current, segment)) {
       current = (current as Record<string, unknown>)[segment];
     } else {
       throw new InterpolationError('PathNotFound', `"\${${expression}}" has no "${segment}".`);
@@ -93,7 +97,11 @@ function resolveExpression(expression: string, scope: InterpolationScope): unkno
     }
     case 'env': {
       const builtIn: Record<string, unknown> = { name: scope.env.name, baseUrl: scope.env.baseUrl };
-      const value = first in builtIn ? builtIn[first] : scope.env.values[first];
+      const value = Object.hasOwn(builtIn, first)
+        ? builtIn[first]
+        : Object.hasOwn(scope.env.values, first)
+          ? scope.env.values[first]
+          : undefined;
       if (value === undefined) {
         throw new InterpolationError(
           'PathNotFound',
@@ -113,7 +121,7 @@ function resolveExpression(expression: string, scope: InterpolationScope): unkno
           `"\${${expression}}" uses "${namespace}", which is not available here.`,
         );
       }
-      if (!(first in source)) {
+      if (!Object.hasOwn(source, first)) {
         throw new InterpolationError(
           'PathNotFound',
           `"\${${expression}}": there is no ${namespace === 'row' ? 'column' : 'parameter'} "${first}".`,
