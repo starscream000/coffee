@@ -1,0 +1,4 @@
+# Workspace packages. apps/desktop is a .NET project and is not part of the pnpm workspace.
+packages:
+  - packages/*
+  - examples/*
