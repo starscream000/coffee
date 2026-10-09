@@ -5,12 +5,12 @@
 > [Review decisions](#review-decisions); questions still open are in
 > [Open questions](#open-questions).
 
-The product is called **Coffee**. Its command, data folder and npm scope are
-separate names, still to be chosen because `coffee` and `.coffee` belong to
-CoffeeScript ([ADR 0019](adr/0019-four-product-names.md)). In code all four come
-only from `PRODUCT` in `packages/protocol/src/product.ts`. This document uses
-the interim values: the `coffee` command, `coffee.config.yaml`, the
-`.coffee/` data folder and the `@test-tool` scope.
+The product is called **Coffee**. Its command is `cfe`, its data folder `.cfe/`,
+its config file `cfe.config.yaml` and its npm scope `@cfe`; these are separate
+names because `coffee` and `.coffee` belong to CoffeeScript
+([ADR 0019](adr/0019-four-product-names.md)). In code all of them come only from
+`PRODUCT` in `packages/protocol/src/product.ts`. The unscoped npm package `cfe`
+belongs to someone else, so documentation always names the scoped packages.
 
 ## Goals
 
@@ -42,7 +42,7 @@ Non-goals: AI features, conditional logic in step files, a hosted service
  └──────────────────────────────────────────────────────────────────────┘
                      reads/writes ▼
         user's Git repository: *.test.yaml, *.flow.yaml, actions/**/*.ts,
-        coffee.config.yaml; run output in .coffee/ (git-ignored)
+        cfe.config.yaml; run output in .cfe/ (git-ignored)
 ```
 
 | Package / app       | Depends on | Responsibility                                                       |
@@ -63,7 +63,7 @@ Each module is a folder under `packages/engine/src/` with one job.
 | Module      | Job                                                                                                      |
 | ----------- | -------------------------------------------------------------------------------------------------------- |
 | `rpc`       | Newline-delimited JSON-RPC on stdio, version handshake, dispatch, event emission; masks every message    |
-| `project`   | Finds `coffee.config.yaml`, environments, saved logins, test, flow and target files                      |
+| `project`   | Finds `cfe.config.yaml`, environments, saved logins, test, flow and target files                         |
 | `stepfile`  | Parses YAML with source positions, validates, normalises shorthand to the long form, resolves references |
 | `schema`    | Zod schemas for step files and config; maps validation issues to file, line and column                   |
 | `actions`   | `defineAction`, registry, built-in actions, loading and name-checking user actions                       |
@@ -117,7 +117,7 @@ screenshot and its result says the snapshot failed.
    with both versions and what to update, then exits with code 3
    ([protocol.md](protocol.md#handshake)).
 2. **Project.** `openProject` points the engine at a repository root. The engine
-   reads `coffee.config.yaml` and loads user actions. A broken action file, or
+   reads `cfe.config.yaml` and loads user actions. A broken action file, or
    one whose action name has no namespace, is reported as a diagnostic, not a
    crash.
 3. **Validation.** `startRun` validates every selected file first. If any file
@@ -155,11 +155,11 @@ limit).
 | ---------------------- | ---------------------------------------------- | --------- |
 | Tests, flows, targets  | anywhere in the repo, per the config's globs   | yes       |
 | User actions           | `actions/**/*.ts` (configurable)               | yes       |
-| Project config         | `coffee.config.yaml` at the repo root          | yes       |
+| Project config         | `cfe.config.yaml` at the repo root             | yes       |
 | Secrets                | process environment, optionally a local `.env` | **never** |
-| Saved login state      | `.coffee/logins/<key>.json` (ADR 0018)         | **never** |
-| Compiled user actions  | `.coffee/cache/actions/`                       | **never** |
-| Run results, artifacts | `.coffee/runs/<runId>/…`                       | **never** |
+| Saved login state      | `.cfe/logins/<key>.json` (ADR 0018)            | **never** |
+| Compiled user actions  | `.cfe/cache/actions/`                          | **never** |
+| Run results, artifacts | `.cfe/runs/<runId>/…`                          | **never** |
 
 The run folder layout is defined in [ADR 0015](adr/0015-results-layout.md).
 

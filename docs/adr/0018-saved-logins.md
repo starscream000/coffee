@@ -15,7 +15,7 @@ Login parameters usually include a password.
 - **Cache key**: HMAC-SHA-256 over a canonical JSON of the environment name,
   the login name, the content of the login flow file (and every flow it calls)
   and the resolved `with` values, secrets included. The HMAC key is 32 random
-  bytes created on first use in `.coffee/logins/.key` (git-ignored with the rest
+  bytes created on first use in `.cfe/logins/.key` (git-ignored with the rest
   of the folder).
 - **What the HMAC key protects, and what it does not.** It helps when a cache
   file name leaks without the folder, for example in a log line, a CI artifact
@@ -24,8 +24,8 @@ Login parameters usually include a password.
   folder is copied, because the key file is in the same folder. Protecting the
   folder itself (it is git-ignored and holds live session cookies anyway) is
   the user's job.
-- **Files**: `.coffee/logins/<key>.json` (Playwright storage state) and
-  `.coffee/logins/<key>.meta.json` with `createdAt`, environment name, login
+- **Files**: `.cfe/logins/<key>.json` (Playwright storage state) and
+  `.cfe/logins/<key>.meta.json` with `createdAt`, environment name, login
   name and engine version. Neither file contains any parameter value.
 - **maxAge** per login in the config, default `12h`. A state older than that is
   not used; the flow runs again and replaces it. `--refresh-logins` ignores all
@@ -34,7 +34,7 @@ Login parameters usually include a password.
   the resulting state is used for that test only, neither read from nor written
   to the cache.
 - **Clean-up at the start of every run**, before any test: the engine reads
-  each `*.meta.json` in `.coffee/logins/` and deletes the state and its
+  each `*.meta.json` in `.cfe/logins/` and deletes the state and its
   metadata when the state is older than its login's current `maxAge`, or when
   the metadata names an environment or a login that the config no longer has.
   A state file without readable metadata is deleted too. A file that cannot be

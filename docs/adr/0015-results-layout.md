@@ -12,10 +12,10 @@ Windows, macOS and Linux.
 ## Decision
 
 Everything the engine writes lives in the git-ignored data folder
-(`PRODUCT.dataDir`, `.coffee/`) at the project root:
+(`PRODUCT.dataDir`, `.cfe/`) at the project root:
 
 ```
-.coffee/
+.cfe/
   logins/.key                           HMAC key for login cache keys (ADR 0018)
   logins/<key>.json                     saved login storage state
   logins/<key>.meta.json                createdAt, env and login name; no parameter values

@@ -1,9 +1,8 @@
 # Step file format
 
-> Status: **Accepted design** (2026-10-09). The
-> display name "Coffee" is final; the command, data-folder and config-file names
-> used below (`coffee`, `.coffee/`, `coffee.config.yaml`) are interim until the
-> owner chooses them ([ADR 0019](adr/0019-four-product-names.md)).
+> Status: **Accepted design** (2026-10-09). The product is Coffee; its command
+> is `cfe`, its data folder `.cfe/` and its config file `cfe.config.yaml`
+> ([ADR 0019](adr/0019-four-product-names.md)).
 
 Step files are YAML documents in the user's Git repository. They are the source
 of truth: the engine, the CLI and the desktop app only read and write them. The
@@ -14,12 +13,12 @@ re-recording.
 
 The file name decides the kind:
 
-| Pattern              | Kind    | Contains                                              |
-| -------------------- | ------- | ----------------------------------------------------- |
-| `*.test.yaml`        | test    | One test: pages, data, before, steps, after           |
-| `*.flow.yaml`        | flow    | A reusable sequence of steps with parameters          |
-| `*.targets.yaml`     | targets | Shared, named targets (element locators)              |
-| `coffee.config.yaml` | config  | Project settings, environments, logins (one per repo) |
+| Pattern           | Kind    | Contains                                              |
+| ----------------- | ------- | ----------------------------------------------------- |
+| `*.test.yaml`     | test    | One test: pages, data, before, steps, after           |
+| `*.flow.yaml`     | flow    | A reusable sequence of steps with parameters          |
+| `*.targets.yaml`  | targets | Shared, named targets (element locators)              |
+| `cfe.config.yaml` | config  | Project settings, environments, logins (one per repo) |
 
 Every file starts with `version: 1`. The engine refuses unknown versions with a
 message naming the supported ones, so the format can evolve safely.
@@ -400,7 +399,7 @@ steps:
 ## Project configuration
 
 ```yaml
-# coffee.config.yaml
+# cfe.config.yaml
 version: 1
 tests: ['tests/**/*.test.yaml']
 flows: ['flows/**/*.flow.yaml']

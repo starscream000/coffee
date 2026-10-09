@@ -63,7 +63,7 @@ registered, as with declared secrets, and the engine logs a `warn` naming the
 header (never the value).
 
 **Saved logins.** Saved login state (cookies and storage) is written only to
-the git-ignored data folder (`.coffee/logins/`, [ADR 0018](0018-saved-logins.md)),
+the git-ignored data folder (`.cfe/logins/`, [ADR 0018](0018-saved-logins.md)),
 never into step files, results or events; the protocol has no message that
 carries it. Its file names are hashes and its metadata holds no parameter
 values.
@@ -80,7 +80,7 @@ Password fields are already shown as dots by the browser.
 **Proof.** An acceptance check (A9 in the definition of done) runs a test that
 logs in, fills, sends and displays a secret, then searches every byte of the
 protocol stream, every file in the run folder (zips unpacked) and every file in
-`.coffee/logins/` for each registered form of the secret, and searches the
+`.cfe/logins/` for each registered form of the secret, and searches the
 run folder for the session cookie's value; it fails on any match.
 
 ## Alternatives rejected
