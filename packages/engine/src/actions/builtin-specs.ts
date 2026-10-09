@@ -33,18 +33,22 @@ const Regex = z.string().superRefine((value, ctx) => {
   }
 });
 
+/** Starts a URL pattern that is a regular expression (owner decision, 2026-10-10). */
+export const REGEX_PREFIX = 'regex:';
+
 /**
- * A URL pattern: a glob, or a regular expression written as /regex/. A value
- * with ${…} is checked when the step runs, after interpolation.
+ * A URL pattern: a regular expression when it starts with `regex:`, otherwise
+ * a glob, so `/orders/` is always a path. A value with ${…} is checked when the
+ * step runs, after interpolation.
  */
 const UrlPattern = Url.superRefine((value, ctx) => {
-  if (value.includes('${') || value.length < 2 || !value.startsWith('/') || !value.endsWith('/'))
-    return;
-  const error = regexError(value.slice(1, -1));
+  if (value.includes('${') || !value.startsWith(REGEX_PREFIX)) return;
+  const pattern = value.slice(REGEX_PREFIX.length);
+  const error = pattern === '' ? 'it is empty' : regexError(pattern);
   if (error !== undefined) {
     ctx.addIssue({
       code: 'custom',
-      message: `"${value}" is written as /regex/ but is not a valid regular expression: ${error}`,
+      message: `"${value}" starts with "${REGEX_PREFIX}" but the rest is not a valid regular expression: ${error}`,
       params: { diagnostic: 'InvalidRegex' },
     });
   }

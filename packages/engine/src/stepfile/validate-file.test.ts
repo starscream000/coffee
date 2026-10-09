@@ -232,7 +232,7 @@ describe('review 0003 fixes', () => {
         'name: T',
         'steps:',
         "  - expect.text: { target: a, matches: '(' }",
-        "  - wait.url: '/[/'",
+        "  - wait.url: 'regex:['",
         "  - extract: { target: a, as: n, pattern: '(a)(b)' }",
         "  - extract: { target: a, as: n, pattern: 'Order ([0-9]+)' }",
         "  - expect.url: { matches: '${vars.pattern}' }",
@@ -245,6 +245,25 @@ describe('review 0003 fixes', () => {
       '6:43 InvalidRegex',
     ]);
     expect(result.diagnostics[2]?.message).toContain('exactly one capturing group');
+  });
+
+  it('a URL pattern is a regular expression only with the regex: prefix (owner decision)', () => {
+    const result = check(
+      lines(
+        'version: 1',
+        'name: T',
+        'steps:',
+        "  - wait.url: '/orders/'",
+        "  - wait.url: '/[/'",
+        "  - wait.url: 'regex:^/orders/\\d+$'",
+        "  - wait.url: 'regex:'",
+        "  - wait.url: 'regex:(unclosed'",
+      ),
+    );
+    expect(brief(result.diagnostics)).toEqual(['7:15 InvalidRegex', '8:15 InvalidRegex']);
+    expect(result.diagnostics[0]?.message).toBe(
+      '"regex:" starts with "regex:" but the rest is not a valid regular expression: it is empty.',
+    );
   });
 
   it('finding 6: a duration given as a number says it must be a duration', () => {

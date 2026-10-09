@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Run ids carry milliseconds (`20261009-054902-123-1a2b`), so they sort by
+  start time exactly and `keepRuns` always deletes the oldest runs.
+- CSV data files are read as spreadsheets write them (RFC 4180): quoted values
+  may hold commas, line breaks and doubled quotes. A broken file is reported in
+  the CSV file at the line of the problem (`DataFileInvalid`).
+- A URL pattern is a regular expression only when it starts with `regex:`;
+  anything else is a glob, so `/orders/` is always a path. The `/regex/` form
+  is gone.
+- The documents state that a failing `after` step makes the test fail, and that
+  `openProject` during a run is refused with `RunInProgress`.
+
 ### Fixed
 
 - Review 0006 findings: every event is written to the run folder before it
