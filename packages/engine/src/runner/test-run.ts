@@ -16,6 +16,7 @@ import { durationToMs } from '../schema/common.js';
 import type { TestFile } from '../schema/files.js';
 import type { TargetValue } from '../schema/targets.js';
 import type { Secrets } from '../sdk/context.js';
+import type { DataRow } from '../stepfile/data-rows.js';
 import type { SourceFile } from '../stepfile/source.js';
 import type { NormalizedStep } from '../stepfile/steps.js';
 import type { TestSteps } from '../stepfile/validate-file.js';
@@ -37,6 +38,10 @@ export interface TestInstance {
   readonly steps: TestSteps;
   /** The file's source, for step locations. */
   readonly source: SourceFile;
+  /** The data row, for tests with `data`. */
+  readonly row?: DataRow | undefined;
+  /** The data row's index, for tests with `data`. */
+  readonly rowIndex?: number | undefined;
 }
 
 /** What every test of a run shares. */
@@ -207,6 +212,7 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
           vars,
           env: profile,
           secrets: options.secrets,
+          row: test.row,
           step: `${stepId} (${step.action})`,
         };
         const params = interpolate(step.params, interpolation) as Record<string, unknown>;

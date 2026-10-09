@@ -1,5 +1,5 @@
 # S13: calls the user action demo.addTodo (actions/demo.ts) in shorthand and in
-# the long form. It validates now; it runs once the runner exists.
+# the long form.
 version: 1
 name: Add to-do items with a user action
 tags: [smoke]
@@ -7,3 +7,8 @@ steps:
   - goto: /todos
   - demo.addTodo: Buy milk
   - demo.addTodo: { title: Walk the dog, done: true }
+  - expect.text: { target: todos.count, equals: 2 }
+after:
+  - goto: /todos
+  - click: todos.clearAll
+  - expect.text: { target: todos.count, equals: 0 }

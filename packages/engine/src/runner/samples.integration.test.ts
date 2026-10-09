@@ -182,6 +182,7 @@ describe('the runner on the demo app', () => {
       'steps.4 skipped',
       'after.0 passed',
       'after.1 passed',
+      'after.2 passed',
     ]);
     expect(eventsOf(collected.events, 'stepFailed')[0]).toMatchObject({
       error: {
@@ -235,6 +236,7 @@ describe('the runner on the demo app', () => {
       'steps.1 skipped',
       'after.0 passed',
       'after.1 passed',
+      'after.2 passed',
     ]);
     expect(eventsOf(collected.events, 'stepStarted')[1]).toMatchObject({
       stepId: 'before.1',

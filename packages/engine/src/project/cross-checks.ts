@@ -4,6 +4,7 @@
 // data and the normalised steps, so they still run when a file has other
 // problems, and every problem is reported at once.
 
+import { dataFilePath, readDataRows } from '../stepfile/data-rows.js';
 import type { Diagnostic } from '@cfe/protocol';
 import { targetParamKeys, type ActionSpec } from '../actions/action-spec.js';
 import { secretProblemMessage, type SecretProblem } from '../context/secrets.js';
@@ -43,6 +44,8 @@ export interface CheckContext {
   secretProblem(name: string): SecretProblem | undefined;
   /** Whether a project-relative file exists. */
   exists(file: string): boolean;
+  /** Reads a project-relative file; `undefined` when it is missing or a folder. */
+  readText(file: string): string | undefined;
 }
 
 type Raw = Record<string, unknown>;
@@ -402,19 +405,22 @@ function checkData(
     );
     return;
   }
-  const base = validation.file.split('/').slice(0, -1);
-  const parts = [...base];
-  for (const part of data.split(/[\\/]/)) {
-    if (part === '..') parts.pop();
-    else if (part !== '.' && part !== '') parts.push(part);
-  }
-  const resolved = parts.join('/');
+  const resolved = dataFilePath(validation.file, data);
   if (!context.exists(resolved)) {
     sink.error(
       ['data'],
       'DataFileNotFound',
       `The data file "${data}" does not exist (looked for ${resolved}).`,
       'Data file paths are relative to the test file.',
+    );
+    return;
+  }
+  const rows = readDataRows(data, validation.file, (file) => context.readText(file));
+  if (rows.error !== undefined) {
+    sink.error(
+      ['data'],
+      'DataFileInvalid',
+      `The data file "${data}" cannot be read: ${rows.error}`,
     );
   }
 }

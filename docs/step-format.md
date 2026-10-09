@@ -415,6 +415,11 @@ data: ./data/users.csv
   `after`, and its own result.
 - Supported files: CSV (first line is the header) and YAML (a list of
   mappings). Values are strings in CSV and keep their YAML types otherwise.
+- CSV is read as written here and no further: one row per line, values
+  separated by commas, spaces around a value ignored, blank lines skipped.
+  Quoting is not supported, so a value cannot contain a comma, a double quote
+  or a line break; a CSV file with a double quote fails validation
+  (`DataFileInvalid`). Use a YAML data file for such values.
 - `data` is allowed in tests only, not in flows.
 - A value used in a URL or e-mail address should be URL-safe; add a column for
   it (like `sku` in the example above) rather than reusing a display name with

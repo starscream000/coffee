@@ -15,11 +15,25 @@ import { selectEnvironment, UnknownEnvironmentError } from '../context/environme
 import type { Project } from '../project/project.js';
 import { RpcError } from '../rpc/rpc-error.js';
 import type { Secrets } from '../sdk/context.js';
+import { interpolate } from '../context/interpolate.js';
+import { VariableStore } from '../context/variables.js';
+import { readDataRows } from '../stepfile/data-rows.js';
 import { availableBrowsers, INSTALL_COMMAND, launchBrowser } from './browser.js';
+import { DEFAULT_KEEP_RUNS, pruneRuns, type PruneResult } from './keep-runs.js';
+import { RunFolder, type RunFolderInfo } from './run-folder.js';
 import { runTest, type EmitEvent, type TestInstance, type TestStatus } from './test-run.js';
 
-/** Sends one notification to the client. */
-export type Notify = (method: string, params: Record<string, unknown>) => void;
+/**
+ * How a run's events reach the client: each is rendered first (masked, within
+ * the size limit), recorded in the run folder, and only then sent, so a
+ * client that reads the folder on any event finds that event there already.
+ */
+export interface EventChannel {
+  /** Renders an event as the line that will be sent. */
+  render(method: string, params: Record<string, unknown>): string;
+  /** Sends a rendered line. */
+  send(line: string): void;
+}
 
 /** How long `after` steps may run once a run is cancelled (docs/architecture.md). */
 export const CANCEL_LIMIT_MS = 30_000;
@@ -52,20 +66,23 @@ interface PlannedTest {
  *
  * @example
  * ```ts
- * const runs = new RunManager(notify);
+ * const runs = new RunManager(channel, { engineVersion: '0.1.0', protocolVersion: '0.1.0' });
  * const { runId } = await runs.start(project, params);
  * await runs.stop(); // on shutdown
  * ```
  */
 export class RunManager {
-  private readonly notify: Notify;
+  private readonly channel: EventChannel;
+  private readonly info: RunFolderInfo;
   private current: { cancel: AbortController; done: Promise<void> } | undefined;
 
   /**
-   * @param notify - Sends events to the client.
+   * @param channel - Renders and sends events to the client.
+   * @param info - The engine's versions, for `run.json`.
    */
-  constructor(notify: Notify) {
-    this.notify = notify;
+  constructor(channel: EventChannel, info: RunFolderInfo) {
+    this.channel = channel;
+    this.info = info;
   }
 
   /** Whether a run is in progress. */
@@ -81,8 +98,7 @@ export class RunManager {
    * @returns The run's id and folder.
    * @throws RpcError `RunInProgress`, `StepFilesInvalid` (with
    *   `data.diagnostics`), or `InvalidParams` for an unknown environment or
-   *   browser, a browser that is not installed, or tests this engine cannot
-   *   run yet.
+   *   browser, or a browser that is not installed.
    */
   start(project: Project, params: StartRunParams): Promise<StartRunResult> {
     if (this.current !== undefined) {
@@ -125,23 +141,45 @@ export class RunManager {
       );
     }
 
-    const withRows = planned.filter((test) => test.instance.data.data !== undefined);
-    if (withRows.length > 0) {
-      throw new RpcError(
-        'InvalidParams',
-        `Tests with data rows cannot run in this engine version yet: ${withRows.map((test) => test.instance.file).join(', ')}.`,
-      );
-    }
-
+    // keepRuns is applied before the new run folder is created (ADR 0015).
+    const runsDir = join(project.root, PRODUCT.dataDir, 'runs');
+    const pruned = pruneRuns(runsDir, config.defaults?.keepRuns ?? DEFAULT_KEEP_RUNS);
     const runId = newRunId(new Date());
-    const resultsDir = join(project.root, PRODUCT.dataDir, 'runs', runId);
+    const resultsDir = join(runsDir, runId);
     mkdirSync(resultsDir, { recursive: true });
+    const folder = new RunFolder(resultsDir, this.info);
 
     const cancel = new AbortController();
     let seq = 0;
+    let folderBroken = false;
+    // Record first, then send (review 0006, finding 1): when a client receives
+    // an event, the run folder already holds it.
     const emit: EmitEvent = (method, eventParams) => {
       seq += 1;
-      this.notify(method, { runId, seq, ...eventParams });
+      const line = this.channel.render(method, { runId, seq, ...eventParams });
+      let failure: string | undefined;
+      if (!folderBroken) {
+        try {
+          folder.record(line);
+        } catch (error) {
+          folderBroken = true;
+          failure = error instanceof Error ? error.message : String(error);
+        }
+      }
+      this.channel.send(line);
+      if (failure !== undefined) {
+        // The run goes on; the client still receives every event.
+        seq += 1;
+        this.channel.send(
+          this.channel.render('log', {
+            runId,
+            seq,
+            level: 'error',
+            code: 'RunFolderFailed',
+            message: `The run folder could not be written, so it is incomplete: ${failure}`,
+          }),
+        );
+      }
     };
     // Start once the answer has been written: the session writes it right
     // after this handler resolves, before the next macrotask.
@@ -154,6 +192,7 @@ export class RunManager {
           profile,
           emit,
           cancel: cancel.signal,
+          cleanupFailures: pruned.failed,
         }).finally(() => {
           this.current = undefined;
           resolve();
@@ -214,16 +253,23 @@ export class RunManager {
       if (validation === undefined || parsed?.kind !== 'test') continue;
       const tags = parsed.data.tags ?? [];
       if (params.tags !== undefined && !params.tags.some((tag) => tags.includes(tag))) continue;
-      planned.push({
-        instance: {
-          testId: `${file}#0`,
-          file,
-          data: parsed.data,
-          steps: parsed.steps,
-          source: validation.source,
-        },
-        name: parsed.data.name,
-        skip: parsed.data.skip,
+      // One test instance per data row (docs/step-format.md, "Data rows").
+      const rows = readDataRows(parsed.data.data, file, (path) => project.readText(path));
+      if (rows.rows === undefined) continue; // reported by validation as DataFileInvalid
+      const hasRows = parsed.data.data !== undefined;
+      rows.rows.forEach((row, index) => {
+        planned.push({
+          instance: {
+            testId: `${file}#${String(index)}`,
+            file,
+            data: parsed.data,
+            steps: parsed.steps,
+            source: validation.source,
+            ...(hasRows ? { row, rowIndex: index } : {}),
+          },
+          name: parsed.data.name,
+          skip: parsed.data.skip,
+        });
       });
     }
     if (diagnostics.length > 0) {
@@ -247,10 +293,25 @@ export class RunManager {
       profile: ReturnType<typeof selectEnvironment>;
       emit: EmitEvent;
       cancel: AbortSignal;
+      cleanupFailures: PruneResult['failed'];
     },
   ): Promise<void> {
     const { emit, profile } = run;
     const started = performance.now();
+    // A name may use ${row.…}, so each data row has its own name.
+    const nameOf = (test: PlannedTest): string => {
+      try {
+        const scope = {
+          vars: new VariableStore(test.instance.data.vars ?? {}),
+          env: profile,
+          secrets: run.secrets,
+          row: test.instance.row,
+        };
+        return String(interpolate(test.name, scope));
+      } catch {
+        return test.name;
+      }
+    };
     emit('runStarted', {
       env: profile.name,
       browser: run.browserName,
@@ -263,10 +324,18 @@ export class RunManager {
       tests: planned.map((test) => ({
         testId: test.instance.testId,
         file: test.instance.file,
-        name: test.name,
+        name: nameOf(test),
+        ...(test.instance.rowIndex === undefined ? {} : { row: test.instance.rowIndex }),
         ...(test.skip === undefined ? {} : { skip: test.skip }),
       })),
     });
+    for (const failure of run.cleanupFailures) {
+      emit('log', {
+        level: 'warn',
+        code: 'RunCleanupFailed',
+        message: `The old run folder ${failure.runId} could not be deleted; it is tried again at the next run: ${failure.reason}`,
+      });
+    }
 
     const totals = { passed: 0, failed: 0, cancelled: 0, skipped: 0 };
     let browser: Browser | undefined;

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Review 0006 findings: every event is written to the run folder before it
+  is sent, so a client that reads the folder on any event (including
+  `runFinished`) finds it complete; `demo.addTodo` returns only once its item
+  is on the page, so sample S13 no longer fails now and then; and every
+  sample's `after` section that resets the demo app now ends with a check that
+  the reset reached the server.
 - Review 0005 findings: masking never changes an action's `paramsSchema`; a
   `log` event's `data` is walked, so `target` and `candidateIndex` stay
   readable while other fields are masked; `ctx.locate` tries every candidate
@@ -35,6 +41,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `baseUrl`.
 
 ### Added
+
+- Data rows: one test instance per row, from inline `data`, a CSV file (read
+  as step-format.md defines it; quoted values are rejected with
+  `DataFileInvalid`) or a YAML file, with `${row.…}` in steps, targets and the
+  test's name. A test with `skip` sends one `testSkipped` per row.
+- The run folder of ADR 0015: `run.json`, `events.ndjson` (the events exactly
+  as sent) and `tests/<nn>-<slug>/test.json`, built from the masked events.
+  `keepRuns` deletes the oldest run folders at the start of a run and reports a
+  folder it cannot delete as `RunCleanupFailed`.
+- `listTests`, with the `tags` filter and each test's number of rows.
+- Samples S6 (`tests/data-rows*.test.yaml`), S13 (`demo.addTodo` now adds the
+  item) and S15 (`tests/skipped.test.yaml`).
 
 - The built-in actions `goto`, `click`, `fill` and `expect.text` run, defined
   with `defineAction` like user actions; each honours `ctx.signal` and gives

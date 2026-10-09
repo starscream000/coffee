@@ -97,15 +97,27 @@ export class Session {
   }
 
   /**
-   * Sends a notification (an event) to the client.
+   * Renders a notification (an event) as the line that would be sent: masked
+   * and within the size limit. Nothing is sent; see {@link Session.sendLine}.
    *
    * @param method - The event's name, such as `stepStarted`.
    * @param params - The event's fields.
+   * @returns The line, without the final newline.
    */
-  notify(method: string, params: Record<string, unknown>): void {
-    this.writer.send({ jsonrpc: '2.0', method, params }).catch((error: unknown) => {
+  renderNotification(method: string, params: Record<string, unknown>): string {
+    return this.writer.render({ jsonrpc: '2.0', method, params });
+  }
+
+  /**
+   * Sends a line made by {@link Session.renderNotification}. A failure to
+   * write is reported on stderr; the session goes on.
+   *
+   * @param line - A rendered notification.
+   */
+  sendLine(line: string): void {
+    this.writer.sendRendered(line).catch((error: unknown) => {
       this.options.logError(
-        `Could not send "${method}": ${error instanceof Error ? error.message : String(error)}`,
+        `Could not send an event: ${error instanceof Error ? error.message : String(error)}`,
       );
     });
   }
