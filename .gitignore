@@ -1,0 +1,26 @@
+# Dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
+# Engine run output, saved logins and local secrets (never commit these)
+.testtool/
+.env
+.env.*
+!.env.example
+
+# Playwright
+test-results/
+playwright-report/
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# .NET (desktop app, later)
+bin/
+obj/
