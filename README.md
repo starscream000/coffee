@@ -48,6 +48,7 @@ The design documents below are **proposals** awaiting approval.
 - [Actions](docs/actions.md)
 - [Engine protocol](docs/protocol.md)
 - [Architecture decision records](docs/adr/)
+- [v0.1.0 definition of done](docs/milestones/v0.1.0-definition-of-done.md)
 - [Contributing](CONTRIBUTING.md) and [Changelog](CHANGELOG.md)
 
 ## Copyright
