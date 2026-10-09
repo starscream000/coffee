@@ -133,6 +133,18 @@ describe('ctx.locate in Chromium', () => {
     expect(await idOf([{ css: 'button:not([data-testid])' }, { testId: 'save' }])).toBe('real');
   });
 
+  // Review 0005, finding 5: the rule docs/step-format.md and ADR 0010 now state.
+  it('role candidates do not see hidden elements; other kinds count them', async () => {
+    await page.setContent(`
+      <button id="shown" data-testid="save">Save</button>
+      <button style="display:none" data-testid="save">Save</button>`);
+    expect(await idOf([{ role: 'button', name: 'Save' }])).toBe('shown');
+    await expect(idOf([{ testId: 'save' }], { timeoutMs: 200 })).rejects.toThrow(
+      /testId="save" → 2 elements/,
+    );
+    expect(await idOf([{ testId: 'save', nth: 0 }])).toBe('shown');
+  });
+
   it('tries fallbacks only after the grace period, then warns', async () => {
     await page.setContent('<button id="real" data-testid="save">Save</button>');
     const reports = new Reports();
