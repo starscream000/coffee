@@ -20,6 +20,19 @@ with pull request #16. Instruction D0002 says how to start from there.
 States: `open` (published, no review yet), `changes requested`, `approved`,
 `merged`, `replaced`.
 
+## Since review D0001
+
+A fifth run of the `desktop` CI job, after `main` (with the engine's
+instruction 0005) was merged into the reviewer's CI branch:
+
+- Linux: the test of finding 2 failed again, this time with "Expected:
+  Stopped, Actual: Stopping". So it is not a macOS problem, and it fits the
+  review's reading that a start and a stop overlap.
+- Windows: only the three tests of finding 1 fail.
+- macOS: everything passes.
+
+The desktop tests otherwise pass against the engine now on `main`.
+
 ## Requests
 
 The request files are on the branch too. The answers are in
