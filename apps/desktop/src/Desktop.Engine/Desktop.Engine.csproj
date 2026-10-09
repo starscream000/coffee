@@ -1,0 +1,10 @@
+<!-- Starts the engine as a child process and talks to it over the protocol.
+     Depends on Desktop.Protocol only; never on engine code. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Desktop.Engine</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Desktop.Protocol\Desktop.Protocol.csproj" />
+  </ItemGroup>
+</Project>
