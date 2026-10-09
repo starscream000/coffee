@@ -3,6 +3,7 @@
 // unexpected internal error, 3 after a refused handshake.
 
 import { BUILTIN_SPECS } from '../actions/builtin-specs.js';
+import { SecretRegistry } from '../context/mask.js';
 import { getEngineInfo } from '../engine-info.js';
 import { registerProjectHandlers } from '../project/handlers.js';
 import { redirectConsoleToStderr } from './console.js';
@@ -43,7 +44,12 @@ export function runStdioServer(): Session {
     process.exit(EXIT_INTERNAL_ERROR);
   });
 
-  const writer = new MessageWriter(process.stdout);
+  // Every message passes through the secret registry before it is written (ADR 0014).
+  const secrets = new SecretRegistry();
+  const writer = new MessageWriter(process.stdout, {
+    mask: (text) => secrets.mask(text),
+    maskValue: (value) => secrets.maskValue(value),
+  });
   const session = new Session(writer, {
     engineInfo: getEngineInfo(),
     // No browser can run yet; the runner branches add Chromium.
@@ -53,7 +59,7 @@ export function runStdioServer(): Session {
     },
     logError,
   });
-  registerProjectHandlers(session, BUILTIN_SPECS);
+  registerProjectHandlers(session, BUILTIN_SPECS, secrets);
 
   const reader = new LineReader();
   process.stdin.on('data', (chunk: Buffer) => {

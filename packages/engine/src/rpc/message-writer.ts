@@ -42,6 +42,11 @@ export interface MessageWriterOptions {
   maxBytes?: number;
   /** Longest string field in bytes before truncation; defaults to 64 KiB. */
   fieldBytes?: number;
+  /**
+   * Masks every string inside a message before it is measured or truncated, so
+   * truncation never cuts a secret in half (ADR 0014). Defaults to no masking.
+   */
+  maskValue?: (value: unknown) => unknown;
 }
 
 type JsonObject = Record<string, unknown>;
@@ -60,6 +65,7 @@ export class MessageWriter {
   private readonly mask: MaskHook;
   private readonly maxBytes: number;
   private readonly fieldBytes: number;
+  private readonly maskValue: (value: unknown) => unknown;
 
   /**
    * @param sink - Where lines go, normally `process.stdout`.
@@ -70,6 +76,7 @@ export class MessageWriter {
     this.mask = options.mask ?? identityMask;
     this.maxBytes = options.maxBytes ?? MAX_MESSAGE_BYTES;
     this.fieldBytes = options.fieldBytes ?? TRUNCATED_FIELD_BYTES;
+    this.maskValue = options.maskValue ?? ((value) => value);
   }
 
   /**
@@ -100,15 +107,17 @@ export class MessageWriter {
    * @returns The masked line, never longer than the limit.
    */
   render(message: JsonObject): string {
-    const first = this.serialise(message);
+    // Mask first: a secret cut in half by truncation could no longer be found.
+    const masked = this.maskValue(message) as JsonObject;
+    const first = this.serialise(masked);
     if (Buffer.byteLength(first) <= this.maxBytes) {
       return first;
     }
-    const truncated = this.serialise(truncateStrings(message, this.fieldBytes) as JsonObject);
+    const truncated = this.serialise(truncateStrings(masked, this.fieldBytes) as JsonObject);
     if (Buffer.byteLength(truncated) <= this.maxBytes) {
       return truncated;
     }
-    return this.serialise(this.replacementFor(message));
+    return this.serialise(this.replacementFor(masked));
   }
 
   private serialise(message: JsonObject): string {

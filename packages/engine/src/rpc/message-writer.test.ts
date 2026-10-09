@@ -139,3 +139,28 @@ describe('truncateStrings', () => {
     expect(out.b.c).toBe('short');
   });
 });
+
+describe('MessageWriter with secrets', () => {
+  it('masks a secret before truncating, so no part of one that straddles the cut leaks', async () => {
+    const { SecretRegistry } = await import('../context/mask.js');
+    const secrets = new SecretRegistry();
+    const secret = 'SECRET-abcdefghijklmnopqrstuvwxyz';
+    secrets.register(secret);
+    const writer = new MessageWriter(new MemorySink(), {
+      maxBytes: 2_000,
+      fieldBytes: 200,
+      mask: (text) => secrets.mask(text),
+      maskValue: (value) => secrets.maskValue(value),
+    });
+    // The secret starts just before the truncation point of the 200-byte field.
+    const actual = `${'a'.repeat(160)}${secret}${'b'.repeat(5_000)}`;
+    const line = writer.render({
+      jsonrpc: '2.0',
+      method: 'stepFailed',
+      params: { runId: 'r', seq: 1, error: { code: 'AssertionFailed', message: 'm', actual } },
+    });
+    expect(line).not.toContain('SECRET-');
+    expect(line).not.toContain('abcdefghijklmnop');
+    expect(line).toContain('•••');
+  });
+});

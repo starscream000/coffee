@@ -6,6 +6,7 @@
 
 import type { Diagnostic } from '@cfe/protocol';
 import { targetParamKeys, type ActionSpec } from '../actions/action-spec.js';
+import { secretProblemMessage, type SecretProblem } from '../context/secrets.js';
 import type { ConfigFile, FlowParam } from '../schema/files.js';
 import { TargetSchema } from '../schema/targets.js';
 import { DiagnosticSink, didYouMeanHint } from '../stepfile/diagnostics.js';
@@ -38,6 +39,8 @@ export interface CheckContext {
   loadFlow(file: string): FileValidation | undefined;
   /** Every flow file the project's globs find, for "did you mean" hints. */
   knownFlowFiles(): readonly string[];
+  /** Why a declared secret cannot be used, if it cannot. */
+  secretProblem(name: string): SecretProblem | undefined;
   /** Whether a project-relative file exists. */
   exists(file: string): boolean;
 }
@@ -486,6 +489,15 @@ function checkInterpolation(
           `"${first}" is not declared as a secret in the config.`,
           didYouMeanHint(first, declared) ?? `Add it to "secrets:" in the config.`,
         );
+      } else {
+        const problem = context.secretProblem(first);
+        if (problem !== undefined) {
+          sink.error(
+            ref.at,
+            problem === 'missing' ? 'SecretNotSet' : 'SecretTooShort',
+            secretProblemMessage(first, problem),
+          );
+        }
       }
     }
     if (namespace === 'env' && config !== undefined) {

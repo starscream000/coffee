@@ -28,9 +28,17 @@ export class EngineProcess {
    *
    * @param entry - Script to run; defaults to the engine's main.
    * @param args - Arguments after the script.
+   * @param env - Extra environment variables for the engine process.
    */
-  constructor(entry: string = ENGINE_MAIN, args: readonly string[] = ['--stdio']) {
-    this.child = spawn(process.execPath, [entry, ...args], { stdio: 'pipe' });
+  constructor(
+    entry: string = ENGINE_MAIN,
+    args: readonly string[] = ['--stdio'],
+    env: Readonly<Record<string, string>> = {},
+  ) {
+    this.child = spawn(process.execPath, [entry, ...args], {
+      stdio: 'pipe',
+      env: { ...process.env, ...env },
+    });
     this.child.stdout.setEncoding('utf8');
     this.child.stdout.on('data', (text: string) => {
       this.stdoutBytes += text.length;

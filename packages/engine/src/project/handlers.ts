@@ -5,6 +5,7 @@
 import type { ActionSummary } from '@cfe/protocol';
 import { z } from 'zod';
 import type { ActionSpec } from '../actions/action-spec.js';
+import type { SecretRegistry } from '../context/mask.js';
 import type { RegisteredAction } from '../actions/registry.js';
 import { RpcError } from '../rpc/rpc-error.js';
 import type { Session } from '../rpc/session.js';
@@ -42,17 +43,24 @@ export function summariseAction(action: RegisteredAction): ActionSummary {
  *
  * @param session - The protocol session.
  * @param builtins - The built-in action specs.
+ * @param secrets - The engine-wide secret registry the message writer masks with.
  *
  * @example
  * ```ts
  * registerProjectHandlers(session, BUILTIN_SPECS);
  * ```
  */
-export function registerProjectHandlers(session: Session, builtins: readonly ActionSpec[]): void {
+export function registerProjectHandlers(
+  session: Session,
+  builtins: readonly ActionSpec[],
+  secrets: SecretRegistry,
+): void {
   let project: Project | undefined;
 
   session.register('openProject', async (params) => {
-    project = await Project.open(params.root, builtins);
+    // A newly opened project brings its own secrets; forget the previous ones.
+    secrets.clear();
+    project = await Project.open(params.root, builtins, { secrets });
     return project.summary();
   });
 

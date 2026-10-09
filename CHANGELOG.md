@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Variables, run-time interpolation and environment profiles in the engine;
+  secrets loaded from the process environment and `.env`, rejected under 4
+  characters, and reported by `validate` where a test uses one without a value.
+  Every protocol message is masked, before any truncation.
 - User actions: `@cfe/engine/sdk` (`defineAction`, `target()`, `z`,
   `ActionError`, `AssertionError` and the type of `ctx`); one registry for
   built-in and user actions with the naming rules of ADR 0016; loading with

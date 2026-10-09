@@ -39,7 +39,7 @@ async function project(files: Record<string, string>, config = CONFIG): Promise<
     mkdirSync(dirname(join(root, file)), { recursive: true });
     writeFileSync(join(root, file), text);
   }
-  return Project.open(root, BUILTIN_SPECS);
+  return Project.open(root, BUILTIN_SPECS, { environment: { API_TOKEN: 'token-1234' } });
 }
 
 const lines = (...l: string[]) => `${l.join('\n')}\n`;
@@ -373,5 +373,35 @@ describe('review 0003 fixes', () => {
       'cfe.config.yaml:5:24 ReservedEnvValue',
     ]);
     expect(diagnostics[0]?.message).toContain('is built in');
+  });
+});
+
+describe('secrets in validate', () => {
+  it('reports a declared secret without a value, and one that is too short, where they are used', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'cfe-project-'));
+    roots.push(root);
+    writeFileSync(
+      join(root, 'cfe.config.yaml'),
+      CONFIG.replace('secrets: [API_TOKEN]', 'secrets: [API_TOKEN, SHORT, FROM_FILE]'),
+    );
+    writeFileSync(join(root, '.env'), 'SHORT=abc\nFROM_FILE=file-value\n');
+    mkdirSync(join(root, 'tests'));
+    writeFileSync(
+      join(root, 'tests/a.test.yaml'),
+      test(
+        "  - goto: '/${secrets.API_TOKEN}'",
+        "  - goto: '/${secrets.SHORT}'",
+        "  - goto: '/${secrets.FROM_FILE}'",
+      ),
+    );
+    const p = await Project.open(root, BUILTIN_SPECS, { environment: {} });
+    const diagnostics = p.validate({ files: ['tests/a.test.yaml'] });
+    expect(brief(diagnostics)).toEqual([
+      'tests/a.test.yaml:4:11 SecretNotSet',
+      'tests/a.test.yaml:5:11 SecretTooShort',
+    ]);
+    expect(diagnostics[0]?.message).toBe(
+      'The secret "API_TOKEN" has no value. Set the environment variable API_TOKEN, or add API_TOKEN=… to the .env file at the project root.',
+    );
   });
 });
