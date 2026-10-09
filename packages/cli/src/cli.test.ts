@@ -1,5 +1,5 @@
 // Unit tests for command-line argument handling.
-import { PRODUCT } from '@test-tool/protocol';
+import { PRODUCT } from '@cfe/protocol';
 import { describe, expect, it } from 'vitest';
 import { EXIT_OK, EXIT_USAGE, runCli } from './cli.js';
 

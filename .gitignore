@@ -5,7 +5,7 @@ dist/
 coverage/
 
 # Engine run output, saved logins and local secrets (never commit these)
-.coffee/
+.cfe/
 .env
 .env.*
 !.env.example

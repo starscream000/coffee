@@ -10,13 +10,13 @@ CLI still has to find the engine's entry point on disk.
 
 ## Decision
 
-- The CLI lists `@test-tool/engine` as a package dependency **only so that it
+- The CLI lists `@cfe/engine` as a package dependency **only so that it
   is installed alongside**. It finds the entry point with
-  `import.meta.resolve('@test-tool/engine/main')` and spawns it with the same
+  `import.meta.resolve('@cfe/engine/main')` and spawns it with the same
   Node executable (`process.execPath`).
 - The ESLint rule that blocks importing engine code from clients stays in place
   and covers type-only imports too.
-- `--engine <path>` and the `COFFEE_ENGINE` environment variable (prefix from
+- `--engine <path>` and the `CFE_ENGINE` environment variable (prefix from
   `PRODUCT.envPrefix`) override the location, for development and for the
   server.
 - The desktop app ships a Node runtime and the engine build, and starts it the

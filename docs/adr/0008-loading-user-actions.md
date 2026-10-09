@@ -13,18 +13,18 @@ extensions in imports.
 ## Decision
 
 1. Find files with the config's `actions` globs (default `actions/**/*.ts`).
-2. Bundle each file with esbuild into ESM in `.coffee/cache/actions/`, with a
+2. Bundle each file with esbuild into ESM in `.cfe/cache/actions/`, with a
    source map. Imports of the user's own files are bundled in; packages are
    resolved from the user's `node_modules`. An esbuild plugin rewrites every
-   import of `@test-tool/engine/sdk` (and `playwright`) to the absolute path of
+   import of `@cfe/engine/sdk` (and `playwright`) to the absolute path of
    the **running engine's own copy**, so there is exactly one SDK in the
    process. A user's installed copy is used only by their editor and `tsc`.
    If the user's `node_modules` has a different version of the package than the
    engine, `openProject` reports a diagnostic with both versions and what to
    run, for example:
-   `actions/: warning SdkVersionMismatch: your repository has @test-tool/engine
+   `actions/: warning SdkVersionMismatch: your repository has @cfe/engine
 0.1.2 but the engine is 0.2.0; your editor's types may not match what runs.
-Run "pnpm add -D @test-tool/engine@0.2.0".` It is a warning, not an error,
+Run "pnpm add -D @cfe/engine@0.2.0".` It is a warning, not an error,
    because the running code is always the engine's own copy; the mismatch can
    only mislead the user's editor. It is never silently accepted.
 3. `import()` the output. The default export must be one action or an array of

@@ -6,7 +6,7 @@ ask the owner instead of guessing.
 
 ## What we are building
 
-Coffee (final display name; command, folder and npm scope names are pending the owner's choice) is a desktop tool for recording, editing and running
+Coffee (command `cfe`, data folder `.cfe`, npm scope `@cfe`) is a desktop tool for recording, editing and running
 end-to-end web tests. It has three parts:
 
 1. **Engine**: a headless TypeScript program on Node.js that uses the

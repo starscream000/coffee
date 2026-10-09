@@ -1,5 +1,5 @@
 {
-  "name": "@test-tool/cli",
+  "name": "@cfe/cli",
   "version": "0.0.0",
   "private": true,
   "description": "Command-line client that starts the engine as a separate process and runs step files.",
@@ -12,9 +12,9 @@
     "dist"
   ],
   "bin": {
-    "coffee": "./dist/main.js"
+    "cfe": "./dist/main.js"
   },
   "dependencies": {
-    "@test-tool/protocol": "workspace:*"
+    "@cfe/protocol": "workspace:*"
   }
 }

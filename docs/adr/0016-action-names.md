@@ -15,7 +15,7 @@ user action named like a future built-in would break when that built-in ships.
   `auth.fillOtp`.
 - **Names without a dot are reserved for built-ins**, now and in future.
 - **Reserved namespaces** (owner decision, 2026-10-09): `expect`, `wait`, `api`
-  and the product's command name (`PRODUCT.command`, so `coffee.` today).
+  and the product's command name (`PRODUCT.command`, so `cfe.`).
   Built-in names keep their dots (`expect.text`, `wait.url`). The list lives
   in **one place** in the engine, a single exported constant in the `actions`
   module:

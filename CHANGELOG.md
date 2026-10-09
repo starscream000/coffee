@@ -15,8 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Windows and macOS.
 - `CLAUDE.md`, `README.md` and `CONTRIBUTING.md`.
 - Product identity defined once in `packages/protocol/src/product.ts`: display
-  name "Coffee"; command, data folder and npm scope as separate values
-  (interim `coffee`, `.coffee`, `@test-tool` until the owner chooses).
+  name "Coffee", command `cfe`, data folder `.cfe` and npm scope `@cfe`.
 - Design proposals: architecture, step file format, actions and engine
   protocol, with architecture decision records in `docs/adr/`, and the
   v0.1.0 definition of done.
@@ -41,3 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   variables and are registered as secrets for the rest of the run; old saved
   logins are deleted at the start of a run; the login cache key is described
   the same way everywhere; the plan splits the runner into two branches.
+- Final product names applied: command `cfe`, data folder `.cfe`, config file
+  `cfe.config.yaml`, npm scope `@cfe` (`@cfe/protocol`, `@cfe/engine`,
+  `@cfe/cli`); the repository's root package is `coffee`.

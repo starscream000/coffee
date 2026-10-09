@@ -27,7 +27,7 @@ column:
    environment values are checked across files.
 
 Zod's built-in `toJSONSchema` produces the JSON Schemas for `listActions` and
-for editor completion. `z` is re-exported from `@test-tool/engine/sdk` so user
+for editor completion. `z` is re-exported from `@cfe/engine/sdk` so user
 actions use the same API.
 
 ## Alternatives rejected

@@ -8,7 +8,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', '.coffee/**'] },
+  { ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', '.cfe/**'] },
   eslint.configs.recommended,
   {
     files: ['**/*.ts'],
@@ -52,9 +52,7 @@ export default tseslint.config(
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            { group: ['@test-tool/*'], message: 'protocol must not depend on other packages.' },
-          ],
+          patterns: [{ group: ['@cfe/*'], message: 'protocol must not depend on other packages.' }],
         },
       ],
     },
@@ -68,8 +66,8 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ['@test-tool/engine', '@test-tool/engine/*'],
-              message: 'Clients start the engine as a process; import @test-tool/protocol instead.',
+              group: ['@cfe/engine', '@cfe/engine/*'],
+              message: 'Clients start the engine as a process; import @cfe/protocol instead.',
             },
           ],
         },

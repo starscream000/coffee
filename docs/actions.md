@@ -9,7 +9,7 @@ defined the same way, with `defineAction`, and live in the same registry.
 
 ```ts
 // actions/shop/add-to-cart.ts (in the user's repository)
-import { defineAction, target, z } from '@test-tool/engine/sdk';
+import { defineAction, target, z } from '@cfe/engine/sdk';
 
 export default defineAction({
   name: 'shop.addToCart',
@@ -81,7 +81,7 @@ target name or an inline candidate list; in `run` it is an unresolved
 - **Names without a dot are reserved for built-in actions**, including future
   ones.
 - **Reserved namespaces**: `expect`, `wait`, `api` and the product's command
-  name (`coffee` while that name is interim). Built-ins keep their dotted names
+  name (`cfe`). Built-ins keep their dotted names
   (`expect.text`, `wait.url`). The engine keeps this list in one constant,
   `RESERVED_NAMESPACES`, which both the built-ins and the name check use.
 - A user action that breaks these rules, or whose name is already taken, **fails
@@ -103,11 +103,11 @@ target name or an inline candidate list; in `run` it is an unresolved
 - The config's `actions` globs (default `actions/**/*.ts`) are loaded when a
   project is opened. Each file default-exports one action or an array of
   actions.
-- Each file is bundled with esbuild into `.coffee/cache/actions/` and imported
+- Each file is bundled with esbuild into `.cfe/cache/actions/` and imported
   by the engine ([ADR 0008](adr/0008-loading-user-actions.md)). Files may import
   other files and packages installed in the user's repository.
 - **One SDK copy: the running engine's.** When bundling, every import of
-  `@test-tool/engine/sdk` in a user action is redirected to the SDK module of
+  `@cfe/engine/sdk` in a user action is redirected to the SDK module of
   the engine that is running, never to a copy in the user's `node_modules`.
   `defineAction`, `target()`, `z` and the error classes are therefore always
   the engine's own. The user may install the package as a dev dependency so
@@ -142,7 +142,7 @@ server (v0.4.0) the isolation boundary is the container each project runs in.
 Throw. Errors exported by the SDK give the best messages:
 
 ```ts
-import { ActionError, AssertionError } from '@test-tool/engine/sdk';
+import { ActionError, AssertionError } from '@cfe/engine/sdk';
 
 throw new AssertionError('Cart total is wrong', { expected: '€20.00', actual: total });
 throw new ActionError('The product is out of stock', {

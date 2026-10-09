@@ -41,13 +41,13 @@ importers:
 
   packages/cli:
     dependencies:
-      '@test-tool/protocol':
+      '@cfe/protocol':
         specifier: workspace:*
         version: link:../protocol
 
   packages/engine:
     dependencies:
-      '@test-tool/protocol':
+      '@cfe/protocol':
         specifier: workspace:*
         version: link:../protocol
 

@@ -1,7 +1,7 @@
 // Public entry point of the engine package. Engine modules (parser, validator,
 // action registry, runner) are added in Milestone 1 once the docs are approved.
 
-import { PROTOCOL_VERSION } from '@test-tool/protocol';
+import { PROTOCOL_VERSION } from '@cfe/protocol';
 
 /**
  * Identity of this engine build, reported to clients during `initialize`.
@@ -24,5 +24,5 @@ export interface EngineInfo {
  * ```
  */
 export function getEngineInfo(): EngineInfo {
-  return { name: '@test-tool/engine', protocolVersion: PROTOCOL_VERSION };
+  return { name: '@cfe/engine', protocolVersion: PROTOCOL_VERSION };
 }

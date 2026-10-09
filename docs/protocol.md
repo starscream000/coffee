@@ -24,7 +24,7 @@
   read the files. (`validate` with `content` carries an unsaved step file,
   which is input, not an artifact.)
 - **Maximum message size: 4 MiB** of UTF-8 per line, in both directions
-  (`MAX_MESSAGE_BYTES` in `@test-tool/protocol`, [ADR 0005](adr/0005-json-rpc-over-stdio.md)):
+  (`MAX_MESSAGE_BYTES` in `@cfe/protocol`, [ADR 0005](adr/0005-json-rpc-over-stdio.md)):
   - The engine never sends a longer line. It first truncates long string fields
     (`message`, `expected`, `actual`, log text) to 64 KiB each, marked
     `… [truncated N characters]`. If the message is still too large, a response
@@ -43,7 +43,7 @@
 ([ADR 0011](adr/0011-protocol-versioning.md), approved)
 
 - The protocol has its own semantic version, separate from package versions,
-  exported as `PROTOCOL_VERSION` from `@test-tool/protocol`.
+  exported as `PROTOCOL_VERSION` from `@cfe/protocol`.
 - **Compatible changes**: new optional fields, new methods, new events, new error
   codes, new values in enums documented as open.
 - **Breaking changes**: removing or renaming anything, changing a type, making
@@ -55,7 +55,7 @@
   minor must be equal, because a `0.x` minor bump may break.
 - `1.0.0` is planned for the desktop app release (v0.3.0).
 
-Machine-readable definitions: `@test-tool/protocol` exports the TypeScript types
+Machine-readable definitions: `@cfe/protocol` exports the TypeScript types
 and generates a JSON Schema per message under `packages/protocol/schema/`, which
 the C# client uses for code generation and contract tests.
 
@@ -113,11 +113,11 @@ client                                   engine
 
 ```jsonc
 // params
-{ "protocolVersion": "0.1.0", "client": { "name": "coffee-cli", "version": "0.1.0" } }
+{ "protocolVersion": "0.1.0", "client": { "name": "@cfe/cli", "version": "0.1.0" } }
 // result
 {
   "protocolVersion": "0.1.0",
-  "engine": { "name": "@test-tool/engine", "version": "0.1.0" },
+  "engine": { "name": "@cfe/engine", "version": "0.1.0" },
   "capabilities": { "browsers": ["chromium"] }
 }
 ```
@@ -137,7 +137,7 @@ No params. Cancels any run, closes browsers, responds `null`, then exits.
 // result
 {
   "root": "C:/work/shop-tests",
-  "configFile": "C:/work/shop-tests/coffee.config.yaml",
+  "configFile": "C:/work/shop-tests/cfe.config.yaml",
   "environments": ["local", "staging"],
   "defaultEnvironment": "local",
   "logins": ["customer", "admin"],
@@ -200,7 +200,7 @@ Validates files on disk, or an unsaved editor buffer passed as `content`.
   "options": { "headed": false, "browser": "chromium", "refreshLogins": false }
 }
 // result (returned before the run starts; progress arrives as events)
-{ "runId": "20261009-054902-1a2b", "resultsDir": "C:/work/shop-tests/.coffee/runs/20261009-054902-1a2b" }
+{ "runId": "20261009-054902-1a2b", "resultsDir": "C:/work/shop-tests/.cfe/runs/20261009-054902-1a2b" }
 ```
 
 All selected files are validated first. If any has an error, the request fails
