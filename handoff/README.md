@@ -40,7 +40,9 @@ Numbers have four digits and go up by one.
 3. **Implementer:**
    1. `git switch main`, then `git pull --ff-only`.
    2. Reads `STATUS.md` and opens the instruction it names. If none is open,
-      does nothing and says so.
+      does nothing and says so. Usually one instruction is open. If
+      `STATUS.md` lists several, it carries them out in the listed order, each
+      with its own report; see [Several open instructions](#several-open-instructions).
    3. Works on the branch or branches the instruction names.
    4. Writes `handoff/reports/NNNN-…md` on that branch (on the last branch if
       there are several).
@@ -68,6 +70,26 @@ approve.
 
 To the implementer, one sentence is enough: "Pull main and carry out the open
 instruction."
+
+## Several open instructions
+
+The owner may ask for more than one instruction to be open at once, so that
+the implementer can keep working without a review in between.
+
+- `STATUS.md` lists the open instructions in the order to carry them out.
+- Nothing is merged in between, so the branches stack: the first branch of a
+  later instruction is based on the last branch of the earlier one. Each
+  instruction's "Branches" table says what to base on.
+- Each instruction still gets its own report, on its own last branch.
+- If an earlier instruction cannot be finished, the implementer stops there,
+  reports, and does not start the later ones.
+- `check` reviews every report that has no review yet, in order, and writes one
+  review per instruction. `merge` merges approved pull requests in order and
+  stops at the first one that is not approved.
+
+The cost: if a review asks for changes low in the stack, everything above it
+has to take those changes in too (by merging the fixed branch upward, never by
+rewriting pushed history).
 
 ## Verdicts
 
