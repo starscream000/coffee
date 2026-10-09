@@ -1,0 +1,13 @@
+# F2 (A5): no candidate matches exactly one element; the error lists every
+# candidate with its match count.
+version: 1
+name: A target that is not on the page
+steps:
+  - goto: /todos
+  - click:
+      target:
+        - role: button
+          name: Delete all
+        - testId: delete-all
+        - css: button
+    timeout: 2s

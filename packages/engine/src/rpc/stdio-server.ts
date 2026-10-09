@@ -6,7 +6,7 @@
 // the process is killed outright, Chromium exits on its own when its pipe to
 // Playwright closes.
 
-import { BUILTIN_SPECS } from '../actions/builtin-specs.js';
+import { BUILTIN_ACTIONS } from '../actions/builtins/index.js';
 import { SecretRegistry } from '../context/mask.js';
 import { getEngineInfo } from '../engine-info.js';
 import { registerProjectHandlers } from '../project/handlers.js';
@@ -78,7 +78,7 @@ export function runStdioServer(): StdioServer {
     logError,
     beforeShutdown: () => runs.stop(),
   });
-  registerProjectHandlers(session, BUILTIN_SPECS, secrets, runs);
+  registerProjectHandlers(session, BUILTIN_ACTIONS, secrets, runs);
 
   const reader = new LineReader();
   process.stdin.on('data', (chunk: Buffer) => {

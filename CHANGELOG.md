@@ -36,6 +36,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The built-in actions `goto`, `click`, `fill` and `expect.text` run, defined
+  with `defineAction` like user actions; each honours `ctx.signal` and gives
+  Playwright at most the step's remaining time. `expect.text` retries until the
+  text matches or reports `AssertionFailed` with expected and actual values.
+- Demo samples S10, S11, S12 and S14 (`tests/`) and fixtures F1, F2, F3 and F7
+  (`fixtures/failing/`), with shared targets in `targets/demo.targets.yaml`
+  and a "Clear all" button on the to-do page that `after` steps use to reset
+  the demo app. Integration tests run each through the harness in Chromium.
+
 - The runner core: `startRun` validates the selected files (by `files` or
   `tags`), checks the environment and the browser, creates the run folder,
   answers with `{ runId, resultsDir }`, then runs each test in a fresh browser

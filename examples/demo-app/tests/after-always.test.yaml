@@ -1,0 +1,14 @@
+# S10: after steps run after a passing test; the demo app's reset counter
+# (GET /api/state) proves it.
+version: 1
+name: After steps run after a passing test
+tags: [smoke]
+steps:
+  - goto: /todos
+  - fill: { target: todos.new, value: Buy milk }
+  - click: todos.add
+  - expect.text: { target: todos.count, equals: 1 }
+after:
+  - goto: /todos
+  - click: todos.clearAll
+  - expect.text: { target: todos.count, equals: 0 }

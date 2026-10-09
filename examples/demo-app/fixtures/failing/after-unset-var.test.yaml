@@ -1,0 +1,10 @@
+# F7: the test fails before orderNumber is set; the after step that uses it is
+# skipped with variableNotSet, and only the original failure is reported.
+version: 1
+name: An after step needs a variable that was never set
+steps:
+  - goto: /todos
+  - expect.text: { target: todos.count, equals: 5 }
+    timeout: 1s
+after:
+  - goto: /orders/${vars.orderNumber}
