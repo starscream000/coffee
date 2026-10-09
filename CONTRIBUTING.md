@@ -19,7 +19,14 @@ summarises the day-to-day workflow.
 | `pnpm typecheck`        | Type check sources and tests                                                                    |
 | `pnpm test`             | Build, then run all Vitest tests                                                                |
 | `pnpm verify`           | Everything above; must pass before any merge                                                    |
+| `pnpm test:integration` | Build, then run the browser tests (`*.integration.test.ts`); needs Chromium, see below          |
 | `pnpm generate:schemas` | Regenerate the protocol's JSON Schema files after changing a protocol schema; commit the result |
+
+`pnpm verify` needs no browser. The browser tests need Playwright's headless
+Chromium, installed once with
+`pnpm --filter @cfe/engine exec playwright install --only-shell chromium`
+(on Linux, also `... playwright install-deps chromium-headless-shell`). CI runs
+them in the `integration` job.
 
 ## Branches and commits
 

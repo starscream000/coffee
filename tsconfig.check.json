@@ -9,5 +9,11 @@
       "@cfe/engine/sdk": ["./packages/engine/src/sdk/index.ts"]
     }
   },
-  "include": ["packages/*/src", "examples/*/src", "vitest.config.ts", "examples/*/actions"]
+  "include": [
+    "packages/*/src",
+    "examples/*/src",
+    "vitest.config.ts",
+    "vitest.integration.config.ts",
+    "examples/*/actions"
+  ]
 }

@@ -29,6 +29,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `ctx.locate` in the engine: resolves a target (by name, file-local then
+  shared, or inline) to the Playwright locator of the first candidate that
+  matches exactly one element, with `frame` and `within` chains, `${…}` in
+  candidates, the `fallbackGrace` period, polling every 50 ms until the step's
+  deadline, at-once cancellation, and `TargetNotFound` listing every candidate's
+  last match count. Each call is reported as a `LocatorUse` and each fallback as
+  a `LocatorFallback` warning, through an interface the runner will implement.
+- Playwright 1.64.0 in the engine. The SDK's `Page`, `APIRequestContext` and
+  `Locator` are Playwright's own types, and user actions that import
+  `playwright` get the engine's copy.
+- `pnpm test:integration` runs the browser tests (`*.integration.test.ts`) in
+  headless Chromium; `pnpm verify` stays free of any browser. CI has a new
+  `integration` job on Linux, Windows and macOS with the browser download
+  cached.
+
 - Variables, run-time interpolation and environment profiles in the engine;
   secrets loaded from the process environment and `.env`, rejected under 4
   characters, and reported by `validate` where a test uses one without a value.
