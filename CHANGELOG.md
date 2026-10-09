@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Step-file schemas in the engine: tests, flows, shared targets and the config,
+  the specs of all 25 built-in actions, and per-file validation that reports
+  every problem with file, line and column (with "did you mean" hints) and
+  brings each step into its canonical long form.
 - Engine over stdio: `node packages/engine/dist/main.js --stdio` speaks the
   protocol line by line, with the version handshake (refusing an incompatible
   client with exit code 3), the 4 MiB message limit and truncation, standard
