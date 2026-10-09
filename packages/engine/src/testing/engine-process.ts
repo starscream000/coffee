@@ -21,9 +21,14 @@ export class EngineProcess {
   private readonly received: Record<string, unknown>[] = [];
   private waiters: (() => void)[] = [];
 
-  /** Starts `node dist/main.js --stdio`. */
-  constructor() {
-    this.child = spawn(process.execPath, [ENGINE_MAIN, '--stdio'], { stdio: 'pipe' });
+  /**
+   * Starts `node dist/main.js --stdio`, or another entry script.
+   *
+   * @param entry - Script to run; defaults to the engine's main.
+   * @param args - Arguments after the script.
+   */
+  constructor(entry: string = ENGINE_MAIN, args: readonly string[] = ['--stdio']) {
+    this.child = spawn(process.execPath, [entry, ...args], { stdio: 'pipe' });
     this.child.stdout.setEncoding('utf8');
     this.child.stdout.on('data', (text: string) => {
       this.stdoutBytes += text.length;

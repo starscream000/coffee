@@ -5,7 +5,10 @@
 import { spawn } from 'node:child_process';
 import { MAX_MESSAGE_BYTES, PROTOCOL_VERSION } from '@cfe/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
+import { fileURLToPath } from 'node:url';
 import { ENGINE_MAIN, EngineProcess } from '../testing/engine-process.js';
+
+const TEST_ENGINES = fileURLToPath(new URL('../../test/engines/', import.meta.url));
 
 const engines: EngineProcess[] = [];
 function startEngine(): EngineProcess {
@@ -111,6 +114,42 @@ describe('engine over stdio', () => {
     await engine.next();
     engine.send({ jsonrpc: '2.0', id: 2, method: 'shutdown' });
     expect(await engine.next()).toEqual({ jsonrpc: '2.0', id: 2, result: null });
+    expect(await engine.exitCode()).toBe(0);
+  });
+
+  it('review 0003 finding 1: no console method writes to stdout', async () => {
+    const engine = new EngineProcess(`${TEST_ENGINES}noisy-console.mjs`, []);
+    engines.push(engine);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(engine.stdoutBytes).toBe(0);
+    for (const text of [
+      'log',
+      'dir: 1',
+      'dirxml: 2',
+      'table',
+      'groupCollapsed',
+      'count: 1',
+      'time:',
+      'Trace: trace',
+      'Assertion failed: assert',
+    ]) {
+      expect(engine.stderr).toContain(text);
+    }
+    engine.initialize();
+    expect(await engine.next()).toMatchObject({
+      id: 1,
+      result: { protocolVersion: PROTOCOL_VERSION },
+    });
+  });
+
+  it('review 0003 finding 2: answers requests already received before exiting when stdin closes', async () => {
+    const engine = new EngineProcess(`${TEST_ENGINES}slow-handler.mjs`, []);
+    engines.push(engine);
+    engine.initialize();
+    engine.send({ jsonrpc: '2.0', id: 2, method: 'listTests', params: {} });
+    engine.child.stdin.end();
+    expect(await engine.next()).toMatchObject({ id: 1 });
+    expect(await engine.next()).toEqual({ jsonrpc: '2.0', id: 2, result: { tests: [] } });
     expect(await engine.exitCode()).toBe(0);
   });
 
