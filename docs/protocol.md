@@ -55,9 +55,13 @@
   minor must be equal, because a `0.x` minor bump may break.
 - `1.0.0` is planned for the desktop app release (v0.3.0).
 
-Machine-readable definitions: `@cfe/protocol` exports the TypeScript types
-and generates a JSON Schema per message under `packages/protocol/schema/`, which
-the C# client uses for code generation and contract tests.
+Machine-readable definitions: every message is defined once, as a Zod schema in
+`@cfe/protocol` ([ADR 0020](adr/0020-protocol-as-zod-schemas.md)). The
+TypeScript types are inferred from those schemas, the engine validates request
+parameters with them, and a script generates one JSON Schema file per message
+into `packages/protocol/schema/`, which the C# client uses for code generation
+and contract tests. The generated files are committed, and a test fails if they
+differ from what the script produces.
 
 ## Handshake
 

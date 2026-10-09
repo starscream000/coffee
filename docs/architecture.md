@@ -45,12 +45,12 @@ Non-goals: AI features, conditional logic in step files, a hosted service
         cfe.config.yaml; run output in .cfe/ (git-ignored)
 ```
 
-| Package / app       | Depends on | Responsibility                                                       |
-| ------------------- | ---------- | -------------------------------------------------------------------- |
-| `packages/protocol` | nothing    | TypeScript types and JSON Schemas for every request, response, event |
-| `packages/engine`   | protocol   | Everything that understands step files or touches a browser          |
-| `packages/cli`      | protocol\* | Starts the engine, sends requests, prints events, sets exit code     |
-| `apps/desktop`      | protocol†  | Avalonia UI (v0.3.0)                                                 |
+| Package / app       | Depends on | Responsibility                                                                                                                                |
+| ------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/protocol` | `zod` only | Zod schemas for every request, response and event; types and JSON Schemas derived from them ([ADR 0020](adr/0020-protocol-as-zod-schemas.md)) |
+| `packages/engine`   | protocol   | Everything that understands step files or touches a browser                                                                                   |
+| `packages/cli`      | protocol\* | Starts the engine, sends requests, prints events, sets exit code                                                                              |
+| `apps/desktop`      | protocol†  | Avalonia UI (v0.3.0)                                                                                                                          |
 
 \* The CLI also lists the engine package as an install-time dependency, only to
 find its executable; ESLint blocks any code import ([ADR 0009](adr/0009-clients-locate-engine.md)).
@@ -60,21 +60,21 @@ find its executable; ESLint blocks any code import ([ADR 0009](adr/0009-clients-
 
 Each module is a folder under `packages/engine/src/` with one job.
 
-| Module      | Job                                                                                                      |
-| ----------- | -------------------------------------------------------------------------------------------------------- |
-| `rpc`       | Newline-delimited JSON-RPC on stdio, version handshake, dispatch, event emission; masks every message    |
-| `project`   | Finds `cfe.config.yaml`, environments, saved logins, test, flow and target files                         |
-| `stepfile`  | Parses YAML with source positions, validates, normalises shorthand to the long form, resolves references |
-| `schema`    | Zod schemas for step files and config; maps validation issues to file, line and column                   |
-| `actions`   | `defineAction`, registry, built-in actions, loading and name-checking user actions                       |
-| `locators`  | `ctx.locate`: tries a target's candidates in order and records which one matched                         |
-| `context`   | Builds `ctx` per test: pages, request, vars, env, secrets, log, locate, signal; interpolation            |
-| `secrets`   | Loads declared secrets, keeps the registry of values to mask, masks text and artifacts                   |
-| `runner`    | Runs tests: data rows, before → steps → after, flow calls, timeouts, cancellation, `opens`, events       |
-| `pagestate` | Internal `PageStateRecorder` interface: screenshot and snapshot per step, open a snapshot on request     |
-| `results`   | Writes the run folder (`run.json`, `events.ndjson`, per-step artifacts)                                  |
-| `browser`   | Launches the configured browser, fresh context per test, applies saved logins                            |
-| `errors`    | Typed error classes with a stable `code`, a tester-readable message, the location and a hint             |
+| Module      | Job                                                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rpc`       | Newline-delimited JSON-RPC on stdio, version handshake, dispatch, event emission; masks every message                                                   |
+| `project`   | Finds `cfe.config.yaml`, environments, saved logins, test, flow and target files                                                                        |
+| `stepfile`  | Parses YAML with source positions, validates, normalises shorthand to the long form, resolves references                                                |
+| `schema`    | Zod schemas for step files and config; maps validation issues to file, line and column                                                                  |
+| `actions`   | `ActionSpec` of every built-in ([ADR 0021](adr/0021-action-spec.md)), `defineAction`, registry, built-in `run`s, loading and name-checking user actions |
+| `locators`  | `ctx.locate`: tries a target's candidates in order and records which one matched                                                                        |
+| `context`   | Builds `ctx` per test: pages, request, vars, env, secrets, log, locate, signal; interpolation                                                           |
+| `secrets`   | Loads declared secrets, keeps the registry of values to mask, masks text and artifacts                                                                  |
+| `runner`    | Runs tests: data rows, before → steps → after, flow calls, timeouts, cancellation, `opens`, events                                                      |
+| `pagestate` | Internal `PageStateRecorder` interface: screenshot and snapshot per step, open a snapshot on request                                                    |
+| `results`   | Writes the run folder (`run.json`, `events.ndjson`, per-step artifacts)                                                                                 |
+| `browser`   | Launches the configured browser, fresh context per test, applies saved logins                                                                           |
+| `errors`    | Typed error classes with a stable `code`, a tester-readable message, the location and a hint                                                            |
 
 The engine has no knowledge of any UI. Everything a client needs to show is in
 protocol events; everything a client can ask for is a protocol request.
@@ -253,12 +253,18 @@ Instruction 0001, 2026-10-09 (settles open questions 13, 15 and 16):
 | 33  | Locator fallback          | 1 s grace period for the first candidate, configurable, and a warning on every fallback ([ADR 0010](adr/0010-locator-candidates.md))        |
 | 34  | Sensitive headers         | `Cookie`, `Set-Cookie` and `Authorization` masked in traces by default ([ADR 0014](adr/0014-secret-masking.md))                             |
 
+Instructions 0002 and 0003, 2026-10-09 (settles open questions Q14 and Q35):
+
+| #   | Topic                      | Decision                                                                                                                          |
+| --- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 14  | Names                      | Command `cfe`, data folder `.cfe`, npm scope `@cfe` ([ADR 0019](adr/0019-four-product-names.md))                                  |
+| 35  | Saved-login cache          | HMAC-keyed cache with `maxAge`, `freshLogin` and clean-up at the start of a run ([ADR 0018](adr/0018-saved-logins.md))            |
+| 36  | Milestone 1 plan           | Approved by the owner; coding may start ([plan](milestones/v0.1.0-plan.md))                                                       |
+| 37  | Protocol definition        | One source: Zod schemas in `@cfe/protocol`, with types and JSON Schemas derived ([ADR 0020](adr/0020-protocol-as-zod-schemas.md)) |
+| 38  | Action descriptions        | `ActionSpec` (name, description, shorthand, parameters) separate from `run` ([ADR 0021](adr/0021-action-spec.md))                 |
+| 39  | `validate` needs a project | `openProject` arrives with the validator (plan branch 3); user-action loading joins it in branch 4                                |
+
 ## Open questions
 
-Numbered after the review decisions above, so no number is used twice.
-
-- **Q14. Command, folder and npm scope names.** Three options are in
-  [report 0001](../handoff/reports/0001-finish-milestone-0-docs.md); see also
-  [ADR 0019](adr/0019-four-product-names.md).
-- **Q35. ADR 0018 (saved logins).** Written after the second chat review and
-  not yet reviewed: approve the HMAC-keyed cache design or ask for changes.
+None. Questions get IDs numbered after the review decisions above, so no
+number is used twice.
