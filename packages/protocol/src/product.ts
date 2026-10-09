@@ -8,12 +8,12 @@
  * The product's names. Use these instead of writing a name literally anywhere
  * in the code.
  *
- * `command`, `dataDir` and `npmScope` are interim values until the owner picks
- * the final ones (the display name "Coffee" is final).
+ * The unscoped npm package `cfe` belongs to someone else: always refer to the
+ * scoped packages (`@cfe/cli`), never to `cfe` alone, in anything users run.
  *
  * @example
  * ```ts
- * import { PRODUCT } from '@test-tool/protocol';
+ * import { PRODUCT } from '@cfe/protocol';
  * const configPath = path.join(root, PRODUCT.configFile);
  * ```
  */
@@ -21,16 +21,16 @@ export const PRODUCT = {
   /** Name shown to people: help text, window titles, documentation. */
   displayName: 'Coffee',
   /** Name of the command-line program. Lower case, letters, digits and `-`. */
-  command: 'coffee',
+  command: 'cfe',
   /** Git-ignored folder in the user's repository for runs, logins and caches. */
-  dataDir: '.coffee',
+  dataDir: '.cfe',
   /** npm scope of every package in this repository, including the user-facing SDK. */
-  npmScope: '@test-tool',
+  npmScope: '@cfe',
   /** Project configuration file at the root of the user's repository. */
   get configFile(): string {
     return `${this.command}.config.yaml`;
   },
-  /** Prefix of the product's own environment variables, such as `COFFEE_ENGINE`. */
+  /** Prefix of the product's own environment variables, such as `CFE_ENGINE`. */
   get envPrefix(): string {
     return `${this.command.toUpperCase().replaceAll('-', '_')}_`;
   },

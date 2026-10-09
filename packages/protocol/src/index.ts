@@ -12,7 +12,7 @@ export { PRODUCT } from './product.js';
  *
  * @example
  * ```ts
- * import { PROTOCOL_VERSION } from '@test-tool/protocol';
+ * import { PROTOCOL_VERSION } from '@cfe/protocol';
  * console.log(`speaking protocol ${PROTOCOL_VERSION}`);
  * ```
  */

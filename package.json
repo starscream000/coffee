@@ -1,5 +1,5 @@
 {
-  "name": "test-tool",
+  "name": "coffee",
   "private": true,
   "description": "Record, edit and run end-to-end web tests stored as YAML step files.",
   "license": "UNLICENSED",

@@ -2,7 +2,7 @@
 // can be unit tested without spawning a process. Running step files is added in
 // Milestone 1.
 
-import { PRODUCT, PROTOCOL_VERSION } from '@test-tool/protocol';
+import { PRODUCT, PROTOCOL_VERSION } from '@cfe/protocol';
 
 /** Version of the command-line client. */
 export const CLI_VERSION = '0.0.0';
