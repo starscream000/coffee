@@ -62,11 +62,11 @@ export function runStdioServer(): Session {
     }
   });
   process.stdin.on('end', () => {
-    let last: Promise<void> = Promise.resolve();
     for (const item of reader.end()) {
-      last = session.receive(item);
+      void session.receive(item);
     }
-    void last.then(() => {
+    // Answer every request already received before exiting.
+    void session.idle().then(() => {
       process.exit(EXIT_OK);
     });
   });

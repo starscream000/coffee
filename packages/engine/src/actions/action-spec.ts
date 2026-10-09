@@ -60,3 +60,25 @@ export function paramKeys(spec: ActionSpec): readonly string[] {
   const schema: unknown = spec.params;
   return schema instanceof z.ZodObject ? Object.keys(schema.shape) : [];
 }
+
+/**
+ * Names of an action's parameters whose schema is a target.
+ *
+ * @param spec - The action.
+ * @returns For example `["target"]` for `click` and `["from", "to"]` for `drag`.
+ */
+export function targetParamKeys(spec: ActionSpec): readonly string[] {
+  const schema: unknown = spec.params;
+  if (!(schema instanceof z.ZodObject)) {
+    return [];
+  }
+  return Object.entries(schema.shape as Record<string, unknown>)
+    .filter(([, field]) => {
+      let inner: unknown = field;
+      while (inner instanceof z.ZodOptional) {
+        inner = inner.unwrap();
+      }
+      return inner === TargetSchema;
+    })
+    .map(([key]) => key);
+}

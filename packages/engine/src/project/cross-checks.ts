@@ -5,8 +5,7 @@
 // problems, and every problem is reported at once.
 
 import type { Diagnostic } from '@cfe/protocol';
-import { z } from 'zod';
-import type { ActionSpec } from '../actions/action-spec.js';
+import { targetParamKeys, type ActionSpec } from '../actions/action-spec.js';
 import type { ConfigFile, FlowParam } from '../schema/files.js';
 import { TargetSchema } from '../schema/targets.js';
 import { DiagnosticSink, didYouMeanHint } from '../stepfile/diagnostics.js';
@@ -52,23 +51,6 @@ function isMapping(value: unknown): value is Raw {
 function where(source: SourceFile, path: DataPath): string {
   const { line, column } = source.positionOf(path);
   return `${source.file}:${String(line)}:${String(column)}`;
-}
-
-/** Names of an action's parameters whose schema is a target. */
-export function targetParamKeys(spec: ActionSpec): readonly string[] {
-  const schema: unknown = spec.params;
-  if (!(schema instanceof z.ZodObject)) {
-    return [];
-  }
-  return Object.entries(schema.shape as Record<string, unknown>)
-    .filter(([, field]) => {
-      let inner: unknown = field;
-      while (inner instanceof z.ZodOptional) {
-        inner = inner.unwrap();
-      }
-      return inner === TargetSchema;
-    })
-    .map(([key]) => key);
 }
 
 interface TargetRef {
@@ -457,6 +439,15 @@ function checkInterpolation(
 
   for (const ref of referencesInValue(raw, [])) {
     const { namespace, path } = ref;
+    if (ref.unclosed === true) {
+      sink.error(
+        ref.at,
+        'UnclosedInterpolation',
+        'This value has "${" without a closing "}".',
+        'Close it, as in ${vars.email}, or write $${ for a literal "${".',
+      );
+      continue;
+    }
     if (!(NAMESPACES as readonly string[]).includes(namespace)) {
       sink.error(
         ref.at,

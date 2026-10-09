@@ -200,3 +200,16 @@ describe('Session dispatch', () => {
     expect(exits).toEqual([0]);
   });
 });
+
+describe('review 0003 fixes', () => {
+  it('finding 6: validate with neither files nor content says it needs one of them', async () => {
+    const { sink, send, session, initialize } = setup();
+    session.register('validate', () => Promise.resolve({ diagnostics: [] }));
+    await initialize();
+    await send({ jsonrpc: '2.0', id: 1, method: 'validate', params: {} });
+    expect(sink.lines[1]?.error).toMatchObject({ code: -32602 });
+    expect((sink.lines[1]?.error as { message: string }).message).toBe(
+      'The parameters of "validate" are invalid: it needs "files" (a list of paths) or "content" (a file name and its text).',
+    );
+  });
+});

@@ -115,6 +115,21 @@ export class Session {
     return this.queue;
   }
 
+  /**
+   * Waits until every item received so far has been answered.
+   *
+   * @returns A promise that resolves when the queue is empty.
+   */
+  async idle(): Promise<void> {
+    let current = this.queue;
+    await current;
+    // Items may have been queued while waiting; wait for those too.
+    while (current !== this.queue) {
+      current = this.queue;
+      await current;
+    }
+  }
+
   private async handleItem(item: LineReaderItem): Promise<void> {
     if (this.closing) {
       return;
@@ -189,7 +204,9 @@ export class Session {
         id,
         'InvalidParams',
         `The parameters of "${method}" are invalid: ${checked.error.issues
-          .map((issue) => `${issue.path.join('.') || '(params)'}: ${issue.message}`)
+          .map((issue) =>
+            issue.path.length === 0 ? issue.message : `${issue.path.join('.')}: ${issue.message}`,
+          )
           .join('; ')}.`,
       );
       return;

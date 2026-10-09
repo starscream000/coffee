@@ -1,32 +1,48 @@
-// Unit tests for redirecting console output away from stdout.
+// Unit tests for the stderr-only console.
+import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
-import { redirectConsoleToStderr } from './console.js';
+import { createStderrConsole } from './console.js';
 
-describe('redirectConsoleToStderr', () => {
-  it('sends every console method to the sink', () => {
-    const written: string[] = [];
-    const target = {
-      log: console.log,
-      info: console.info,
-      debug: console.debug,
-      warn: console.warn,
-      error: console.error,
-      trace: console.trace,
-    };
-    redirectConsoleToStderr(target, { write: (text: string) => written.push(text) });
-    target.log('a %s', 'b');
-    target.info('info');
-    target.debug('debug');
-    target.warn('warn');
-    target.error('error', { x: 1 });
-    target.trace('trace');
-    expect(written).toEqual([
-      'a b\n',
-      'info\n',
-      'debug\n',
-      'warn\n',
-      'error { x: 1 }\n',
-      'trace\n',
-    ]);
+describe('createStderrConsole', () => {
+  it('sends the output of every console method to the one stream', () => {
+    const stream = new PassThrough();
+    let written = '';
+    stream.on('data', (chunk: Buffer) => {
+      written += chunk.toString('utf8');
+    });
+    const out = createStderrConsole(stream);
+    out.log('log %s', 'x');
+    out.info('info');
+    out.debug('debug');
+    out.warn('warn');
+    out.error('error');
+    out.dir({ dir: 1 });
+    out.dirxml({ dirxml: 2 });
+    out.table([{ table: 3 }]);
+    out.group('group');
+    out.groupEnd();
+    out.count('count');
+    out.time('time');
+    out.timeLog('time');
+    out.timeEnd('time');
+    out.trace('trace');
+    out.assert(false, 'assert');
+    for (const text of [
+      'log x',
+      'info',
+      'debug',
+      'warn',
+      'error',
+      '{ dir: 1 }',
+      '{ dirxml: 2 }',
+      'table',
+      'group',
+      'count: 1',
+      'time:',
+      'trace',
+      'assert',
+    ]) {
+      expect(written).toContain(text);
+    }
   });
 });

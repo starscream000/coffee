@@ -6,6 +6,77 @@ import { AnyMappingSchema, VarNameSchema, interpolatable } from '../schema/commo
 import { target, type ActionSpec } from './action-spec.js';
 
 const Url = z.string().min(1, { error: 'must not be empty' });
+
+/** Compiles a pattern; returns the error message, or undefined when it is valid. */
+function regexError(pattern: string): string | undefined {
+  try {
+    new RegExp(pattern);
+    return undefined;
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+}
+
+/**
+ * Text that must be a valid regular expression. A value with ${…} is checked
+ * when the step runs, after interpolation, not here.
+ */
+const Regex = z.string().superRefine((value, ctx) => {
+  if (value.includes('${')) return;
+  const error = regexError(value);
+  if (error !== undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      message: `"${value}" is not a valid regular expression: ${error}`,
+      params: { diagnostic: 'InvalidRegex' },
+    });
+  }
+});
+
+/**
+ * A URL pattern: a glob, or a regular expression written as /regex/. A value
+ * with ${…} is checked when the step runs, after interpolation.
+ */
+const UrlPattern = Url.superRefine((value, ctx) => {
+  if (value.includes('${') || value.length < 2 || !value.startsWith('/') || !value.endsWith('/'))
+    return;
+  const error = regexError(value.slice(1, -1));
+  if (error !== undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      message: `"${value}" is written as /regex/ but is not a valid regular expression: ${error}`,
+      params: { diagnostic: 'InvalidRegex' },
+    });
+  }
+});
+
+/**
+ * `extract`'s pattern: a valid regular expression with exactly one capturing
+ * group. A value with ${…} is checked when the step runs, after interpolation.
+ */
+const ExtractPattern = z
+  .string()
+  .min(1)
+  .superRefine((value, ctx) => {
+    if (value.includes('${')) return;
+    const error = regexError(value);
+    if (error !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `"${value}" is not a valid regular expression: ${error}`,
+        params: { diagnostic: 'InvalidRegex' },
+      });
+      return;
+    }
+    const groups = (new RegExp(`${value}|`).exec('')?.length ?? 1) - 1;
+    if (groups !== 1) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `The pattern must have exactly one capturing group ( … ), the part to extract; it has ${String(groups)}`,
+        params: { diagnostic: 'InvalidRegex' },
+      });
+    }
+  });
 const Status = interpolatable(z.number().int().min(100).max(599));
 const Method = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
 const Count = interpolatable(z.number().int().min(0));
@@ -48,7 +119,7 @@ function atMostOne(keys: readonly string[]) {
 const matchers = {
   equals: Text.optional(),
   contains: z.string().optional(),
-  matches: z.string().optional(),
+  matches: Regex.optional(),
 };
 
 /**
@@ -143,7 +214,7 @@ export const BUILTIN_SPECS: readonly ActionSpec[] = [
     name: 'wait.url',
     description: 'Waits until the page URL matches a pattern.',
     shorthand: 'url',
-    params: z.strictObject({ url: Url }),
+    params: z.strictObject({ url: UrlPattern }),
   },
   {
     name: 'wait.response',
@@ -151,7 +222,7 @@ export const BUILTIN_SPECS: readonly ActionSpec[] = [
       'Waits for a response whose URL matches, including one that arrived since the previous step started.',
     shorthand: 'url',
     params: z.strictObject({
-      url: Url,
+      url: UrlPattern,
       method: Method.optional(),
       status: Status.optional(),
       as: VarNameSchema.optional(),
@@ -215,7 +286,7 @@ export const BUILTIN_SPECS: readonly ActionSpec[] = [
     name: 'expect.response',
     description: 'Checks a response: its status, part of its JSON, or text in its body.',
     params: z.strictObject({
-      url: Url,
+      url: UrlPattern,
       method: Method.optional(),
       status: Status.optional(),
       json: z.unknown().optional(),
@@ -239,7 +310,7 @@ export const BUILTIN_SPECS: readonly ActionSpec[] = [
         as: VarNameSchema,
         from: z.enum(['text', 'value', 'attribute']).optional(),
         attribute: z.string().min(1).optional(),
-        pattern: z.string().min(1).optional(),
+        pattern: ExtractPattern.optional(),
       })
       .superRefine((value, ctx) => {
         if (value.from === 'attribute' && value.attribute === undefined) {
@@ -283,7 +354,7 @@ export const BUILTIN_SPECS: readonly ActionSpec[] = [
     description: 'Answers matching requests with a fixed response until the test ends.',
     params: z
       .strictObject({
-        url: Url,
+        url: UrlPattern,
         method: Method.optional(),
         status: Status.optional(),
         headers: z.record(z.string(), Text).optional(),

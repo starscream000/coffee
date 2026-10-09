@@ -5,7 +5,10 @@ import { z } from 'zod';
 
 /** A duration such as `500ms`, `10s`, `2m` or `12h`. */
 export const DurationSchema = z
-  .string()
+  .string({
+    error: (issue) =>
+      issue.input === undefined ? undefined : 'must be a duration such as 500ms, 10s, 2m or 12h',
+  })
   .regex(/^\d+(?:ms|s|m|h)$/, { error: 'must be a duration such as 500ms, 10s, 2m or 12h' });
 
 /** A variable name: letters, digits and `_`, not starting with a digit. */
