@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Desktop.App.Services;
+using Desktop.App.ViewModels.Runs;
 using Desktop.Engine;
 using Desktop.Protocol.Messages;
 
@@ -59,6 +60,13 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         Problems.ProblemActivated += (_, d) => OpenFile(d.File, d.Line);
         Problems.Changed += (_, _) => ProblemsChanged();
         Problems.SetProjectDiagnostics(project.Diagnostics);
+        Runs = new RunControlViewModel(engine, dialogs, new RunControlHost(
+            () => SelectedEnvironment,
+            () => [.. Tabs.OfType<StepFileViewModel>().Where(t => t.IsDirty).Select(t => t.File)],
+            SaveAllAsync,
+            ShowRun,
+            Problems.SetValidationDiagnostics,
+            EngineStatus.Report));
     }
 
     /// <summary>Raised when the config file changed and the project must be opened again.</summary>
@@ -93,6 +101,9 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
 
     /// <summary>The action catalogue tab.</summary>
     public ActionCatalogViewModel Actions { get; } = new();
+
+    /// <summary>Starts, follows and cancels runs.</summary>
+    public RunControlViewModel Runs { get; }
 
     /// <summary>The tabs in the centre.</summary>
     public ObservableCollection<WorkspaceTabViewModel> Tabs { get; } = [];
@@ -149,7 +160,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         var tab = Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == file);
         if (tab is null)
         {
-            tab = new StepFileViewModel(file, new StepFileServices(Root, _files, _engine, _dialogs, _delay, EngineStatus.Report));
+            tab = new StepFileViewModel(file, new StepFileServices(Root, _files, _engine, _dialogs, _delay, EngineStatus.Report, RunFileAsync));
             tab.LoadFromDisk();
             Attach(tab);
         }
@@ -263,9 +274,51 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>Runs every test of the project.</summary>
+    /// <returns>A task that completes when the run has started or was refused.</returns>
+    [RelayCommand]
+    private Task RunAllAsync() => Runs.RunAllAsync();
+
+    /// <summary>
+    /// Runs what is selected in the explorer: a test file, or every test in a
+    /// folder (as filtered by the search and the tag); every test when nothing is selected.
+    /// </summary>
+    /// <returns>A task that completes when the run has started or was refused.</returns>
+    [RelayCommand]
+    private Task RunSelectedAsync()
+    {
+        if (Explorer.SelectedNode is not { } node)
+        {
+            return Runs.RunAllAsync();
+        }
+
+        return Runs.RunFilesAsync(node.IsTest ? [node.Path] : [.. TestsBelow(node)]);
+    }
+
+    /// <summary>Runs the tests with the tag chosen in the explorer; every test when none is chosen.</summary>
+    /// <returns>A task that completes when the run has started or was refused.</returns>
+    [RelayCommand]
+    private Task RunTagAsync() =>
+        Explorer.SelectedTag == TestExplorerViewModel.AllTags ? Runs.RunAllAsync() : Runs.RunTagAsync(Explorer.SelectedTag);
+
+    /// <summary>Runs one test file; says so when the file is not a test (a flow or the targets file).</summary>
+    /// <param name="file">The file, relative to the project root.</param>
+    /// <returns>A task that completes when the run has started or was refused.</returns>
+    public Task RunFileAsync(string file)
+    {
+        if (!Explorer.Files.Contains(file, StringComparer.Ordinal))
+        {
+            Runs.Notice = $"{file} is not a test, so it cannot be run on its own. Run a test that uses it.";
+            return Task.CompletedTask;
+        }
+
+        return Runs.RunFilesAsync([file]);
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {
+        Runs.Dispose();
         foreach (var tab in Tabs.OfType<StepFileViewModel>())
         {
             tab.Dispose();
@@ -433,6 +486,36 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         {
             SelectedTab = Tabs[Math.Clamp(index - 1, 0, Tabs.Count - 1)];
         }
+    }
+
+    private static IEnumerable<string> TestsBelow(ExplorerNodeViewModel node) =>
+        node.IsTest ? [node.Path] : node.Children.SelectMany(TestsBelow);
+
+    private void ShowRun(RunViewModel run)
+    {
+        var tab = new RunTabViewModel(run, _engine, (file, line) => OpenFile(file, line), Runs.CancelCommand);
+        tab.CloseRequested += (_, _) =>
+        {
+            var index = Tabs.IndexOf(tab);
+            if (index < 0)
+            {
+                return;
+            }
+
+            if (run.IsActive)
+            {
+                Runs.Notice = "A run's tab stays open while the run goes on. Cancel the run first.";
+                return;
+            }
+
+            Tabs.RemoveAt(index);
+            if (SelectedTab is null || SelectedTab == tab)
+            {
+                SelectedTab = Tabs[Math.Clamp(index - 1, 0, Tabs.Count - 1)];
+            }
+        };
+        Tabs.Add(tab);
+        SelectedTab = tab;
     }
 
     private void ProblemsChanged()

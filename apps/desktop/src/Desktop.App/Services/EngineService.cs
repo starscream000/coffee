@@ -148,6 +148,18 @@ public sealed class EngineService : IEngineService, IAsyncDisposable
         (await _session.Client.ValidateContentAsync(file, text, cancellationToken).ConfigureAwait(false)).Diagnostics;
 
     /// <inheritdoc />
+    public Task<StartRunResult> StartRunAsync(StartRunParams parameters, CancellationToken cancellationToken = default) =>
+        _session.Client.StartRunAsync(parameters, cancellationToken);
+
+    /// <inheritdoc />
+    public Task CancelRunAsync(string runId, CancellationToken cancellationToken = default) =>
+        _session.Client.CancelRunAsync(runId, cancellationToken);
+
+    /// <inheritdoc />
+    public Task OpenSnapshotAsync(OpenSnapshotParams parameters, CancellationToken cancellationToken = default) =>
+        _session.Client.OpenSnapshotAsync(parameters, cancellationToken);
+
+    /// <inheritdoc />
     public async ValueTask DisposeAsync() => await ShutdownAsync().ConfigureAwait(false);
 
     private void Log(EngineLogSource source, string text)

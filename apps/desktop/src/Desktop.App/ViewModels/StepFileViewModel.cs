@@ -28,13 +28,15 @@ public enum LineMark
 /// <param name="Dialogs">Asks before closing or overwriting.</param>
 /// <param name="Delay">Waits before validating while typing.</param>
 /// <param name="Report">Writes a line into the engine log.</param>
+/// <param name="Run">Runs a test file; null when the tab cannot start runs.</param>
 public sealed record StepFileServices(
     string Root,
     IProjectFiles Files,
     IEngineService Engine,
     IDialogService Dialogs,
     IDelay Delay,
-    Action<string> Report);
+    Action<string> Report,
+    Func<string, Task>? Run = null);
 
 /// <summary>An editable step file in a tab.</summary>
 public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposable
@@ -376,6 +378,11 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
         _pendingValidation?.Dispose();
         _pendingValidation = null;
     }
+
+    /// <summary>Runs this file's test (after asking about unsaved changes).</summary>
+    /// <returns>A task that completes when the run has started or was refused.</returns>
+    [RelayCommand]
+    private Task RunAsync() => _services.Run?.Invoke(File) ?? Task.CompletedTask;
 
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo() => Document.UndoStack.Undo();
