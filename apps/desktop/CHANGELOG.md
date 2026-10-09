@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Review D0001, findings 1 and 2: the engine locator tests describe both the
+  Windows rules and the others with paths that mean the same on every system,
+  and the real-engine app test starts the engine once instead of twice.
+
 ### Added
 
 - The workspace shell: a start page with recent projects and the engine's

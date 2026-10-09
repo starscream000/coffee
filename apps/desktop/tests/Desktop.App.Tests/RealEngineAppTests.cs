@@ -25,7 +25,12 @@ public sealed class RealEngineAppTests
         var settings = new JsonSettingsStore(settingsFile);
         var engine = new EngineService(settings, new AvaloniaDispatcher());
         var shell = new ShellViewModel(engine, settings, new FakeFolderPicker(null), new DiskProjectFiles(), new AvaloniaDispatcher());
-        var window = new MainWindow { DataContext = shell, Width = 1280, Height = 800 };
+        // Shown before it gets its view model, so its Opened handler finds no shell
+        // to start: this test starts the engine once, itself (finding 2 of review
+        // D0001 was a second start from Opened racing the shutdown at the end).
+        var window = new MainWindow { Width = 1280, Height = 800 };
+        window.Show();
+        window.DataContext = shell;
         try
         {
             await shell.InitializeAsync();
@@ -51,7 +56,6 @@ public sealed class RealEngineAppTests
             Assert.Contains(RepoPaths.Of("examples/demo-app"), new JsonSettingsStore(settingsFile).Load().RecentProjects);
 
             workspace.OpenFile("tests/user-action.test.yaml");
-            window.Show();
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
             if (Environment.GetEnvironmentVariable("DESKTOP_SCREENSHOTS") is { Length: > 0 } folder)
@@ -67,5 +71,6 @@ public sealed class RealEngineAppTests
         }
 
         Assert.Equal(EngineState.Stopped, engine.State);
+        Assert.Single(shell.Engine.Log, l => l.Text.StartsWith("Starting ", StringComparison.Ordinal));
     }
 }

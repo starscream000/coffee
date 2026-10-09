@@ -4,7 +4,7 @@ Written only by the reviewer. The engine implementer reads this first. The
 desktop implementer reads [apps/desktop/handoff/STATUS.md](../apps/desktop/handoff/STATUS.md)
 instead.
 
-- Updated: 2026-10-09
+- Updated: 2026-10-10
 - **Open instruction:** [0006: review fixes and the runner](instructions/0006-review-fixes-and-the-runner.md)
 - Waiting on: implementer
 
@@ -45,11 +45,12 @@ merged after #16, on the owner's word.
   `${row.…}` stays unavailable inside flows; no `cfe validate` command.
 - 2026-10-09: the desktop app is a separate track with its own implementer,
   confined to `apps/desktop/`, following the same handoff process.
+- 2026-10-10: hidden elements count when `ctx.locate` looks for exactly one
+  element (review 0005, question 1). It stays as implemented; instruction 0006
+  writes the rule into the documents.
 
 ## Waiting on the owner
 
-- Hidden elements (review 0005): when `ctx.locate` looks for exactly one
-  element, should hidden ones count? Recommended and implemented: yes.
 - How to write a regular expression for a URL (review 0004): keep `/regex/`,
   or require the prefix `regex:`. The review recommends the prefix. Needed
   before plan branch 12, which is the first to use URL patterns.
