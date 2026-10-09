@@ -20,6 +20,8 @@
     "dist"
   ],
   "dependencies": {
-    "@cfe/protocol": "workspace:*"
+    "@cfe/protocol": "workspace:*",
+    "yaml": "2.9.1",
+    "zod": "4.6.5"
   }
 }
