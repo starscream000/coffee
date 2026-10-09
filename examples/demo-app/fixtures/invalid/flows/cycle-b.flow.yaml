@@ -1,0 +1,6 @@
+# Part of the F5 fixture: calls cycle-a, closing the circle.
+version: 1
+name: Cycle B
+steps:
+  - back
+  - call: fixtures/invalid/flows/cycle-a.flow.yaml

@@ -1,0 +1,39 @@
+# F4: every problem below must be reported, with these positions, no more and no fewer.
+# expect: 29:5 UnknownAction
+# expect: 31:7 MissingParameter
+# expect: 34:7 UnknownKey
+# expect: 36:11 UnknownPage
+# expect: 37:12 UnknownTarget
+# expect: 38:36 UnknownNamespace
+# expect: 39:36 UndeclaredSecret
+# expect: 21:5 FrameWithWithin
+version: 1
+name: Schema errors
+
+pages:
+  admin: {}
+
+targets:
+  submit:
+    - role: button
+      name: Submit
+  card:
+    frame:
+      - css: 'iframe#payment'
+    within: submit
+    candidates:
+      - label: Card number
+
+steps:
+  - goto: /forms
+  - exepct.text: { target: submit, equals: Sent }
+  - fill:
+      target: submit
+  - click:
+      target: submit
+      buton: left
+  - click: submit
+    page: backoffice
+  - click: chekout
+  - fill: { target: submit, value: '${user.email}' }
+  - fill: { target: submit, value: '${secrets.NOT_DECLARED}' }

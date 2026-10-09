@@ -1,0 +1,6 @@
+# F5: the flows call each other in a circle; the cycle is reported where it closes.
+# expect: fixtures/invalid/flows/cycle-b.flow.yaml:6:11 FlowCycle
+version: 1
+name: Flow cycle
+steps:
+  - call: fixtures/invalid/flows/cycle-a.flow.yaml

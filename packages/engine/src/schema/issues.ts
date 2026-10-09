@@ -161,14 +161,10 @@ function reportIssue(
       return;
     case 'custom': {
       const params: unknown = issue.params;
-      const code =
-        typeof params === 'object' &&
-        params !== null &&
-        'diagnostic' in params &&
-        typeof params.diagnostic === 'string'
-          ? params.diagnostic
-          : 'InvalidValue';
-      sink.error(path, code, `${issue.message}.`);
+      const options =
+        typeof params === 'object' && params !== null ? (params as Record<string, unknown>) : {};
+      const code = typeof options.diagnostic === 'string' ? options.diagnostic : 'InvalidValue';
+      sink.error(path, code, `${issue.message}.`, undefined, options.atKey === true);
       return;
     }
     default:

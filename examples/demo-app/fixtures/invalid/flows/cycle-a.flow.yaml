@@ -1,0 +1,5 @@
+# Part of the F5 fixture: calls cycle-b, which calls this flow again.
+version: 1
+name: Cycle A
+steps:
+  - call: fixtures/invalid/flows/cycle-b.flow.yaml

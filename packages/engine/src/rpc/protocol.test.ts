@@ -2,89 +2,10 @@
 // process, exactly as a client does, and talk to it over stdin and stdout.
 // Proves check I1, the oversized-line half of I3, and that the engine writes
 // nothing before the first request. Needs `tsc -b` first (pnpm verify does it).
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 import { MAX_MESSAGE_BYTES, PROTOCOL_VERSION } from '@cfe/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
-
-const ENGINE_MAIN = fileURLToPath(new URL('../../dist/main.js', import.meta.url));
-
-class EngineProcess {
-  readonly child: ChildProcessWithoutNullStreams;
-  private buffer = '';
-  private readonly received: Record<string, unknown>[] = [];
-  private waiters: (() => void)[] = [];
-  stdoutBytes = 0;
-  stderr = '';
-
-  constructor() {
-    this.child = spawn(process.execPath, [ENGINE_MAIN, '--stdio'], { stdio: 'pipe' });
-    this.child.stdout.setEncoding('utf8');
-    this.child.stdout.on('data', (text: string) => {
-      this.stdoutBytes += text.length;
-      this.buffer += text;
-      let newline = this.buffer.indexOf('\n');
-      while (newline !== -1) {
-        this.received.push(JSON.parse(this.buffer.slice(0, newline)) as Record<string, unknown>);
-        this.buffer = this.buffer.slice(newline + 1);
-        newline = this.buffer.indexOf('\n');
-      }
-      for (const wake of this.waiters.splice(0)) wake();
-    });
-    this.child.stderr.setEncoding('utf8');
-    this.child.stderr.on('data', (text: string) => {
-      this.stderr += text;
-    });
-  }
-
-  send(message: unknown): void {
-    this.child.stdin.write(`${JSON.stringify(message)}\n`);
-  }
-
-  sendRaw(text: string): void {
-    this.child.stdin.write(text);
-  }
-
-  async next(timeoutMs = 10_000): Promise<Record<string, unknown>> {
-    const deadline = Date.now() + timeoutMs;
-    while (this.received.length === 0) {
-      const left = deadline - Date.now();
-      if (left <= 0) throw new Error(`No message from the engine. stderr: ${this.stderr}`);
-      await new Promise<void>((resolve) => {
-        const timer = setTimeout(resolve, left);
-        this.waiters.push(() => {
-          clearTimeout(timer);
-          resolve();
-        });
-      });
-    }
-    const message = this.received.shift();
-    if (message === undefined) throw new Error('No message from the engine.');
-    return message;
-  }
-
-  exitCode(timeoutMs = 10_000): Promise<number | null> {
-    if (this.child.exitCode !== null) return Promise.resolve(this.child.exitCode);
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        reject(new Error('The engine did not exit.'));
-      }, timeoutMs);
-      this.child.on('exit', (code) => {
-        clearTimeout(timer);
-        resolve(code);
-      });
-    });
-  }
-
-  initialize(id: number | string = 1, protocolVersion = PROTOCOL_VERSION): void {
-    this.send({
-      jsonrpc: '2.0',
-      id,
-      method: 'initialize',
-      params: { protocolVersion, client: { name: 'protocol-test', version: '0.0.0' } },
-    });
-  }
-}
+import { ENGINE_MAIN, EngineProcess } from '../testing/engine-process.js';
 
 const engines: EngineProcess[] = [];
 function startEngine(): EngineProcess {

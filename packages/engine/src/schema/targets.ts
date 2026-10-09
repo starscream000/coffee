@@ -104,7 +104,7 @@ export const TargetSchema: z.ZodType<TargetValue> = z.union([
           path: ['frame'],
           message:
             'A target cannot have both "frame" and "within"; it takes its frame from the "within" target, so put "frame" on the outer target',
-          params: { diagnostic: 'FrameWithWithin' },
+          params: { diagnostic: 'FrameWithWithin', atKey: true },
         });
       }
     }),
