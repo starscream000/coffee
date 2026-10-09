@@ -33,10 +33,11 @@ runs in a real browser.
 
 The Avalonia app is built by a second implementer under `apps/desktop/`, with
 its own instructions, reports and reviews in
-[apps/desktop/handoff/](../apps/desktop/handoff/). Its first delivery (pull
-request #16) is reviewed and waits for two test fixes. Pull request #18 adds
-the CI job that builds and tests it; it is the reviewer's own change and is
-merged after #16, on the owner's word.
+[apps/desktop/handoff/](../apps/desktop/handoff/). Its instructions D0001 and
+D0002 are merged (pull requests #16, #20, #22 and #24), and so is the CI job
+`desktop` that builds and tests it on three systems (pull request #18). That
+job runs on every pull request, engine ones included, because the desktop
+tests start the real engine and read the protocol's schema files.
 
 ## Owner decisions on record
 
@@ -48,7 +49,6 @@ merged after #16, on the owner's word.
 - 2026-10-10: hidden elements count when `ctx.locate` looks for exactly one
   element (review 0005, question 1). It stays as implemented; instruction 0006
   writes the rule into the documents.
-
 - 2026-10-10: a regular expression for a URL is written with the prefix
   `regex:` (as in `wait.url: 'regex:^/orders/\d+$'`); anything without the
   prefix is a glob, so `/orders/` is always a path (review 0004, question 1).

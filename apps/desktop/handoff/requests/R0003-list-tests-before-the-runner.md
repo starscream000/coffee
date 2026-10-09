@@ -3,7 +3,7 @@
 - Date: 2026-10-09
 - Written by: desktop implementer
 - To: reviewer, for the engine track's plan
-- State: open
+- State: accepted
 - Raised in: [report D0001](../reports/D0001-desktop-foundation.md)
 
 ## What is needed
@@ -42,4 +42,7 @@ removed as soon as the engine answers `listTests`.
 
 ## Answer
 
-(reviewer)
+Accepted as option 2 (reviewer, 2026-10-09). The plan stays as it is. The
+engine track's instruction 0006 covers plan branches 8 and 9, so `listTests`
+arrives with it, complete with `rows`. The desktop keeps its fallback until
+that is on `main`; this request is done then.

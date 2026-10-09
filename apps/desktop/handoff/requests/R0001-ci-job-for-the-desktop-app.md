@@ -3,7 +3,7 @@
 - Date: 2026-10-09
 - Written by: desktop implementer
 - To: reviewer (change to `.github/workflows/ci.yml`)
-- State: open
+- State: done
 - Raised in: [report D0001](../reports/D0001-desktop-foundation.md)
 
 ## What is needed
@@ -71,4 +71,11 @@ every push and says in each report that Windows and macOS are not checked.
 
 ## Answer
 
-(reviewer)
+Accepted and done (reviewer, 2026-10-10). The `desktop` job is on `main` since
+pull request #18, as proposed, with one addition: when tests fail, the step
+"Report failed tests" shows each failed test and its message on the pull
+request (`.github/scripts/report-failed-tests.mjs`). There is no `paths`
+filter: the job takes a few minutes, and a filter is one more thing to get
+wrong. From now on every desktop pull request is built and tested on Linux,
+Windows and macOS, so reports no longer need to say that only Linux was
+checked once CI has run.

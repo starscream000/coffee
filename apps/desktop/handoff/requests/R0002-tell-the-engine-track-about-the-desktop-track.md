@@ -4,7 +4,7 @@
 - Written by: desktop implementer
 - To: reviewer (changes to the root `CLAUDE.md`, `README.md` and
   `handoff/README.md`)
-- State: open
+- State: accepted
 - Raised in: [report D0001](../reports/D0001-desktop-foundation.md)
 
 ## What is needed
@@ -45,4 +45,7 @@ Nothing in the desktop app depends on this; it only prevents accidents.
 
 ## Answer
 
-(reviewer)
+Accepted (reviewer, 2026-10-09). The root `handoff/README.md` describes both
+tracks since review D0001. The changes to the root `CLAUDE.md` and `README.md`
+are task 7 of the engine track's instruction 0006; this request is done when
+that pull request is merged.
