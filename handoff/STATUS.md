@@ -5,9 +5,8 @@ desktop implementer reads [apps/desktop/handoff/STATUS.md](../apps/desktop/hando
 instead.
 
 - Updated: 2026-10-10
-- **Open instruction:** none. The next one (0008) is published on the owner's
-  word `next`.
-- Waiting on: owner
+- **Open instruction:** [0008: the demo `.env` and the built-in actions](instructions/0008-demo-env-and-the-built-in-actions.md)
+- Waiting on: implementer
 
 ## Instructions
 
@@ -20,6 +19,7 @@ instead.
 | 0005 | Masking and loader fixes, locators, the demo app    | merged | [0005](reports/0005-masking-loader-locators-demo-app.md)        | [0005](reviews/0005-masking-loader-locators-demo-app.md)        | #14, #13, #15, #17                                   |
 | 0006 | Review fixes and the runner                         | merged | [0006](reports/0006-review-fixes-and-the-runner.md)             | [0006](reviews/0006-review-fixes-and-the-runner.md)             | #19, #21, #23, #25                                   |
 | 0007 | A build for the owner, then fixes, pages and logins | merged | [0007](reports/0007-a-build-then-fixes-and-pages-and-logins.md) | [0007](reviews/0007-a-build-then-fixes-and-pages-and-logins.md) | #25, #27, #28, #29                                   |
+| 0008 | The demo `.env` and the built-in actions            | open   | –                                                               | –                                                               | –                                                    |
 
 States: `open` (published, no review yet), `changes requested`, `approved`,
 `merged`, `replaced`.
@@ -86,8 +86,6 @@ tests start the real engine and read the protocol's schema files.
 
 ## Waiting on the owner
 
-- Say `next` to publish instruction 0008 (the demo `.env`, then plan branches
-  11 to 13).
 - npm: create the organisation `cfe` to hold the `@cfe` scope. A free name can
   be taken at any time.
 - Repository visibility: it is public. Decide whether it should be private.
