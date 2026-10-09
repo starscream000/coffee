@@ -6,7 +6,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Desktop.App.Services;
 using Desktop.Engine;
-using Desktop.Protocol;
 using Desktop.Protocol.Messages;
 
 namespace Desktop.App.ViewModels;
@@ -17,7 +16,14 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     private readonly IEngineService _engine;
     private readonly IProjectFiles _files;
     private readonly IUiDispatcher _dispatcher;
+    private readonly IDialogService _dialogs;
+    private readonly IDelay _delay;
+    private readonly HashSet<string> _pendingChanges = new(StringComparer.Ordinal);
     private IDisposable? _watch;
+    private Task _refresh = Task.CompletedTask;
+    private bool _refreshing;
+    private int _validateGeneration;
+    private int _listGeneration;
 
     /// <summary>Creates the workspace for a project the engine has opened. Call <see cref="LoadAsync"/> next.</summary>
     /// <param name="project">The engine's answer to <c>openProject</c>.</param>
@@ -25,8 +31,19 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     /// <param name="files">The project's files.</param>
     /// <param name="dispatcher">The UI thread, for file-change notices.</param>
     /// <param name="engineStatus">The engine's status and log, shown in the bottom panel.</param>
-    public WorkspaceViewModel(OpenProjectResult project, IEngineService engine, IProjectFiles files, IUiDispatcher dispatcher, EngineStatusViewModel engineStatus)
+    /// <param name="dialogs">Asks about unsaved changes and overwriting.</param>
+    /// <param name="delay">Waits before validating text while typing.</param>
+    public WorkspaceViewModel(
+        OpenProjectResult project,
+        IEngineService engine,
+        IProjectFiles files,
+        IUiDispatcher dispatcher,
+        EngineStatusViewModel engineStatus,
+        IDialogService dialogs,
+        IDelay delay)
     {
+        _dialogs = dialogs;
+        _delay = delay;
         ArgumentNullException.ThrowIfNull(project);
         EngineStatus = engineStatus;
         _engine = engine;
@@ -98,35 +115,28 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     /// <summary>Lists tests and actions, validates every test file, and starts watching the folder.</summary>
     /// <param name="cancellationToken">Stops waiting.</param>
     /// <returns>A task that completes when everything is loaded.</returns>
-    /// <exception cref="EngineException">The engine failed.</exception>
+    /// <exception cref="EngineException">The engine failed or sent something unusable; the caller reports it.</exception>
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
         await LoadTestsAsync(cancellationToken);
         Actions.Load(await _engine.ListActionsAsync(cancellationToken));
-        await ValidateAsync(cancellationToken);
+        await ValidateCoreAsync(cancellationToken);
         _watch ??= _files.Watch(Root, batch => _dispatcher.Post(() => _ = OnFilesChangedAsync(batch)));
     }
 
-    /// <summary>Validates every test file again.</summary>
+    /// <summary>Validates every test file again. Never throws: a failure is shown in <see cref="Status"/> with the detail in the engine log.</summary>
     /// <param name="cancellationToken">Stops waiting.</param>
     /// <returns>A task that completes when the problems are updated.</returns>
     [RelayCommand]
     public async Task ValidateAsync(CancellationToken cancellationToken = default)
     {
-        IsBusy = true;
         try
         {
-            var diagnostics = await _engine.ValidateAsync(Explorer.Files, cancellationToken);
-            Problems.SetValidationDiagnostics(diagnostics);
-            Status = $"Validated {Plural(Explorer.Files.Count, "test file")} at {DateTime.Now:HH:mm:ss}: {Problems.Summary.ToLowerInvariant()}.";
+            await ValidateCoreAsync(cancellationToken);
         }
-        catch (EngineException ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            Status = $"Validation failed: {ex.Message}";
-        }
-        finally
-        {
-            IsBusy = false;
+            Fail("Validation failed", ex);
         }
     }
 
@@ -138,10 +148,22 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         var tab = Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == file);
         if (tab is null)
         {
-            tab = new StepFileViewModel(file);
-            tab.CloseRequested += (_, _) => CloseTab(tab);
-            Load(tab);
-            Tabs.Add(tab);
+            tab = new StepFileViewModel(file, new StepFileServices(Root, _files, _engine, _dialogs, _delay, EngineStatus.Report));
+            var opened = tab;
+            opened.CloseRequested += (_, _) => _ = CloseTabAsync(opened);
+            opened.ContentDiagnosticsChanged += (_, diagnostics) => Problems.SetFileOverride(opened.File, diagnostics);
+            opened.Saved += (_, _) => _ = ValidateAsync();
+            opened.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(StepFileViewModel.IsDirty))
+                {
+                    OnPropertyChanged(nameof(HasUnsavedChanges));
+                    SaveAllCommand.NotifyCanExecuteChanged();
+                }
+            };
+            opened.LoadFromDisk();
+            opened.ApplyDiagnostics(Problems.All);
+            Tabs.Add(opened);
         }
 
         SelectedTab = tab;
@@ -151,48 +173,195 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Handles a batch of changed files: re-reads open tabs, re-lists tests when test files came or went, re-validates.</summary>
+    /// <summary>
+    /// Handles a batch of changed files. A change to the config or to a user
+    /// action's source asks for the project to be opened again; otherwise open
+    /// tabs are re-read, tests re-listed when test files came or went, and all
+    /// test files validated again. One refresh runs at a time: batches that
+    /// arrive meanwhile are joined into one more refresh. Never throws.
+    /// </summary>
     /// <param name="changed">Relative paths.</param>
-    /// <returns>A task that completes when the views are updated.</returns>
-    public async Task OnFilesChangedAsync(IReadOnlyCollection<string> changed)
+    /// <returns>A task that completes when every refresh asked for so far has run.</returns>
+    public Task OnFilesChangedAsync(IReadOnlyCollection<string> changed)
     {
         ArgumentNullException.ThrowIfNull(changed);
-        if (changed.Contains(Product.ConfigFile))
+        _pendingChanges.UnionWith(changed);
+        if (!_refreshing)
         {
-            ReopenRequested?.Invoke(this, EventArgs.Empty);
-            return;
+            _refreshing = true;
+            _refresh = RefreshWhilePendingAsync();
         }
 
-        foreach (var tab in Tabs.OfType<StepFileViewModel>().Where(t => changed.Contains(t.File)))
+        return _refresh;
+    }
+
+    /// <summary>True when at least one tab has unsaved changes.</summary>
+    public bool HasUnsavedChanges => Tabs.OfType<StepFileViewModel>().Any(t => t.IsDirty);
+
+    /// <summary>Saves every tab with unsaved changes.</summary>
+    /// <returns>True when every one was saved.</returns>
+    public async Task<bool> SaveAllAsync()
+    {
+        var saved = true;
+        foreach (var tab in Tabs.OfType<StepFileViewModel>().Where(t => t.IsDirty).ToList())
         {
-            Load(tab);
+            saved &= await tab.SaveAsync();
         }
 
-        try
+        return saved;
+    }
+
+    [RelayCommand(CanExecute = nameof(HasUnsavedChanges))]
+    private async Task SaveAll() => await SaveAllAsync();
+
+    /// <summary>
+    /// Says whether the project may close: when tabs have unsaved changes, asks
+    /// once whether to save them all, discard them, or not close.
+    /// </summary>
+    /// <returns>True when the project may close.</returns>
+    public async Task<bool> ConfirmCloseAsync()
+    {
+        var unsaved = Tabs.OfType<StepFileViewModel>().Where(t => t.IsDirty).Select(t => t.File).ToList();
+        if (unsaved.Count == 0)
         {
-            if (changed.Any(f => f.EndsWith(".test.yaml", StringComparison.OrdinalIgnoreCase)))
+            return true;
+        }
+
+        return await _dialogs.AskUnsavedChangesAsync(unsaved) switch
+        {
+            UnsavedChangesChoice.Save => await SaveAllAsync(),
+            UnsavedChangesChoice.Discard => true,
+            _ => false,
+        };
+    }
+
+    /// <summary>The open step file tabs, with the text of those that have unsaved changes, to restore after opening the project again.</summary>
+    /// <returns>The tabs, in order, and which one is selected.</returns>
+    public (IReadOnlyList<(string File, string? EditedText)> Tabs, string? Selected) CaptureTabs() =>
+        ([.. Tabs.OfType<StepFileViewModel>().Select(t => (t.File, t.IsDirty ? t.Document.Text : null))],
+         (SelectedTab as StepFileViewModel)?.File);
+
+    /// <summary>Opens tabs captured from the workspace this one replaces, putting back unsaved text.</summary>
+    /// <param name="captured">What <see cref="CaptureTabs"/> returned.</param>
+    public void RestoreTabs((IReadOnlyList<(string File, string? EditedText)> Tabs, string? Selected) captured)
+    {
+        foreach (var (file, edited) in captured.Tabs)
+        {
+            OpenFile(file);
+            if (edited is not null && Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == file) is { } tab)
             {
-                await LoadTestsAsync();
+                tab.RestoreEdits(edited);
             }
-
-            await ValidateAsync();
         }
-        catch (EngineException ex)
+
+        if (captured.Selected is { } selected)
         {
-            Status = $"Could not refresh after a file change: {ex.Message}";
+            OpenFile(selected);
+        }
+        else if (captured.Tabs.Count > 0)
+        {
+            SelectedTab = Actions;
         }
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
+        foreach (var tab in Tabs.OfType<StepFileViewModel>())
+        {
+            tab.Dispose();
+        }
+
         _watch?.Dispose();
         _watch = null;
     }
 
+    private async Task RefreshWhilePendingAsync()
+    {
+        try
+        {
+            while (_pendingChanges.Count > 0)
+            {
+                var batch = _pendingChanges.ToList();
+                _pendingChanges.Clear();
+                await RefreshAsync(batch);
+            }
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    private async Task RefreshAsync(IReadOnlyCollection<string> changed)
+    {
+        try
+        {
+            if (changed.Any(ProjectFileKinds.NeedsReopen))
+            {
+                _pendingChanges.Clear();
+                ReopenRequested?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
+            foreach (var tab in Tabs.OfType<StepFileViewModel>().Where(t => changed.Contains(t.File)))
+            {
+                tab.OnDiskChanged();
+            }
+
+            if (changed.Any(f => f.EndsWith(".test.yaml", StringComparison.OrdinalIgnoreCase)))
+            {
+                await LoadTestsAsync();
+            }
+
+            await ValidateCoreAsync();
+        }
+        catch (Exception ex)
+        {
+            Fail("Could not refresh after a file change", ex);
+        }
+    }
+
+    private async Task ValidateCoreAsync(CancellationToken cancellationToken = default)
+    {
+        var generation = ++_validateGeneration;
+        IsBusy = true;
+        try
+        {
+            var files = Explorer.Files;
+            var diagnostics = await _engine.ValidateAsync(files, cancellationToken);
+            if (generation != _validateGeneration)
+            {
+                return;
+            }
+
+            Problems.SetValidationDiagnostics(diagnostics);
+            Status = $"Validated {Plural(files.Count, "test file")} at {DateTime.Now:HH:mm:ss}: {Problems.Summary.ToLowerInvariant()}.";
+        }
+        finally
+        {
+            if (generation == _validateGeneration)
+            {
+                IsBusy = false;
+            }
+        }
+    }
+
+    private void Fail(string what, Exception ex)
+    {
+        Status = $"{what}: {ex.Message}";
+        EngineStatus.Report($"{what}: {ex}");
+    }
+
     private async Task LoadTestsAsync(CancellationToken cancellationToken = default)
     {
+        var generation = ++_listGeneration;
         var tests = await _engine.ListTestsAsync(cancellationToken);
+        if (generation != _listGeneration)
+        {
+            return;
+        }
+
         if (tests is null)
         {
             Explorer.LoadFallback(_files.FindTestFiles(Root));
@@ -203,24 +372,30 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void Load(StepFileViewModel tab)
+    private async Task CloseTabAsync(StepFileViewModel tab)
     {
         try
         {
-            tab.SetText(_files.ReadText(Root, tab.File));
+            if (!await tab.ConfirmCloseAsync())
+            {
+                return;
+            }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex)
         {
-            tab.SetLoadError($"{tab.File} cannot be read: {ex.Message}");
+            Fail($"Could not close {tab.File}", ex);
+            return;
         }
 
-        tab.ApplyDiagnostics(Problems.All);
-    }
-
-    private void CloseTab(StepFileViewModel tab)
-    {
         var index = Tabs.IndexOf(tab);
+        if (index < 0)
+        {
+            return;
+        }
+
         Tabs.Remove(tab);
+        Problems.SetFileOverride(tab.File, null);
+        tab.Dispose();
         if (SelectedTab is null || SelectedTab == tab)
         {
             SelectedTab = Tabs[Math.Clamp(index - 1, 0, Tabs.Count - 1)];

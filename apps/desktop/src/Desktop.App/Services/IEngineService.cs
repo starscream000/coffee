@@ -28,14 +28,17 @@ public interface IEngineService
     /// <summary>Why the engine is not running, when it failed.</summary>
     Exception? Failure { get; }
 
-    /// <summary>Finds and starts the engine (stopping any running one) with the current settings.</summary>
+    /// <summary>
+    /// Finds and starts the engine (stopping any running one) with the current
+    /// settings. Does nothing once <see cref="ShutdownAsync"/> was called.
+    /// </summary>
     /// <param name="cancellationToken">Stops waiting.</param>
-    /// <returns>A task that completes when the engine is ready or has failed; it does not throw for engine failures (see <see cref="Failure"/>).</returns>
+    /// <returns>A task that completes when the engine is ready or has failed; it never throws (see <see cref="Failure"/>).</returns>
     Task StartAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Stops the engine.</summary>
+    /// <summary>Stops the engine for good, because the app is closing: later starts do nothing.</summary>
     /// <returns>A task that completes when the engine is gone.</returns>
-    Task StopAsync();
+    Task ShutdownAsync();
 
     /// <summary>Sends <c>openProject</c>.</summary>
     /// <param name="root">The project folder.</param>
@@ -58,6 +61,13 @@ public interface IEngineService
     /// <param name="cancellationToken">Stops waiting.</param>
     /// <returns>The problems found.</returns>
     Task<IReadOnlyList<Diagnostic>> ValidateAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default);
+
+    /// <summary>Sends <c>validate</c> for an unsaved buffer.</summary>
+    /// <param name="file">The file the text belongs to, relative to the project root.</param>
+    /// <param name="text">The text being edited.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>The problems found.</returns>
+    Task<IReadOnlyList<Diagnostic>> ValidateContentAsync(string file, string text, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Where a line of the engine log came from.</summary>

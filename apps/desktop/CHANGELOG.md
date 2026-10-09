@@ -8,8 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Unsaved changes are never lost by accident (instruction D0002, task 14):
+  closing a tab, the project or the window, or opening another project, asks
+  whether to save, discard or cancel; Save all saves every changed tab; and
+  opening the same project again (after a config or action change, or an
+  engine restart) keeps the open tabs and their unsaved text.
+- Step files are editable (instruction D0002, tasks 9 to 13): an editor
+  (Avalonia.AvaloniaEdit 12.0.0, ADR D0006) with line numbers, undo and
+  redo and problem lines marked; Save (Ctrl+S, Cmd+S) and Revert, keeping the
+  file's line endings and replacing the file in one step; the engine's
+  problems for the text being typed, 300 ms after the last change, in the tab
+  and the problems panel; a bar to reload or keep when the file changes on
+  disk during editing; a question before saving over such a file; a notice
+  when the file was deleted on disk.
+
 ### Fixed
 
+- Review D0001, findings 3 to 7: starting and stopping the engine run one at
+  a time in the order asked, and nothing starts once the app is shutting
+  down; an event handler that throws no longer stops the connection from
+  reading, and any other end of reading fails the waiting requests; no
+  command or background task loses an exception (the notice bar or the
+  status line says what failed, the engine log has the detail); one refresh
+  at a time after file changes, with the newest answer winning; a changed
+  user-action source reopens the project.
 - Review D0001, findings 1 and 2: the engine locator tests describe both the
   Windows rules and the others with paths that mean the same on every system,
   and the real-engine app test starts the engine once instead of twice.

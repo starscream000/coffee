@@ -38,6 +38,7 @@ internal sealed class FakeEngine : IEngineTransport
     private readonly Func<FakeRequest, FakeEngine, Task<FakeReply?>> _handler;
     private readonly Task _loop;
     private string _stderr = string.Empty;
+    private int? _exitAfterReply;
 
     public FakeEngine(Func<FakeRequest, FakeEngine, Task<FakeReply?>>? handler = null)
     {
@@ -110,6 +111,9 @@ internal sealed class FakeEngine : IEngineTransport
         await ExitAsync(code);
     });
 
+    /// <summary>Exits with <paramref name="code"/> right after the answer being prepared has been written, like the engine after a refused handshake.</summary>
+    public void ExitAfterReply(int code) => _exitAfterReply = code;
+
     public void Kill()
     {
         Killed = true;
@@ -152,6 +156,10 @@ internal sealed class FakeEngine : IEngineTransport
                     ? new JsonRpcSuccessResponse { Id = ProtocolJson.ToElement(request.Id), Result = ProtocolJson.ToElement(reply.Result) }
                     : new JsonRpcErrorResponse { Id = ProtocolJson.ToElement(request.Id), Error = reply.Error };
                 await SendLineAsync(JsonSerializer.Serialize(response, response.GetType(), ProtocolJson.Options));
+                if (_exitAfterReply is { } code)
+                {
+                    await ExitAsync(code);
+                }
             });
         }
     }

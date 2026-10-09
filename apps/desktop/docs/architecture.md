@@ -96,9 +96,12 @@ types are written by hand and how they are kept honest:
 - **Main window**: a start page (open a folder, recent projects) until a
   project is open; then a three-part layout:
   - left: the test explorer (folders and test files; search; tags);
-  - centre: tabs for open step files (read-only for now, with line numbers and
-    problems marked; a plain virtualised list, so no editor component is
-    needed until editing arrives in D4) and the action catalogue;
+  - centre: tabs for open step files and the action catalogue. A step file
+    tab is an editor ([ADR D0006](adr/0006-avaloniaedit-for-step-files.md))
+    with line numbers, undo and redo, and problem lines marked; Save (Ctrl+S,
+    Cmd+S on macOS) writes UTF-8 without a byte-order mark, keeps the file's
+    line endings, and replaces the file in one step (a temporary file next to
+    it, then a move);
   - bottom: problems (diagnostics with file, line and column) and the engine
     log;
   - top: project, environment, engine status, and the run controls (disabled
@@ -108,6 +111,17 @@ types are written by hand and how they are kept honest:
   300 ms) re-read the open tabs, re-list the tests when test files came or
   went, and validate all test files again (flows and targets affect the tests
   that use them); a change to the config file opens the project again.
+- **Editing**: 300 ms after the last change, the text is sent to `validate`
+  with `content`; only the answer for the newest text is applied. While a tab
+  has unsaved changes, its file's problems (in the tab and the problems panel)
+  are those of the text being edited. A change on disk reloads a tab without
+  unsaved changes; with unsaved changes, a bar offers to reload or keep. The
+  app's own save is not mistaken for a change from outside, because a tab
+  compares the disk with the text it last read or saved.
+- **Unsaved changes**: closing a tab, the project or the window, or opening
+  another project, asks (through `IDialogService`) whether to save, discard
+  or cancel. Opening the same project again keeps the open tabs and their
+  unsaved text, so an automatic reopen never loses work.
 - **Settings**: Node path, engine path and recent projects, stored as JSON in
   the user's application data folder under the product's display name.
 

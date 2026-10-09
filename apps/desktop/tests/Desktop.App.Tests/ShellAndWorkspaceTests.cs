@@ -1,6 +1,7 @@
 // Tests of the shell (open, close, recent projects, engine failures, settings)
 // and of the workspace (loading, opening files, file changes).
 
+using Avalonia.Headless.XUnit;
 using Desktop.App.Services;
 using Desktop.App.Tests.Fakes;
 using Desktop.App.ViewModels;
@@ -30,7 +31,7 @@ public sealed class ShellAndWorkspaceTests
             new(Engine, Settings, new FakeFolderPicker(Picked), Files, new ImmediateDispatcher(), Folders.Contains);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Opening_a_folder_loads_tests_actions_and_problems_and_remembers_it()
     {
         var setup = new Setup();
@@ -55,7 +56,7 @@ public sealed class ShellAndWorkspaceTests
         Assert.NotNull(setup.Files.Changed);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task A_folder_that_is_not_a_project_shows_the_engines_reason()
     {
         var setup = new Setup();
@@ -75,7 +76,7 @@ public sealed class ShellAndWorkspaceTests
         Assert.Empty(setup.Settings.Settings.RecentProjects);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Opening_starts_the_engine_first_and_explains_when_it_cannot()
     {
         var setup = new Setup();
@@ -94,7 +95,7 @@ public sealed class ShellAndWorkspaceTests
         Assert.Equal("Node was not found. Install Node 24.", shell.Engine.Detail);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task A_missing_folder_is_reported_and_greyed_out_in_recent_projects()
     {
         var setup = new Setup();
@@ -109,7 +110,7 @@ public sealed class ShellAndWorkspaceTests
         Assert.Equal([Root], setup.Settings.Settings.RecentProjects);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task An_engine_crash_with_a_project_open_shows_a_notice_and_restart_reopens_the_project()
     {
         var setup = new Setup();
@@ -126,7 +127,7 @@ public sealed class ShellAndWorkspaceTests
         Assert.Null(shell.Notice);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Closing_the_project_returns_to_the_start_page_and_stops_watching()
     {
         var setup = new Setup();
@@ -138,17 +139,17 @@ public sealed class ShellAndWorkspaceTests
         Assert.Null(setup.Files.Changed);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Shutdown_stops_the_engine()
     {
         var setup = new Setup();
         var shell = setup.Shell();
         await shell.InitializeAsync();
         await shell.ShutdownAsync();
-        Assert.Equal(["start", "stop"], setup.Engine.Calls);
+        Assert.Equal(["start", "shutdown"], setup.Engine.Calls);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Saving_settings_closes_the_panel_and_restarts_the_engine()
     {
         var setup = new Setup();
@@ -162,7 +163,7 @@ public sealed class ShellAndWorkspaceTests
         Assert.Equal(["start"], setup.Engine.Calls);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Workspace_uses_the_fallback_when_the_engine_cannot_list_tests()
     {
         var setup = new Setup();
@@ -178,7 +179,7 @@ public sealed class ShellAndWorkspaceTests
         Assert.Contains("validate tests/a.test.yaml", setup.Engine.Calls);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Workspace_opens_files_in_tabs_and_problems_reveal_their_line()
     {
         var setup = new Setup();
@@ -192,8 +193,8 @@ public sealed class ShellAndWorkspaceTests
         workspace.Problems.SelectedItem = workspace.Problems.Items[0];
 
         var tab = Assert.IsType<StepFileViewModel>(workspace.SelectedTab);
-        Assert.Equal(2, tab.RevealedLine!.Number);
-        Assert.True(tab.Lines[1].IsError);
+        Assert.Equal(2, tab.RevealedLine);
+        Assert.Equal(LineMark.Error, tab.LineMarks[2]);
         workspace.Explorer.SelectedNode = workspace.Explorer.Roots[0].Children[0];
         Assert.Equal(2, workspace.Tabs.Count);
 
@@ -202,7 +203,7 @@ public sealed class ShellAndWorkspaceTests
         Assert.Single(workspace.Tabs);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Workspace_shows_a_load_error_for_a_missing_file()
     {
         var setup = new Setup();
@@ -212,7 +213,7 @@ public sealed class ShellAndWorkspaceTests
         Assert.Contains("cannot be read", ((StepFileViewModel)shell.Workspace.SelectedTab!).LoadError, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task File_changes_reload_open_tabs_relist_tests_and_revalidate()
     {
         var setup = new Setup();
@@ -229,7 +230,7 @@ public sealed class ShellAndWorkspaceTests
         setup.Files.Changed!(["tests/a.test.yaml", "tests/b.test.yaml"]);
         await Task.Yield();
 
-        Assert.Equal(2, ((StepFileViewModel)workspace.SelectedTab!).Lines.Count);
+        Assert.Equal("one\ntwo\n", ((StepFileViewModel)workspace.SelectedTab!).Document.Text);
         Assert.Equal(["listTests", "validate tests/a.test.yaml,tests/b.test.yaml"], setup.Engine.Calls);
 
         setup.Engine.Calls.Clear();
@@ -238,7 +239,7 @@ public sealed class ShellAndWorkspaceTests
         Assert.Equal(["validate tests/a.test.yaml,tests/b.test.yaml"], setup.Engine.Calls);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task A_config_change_reopens_the_project()
     {
         var setup = new Setup();

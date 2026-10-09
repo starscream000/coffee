@@ -130,10 +130,44 @@ public sealed class MainWindowTests
 
         shell.Workspace!.Problems.SelectedItem = shell.Workspace.Problems.Items[0];
         Render(window);
-        var lines = Find<ListBox>(window, "LineList");
-        Assert.Equal(8, lines.ItemCount);
-        Assert.Equal(7, ((StepFileLineViewModel)lines.SelectedItem!).Number);
+        var editor = Find<AvaloniaEdit.TextEditor>(window, "Editor");
+        Assert.Equal(9, editor.Document.LineCount);
+        Assert.Equal(7, editor.TextArea.Caret.Line);
+        Assert.Equal([7], window.GetVisualDescendants().OfType<StepFileView>().Single().Marks.Marks.Keys);
         Snapshot(window, "03-project-step-file");
+    }
+
+    [AvaloniaFact]
+    public async Task Typing_in_the_editor_marks_a_problem_line()
+    {
+        var engine = new FakeEngineService { Info = FakeEngineService.ReadyInfo(), Tests = [Make.Test("tests/a.test.yaml", "A")] };
+        var files = new FakeProjectFiles();
+        files.Files["tests/a.test.yaml"] = "version: 1\nname: A\nsteps:\n";
+        var delay = new ManualDelay();
+        var shell = new ShellViewModel(engine, new MemorySettingsStore(), new FakeFolderPicker(Root), files, new ImmediateDispatcher(), p => p == Root, new FakeDialogs(), delay);
+        engine.ValidateContent = (file, text) =>
+            [.. text.Split('\n').Select((line, i) => (line, i)).Where(x => x.line.Contains("clik", StringComparison.Ordinal))
+                .Select(x => Make.Error(file, x.i + 1, "UnknownAction", "Unknown action \"clik\"."))];
+        var window = new MainWindow { DataContext = shell, Width = 1280, Height = 800 };
+        window.Show();
+        await shell.OpenProjectAsync(Root);
+        shell.Workspace!.OpenFile("tests/a.test.yaml");
+        Render(window);
+        var editor = Find<AvaloniaEdit.TextEditor>(window, "Editor");
+        editor.TextArea.Caret.Offset = editor.Document.TextLength;
+        editor.TextArea.Focus();
+
+        window.KeyTextInput("  - clik: cart.open");
+        delay.Elapse();
+        await Task.Yield();
+        Render(window);
+
+        Assert.Equal("version: 1\nname: A\nsteps:\n  - clik: cart.open", editor.Document.Text);
+        var view = window.GetVisualDescendants().OfType<StepFileView>().Single();
+        Assert.Equal(LineMark.Error, view.Marks.Marks[4]);
+        Assert.Equal("1 error", window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Name == "ProblemSummary").Text);
+        Assert.StartsWith("● ", ((StepFileViewModel)shell.Workspace.SelectedTab!).Title, StringComparison.Ordinal);
+        Snapshot(window, "07-editor-typing");
     }
 
     [AvaloniaFact]

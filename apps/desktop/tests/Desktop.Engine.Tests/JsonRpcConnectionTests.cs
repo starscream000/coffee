@@ -116,7 +116,7 @@ public sealed class JsonRpcConnectionTests
         var ex = await Assert.ThrowsAsync<EngineExitedException>(() => waiting);
         Assert.Equal(1, ex.ExitCode);
         Assert.Contains("TypeError: boom", ex.Message, StringComparison.Ordinal);
-        Assert.Equal(1, (await connection.Closed).ExitCode);
+        Assert.Equal(1, Assert.IsType<EngineExitedException>(await connection.Closed).ExitCode);
 
         var later = await Assert.ThrowsAsync<EngineExitedException>(() =>
             connection.SendAsync<EmptyParams, ListActionsResult>(Methods.ListActions, EmptyParams.Instance, Ct));
@@ -142,5 +142,118 @@ public sealed class JsonRpcConnectionTests
             connection.SendAsync<EmptyParams, ListActionsResult>(Methods.ListActions, EmptyParams.Instance, cancel.Token));
         release.SetResult();
         Assert.Contains("not waiting", (await problem.Task.WaitAsync(TimeSpan.FromSeconds(5), Ct)).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_throwing_event_handler_is_reported_and_reading_goes_on()
+    {
+        var (engine, connection) = await Connect((_, _) => Task.FromResult<FakeReply?>(FakeReply.Ok(null)));
+        await using var _ = engine;
+        await using var __ = connection;
+        var seen = new List<int>();
+        var problems = new List<ProtocolProblem>();
+        connection.EventReceived += (_, e) =>
+        {
+            seen.Add(e.Seq);
+            if (e.Seq == 1)
+            {
+                throw new InvalidOperationException("subscriber bug");
+            }
+        };
+        connection.ProblemReported += (_, p) =>
+        {
+            problems.Add(p);
+            throw new InvalidOperationException("problem handler bug too");
+        };
+
+        await engine.SendEventAsync("testStarted", new { runId = "r", seq = 1, testId = "a#0", startedAt = "t" });
+        await engine.SendEventAsync("testStarted", new { runId = "r", seq = 2, testId = "a#0", startedAt = "t" });
+        var answer = await connection.SendAsync<CancelRunParams, NullResult>(Methods.CancelRun, new() { RunId = "r" }, Ct);
+
+        Assert.Same(NullResult.Instance, answer);
+        Assert.Equal([1, 2], seen);
+        Assert.Contains("subscriber bug", Assert.Single(problems).Message, StringComparison.Ordinal);
+        Assert.False(connection.Closed.IsCompleted);
+    }
+
+    [Fact]
+    public async Task A_read_failure_fails_waiting_requests_and_completes_Closed()
+    {
+        var transport = new FailingTransport();
+        await using var connection = new JsonRpcConnection(transport);
+        connection.Start();
+
+        var waiting = connection.SendAsync<EmptyParams, ListActionsResult>(Methods.ListActions, EmptyParams.Instance, Ct);
+        transport.Fail(new InvalidOperationException("reader broke"));
+
+        var ex = await Assert.ThrowsAsync<EngineConnectionFailedException>(() => waiting);
+        Assert.Contains("reader broke", ex.Message, StringComparison.Ordinal);
+        Assert.IsType<EngineConnectionFailedException>(await connection.Closed.WaitAsync(TimeSpan.FromSeconds(5), Ct));
+        await Assert.ThrowsAsync<EngineConnectionFailedException>(() =>
+            connection.SendAsync<EmptyParams, ListActionsResult>(Methods.ListActions, EmptyParams.Instance, Ct));
+    }
+
+    [Fact]
+    public async Task A_result_that_does_not_fit_is_a_protocol_violation()
+    {
+        var (engine, connection) = await Connect((_, _) => Task.FromResult<FakeReply?>(FakeReply.Ok(new { actions = "not a list" })));
+        await using var _ = engine;
+        await using var __ = connection;
+
+        var ex = await Assert.ThrowsAsync<ProtocolViolationException>(() =>
+            connection.SendAsync<EmptyParams, ListActionsResult>(Methods.ListActions, EmptyParams.Instance, Ct));
+        Assert.Contains("\"listActions\"", ex.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>A transport whose output stream fails on demand with any exception.</summary>
+    private sealed class FailingTransport : IEngineTransport
+    {
+        private readonly FailingStream _input = new();
+
+        public Stream Input => _input;
+
+        public Stream Output { get; } = new MemoryStream();
+
+        public Task<int> Exited { get; } = new TaskCompletionSource<int>().Task;
+
+        public string StderrTail => string.Empty;
+
+        public void Fail(Exception ex) => _input.Failure.TrySetException(ex);
+
+        public void Kill()
+        {
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+        private sealed class FailingStream : Stream
+        {
+            public TaskCompletionSource<int> Failure { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public override bool CanRead => true;
+
+            public override bool CanSeek => false;
+
+            public override bool CanWrite => false;
+
+            public override long Length => throw new NotSupportedException();
+
+            public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+            public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+                new(Failure.Task.WaitAsync(cancellationToken));
+
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+            public override void Flush()
+            {
+            }
+
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+            public override void SetLength(long value) => throw new NotSupportedException();
+
+            public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        }
     }
 }

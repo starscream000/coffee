@@ -19,6 +19,8 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly IProjectFiles _files;
     private readonly IUiDispatcher _dispatcher;
     private readonly Func<string, bool> _directoryExists;
+    private readonly IDialogService _dialogs;
+    private readonly IDelay _delay;
 
     /// <summary>Creates the main window's view model.</summary>
     /// <param name="engine">The engine.</param>
@@ -27,14 +29,20 @@ public sealed partial class ShellViewModel : ObservableObject
     /// <param name="files">Project files.</param>
     /// <param name="dispatcher">The UI thread.</param>
     /// <param name="directoryExists">Says whether a folder exists; <see cref="Directory.Exists"/> by default.</param>
+    /// <param name="dialogs">Asks about unsaved changes; by default every question is answered "cancel", so nothing is lost.</param>
+    /// <param name="delay">Waits before validating text while typing; real time by default.</param>
     public ShellViewModel(
         IEngineService engine,
         ISettingsStore settings,
         IFolderPicker folderPicker,
         IProjectFiles files,
         IUiDispatcher dispatcher,
-        Func<string, bool>? directoryExists = null)
+        Func<string, bool>? directoryExists = null,
+        IDialogService? dialogs = null,
+        IDelay? delay = null)
     {
+        _dialogs = dialogs ?? new CancellingDialogs();
+        _delay = delay ?? new RealDelay();
         _engine = engine;
         _settings = settings;
         _folderPicker = folderPicker;
@@ -94,12 +102,15 @@ public sealed partial class ShellViewModel : ObservableObject
     /// <returns>A task that completes when the engine is ready or has failed.</returns>
     public Task InitializeAsync() => _engine.StartAsync();
 
-    /// <summary>Closes the project and stops the engine. Called when the window closes.</summary>
+    /// <summary>
+    /// Closes the project and stops the engine for good. Called when the window
+    /// closes; any start asked for afterwards does nothing.
+    /// </summary>
     /// <returns>A task that completes when the engine is gone.</returns>
     public async Task ShutdownAsync()
     {
         Workspace?.Dispose();
-        await _engine.StopAsync();
+        await _engine.ShutdownAsync();
     }
 
     /// <summary>Asks for a folder and opens it as a project.</summary>
@@ -130,7 +141,7 @@ public sealed partial class ShellViewModel : ObservableObject
         RefreshRecent();
     }
 
-    /// <summary>Opens a folder as a project, replacing any open one.</summary>
+    /// <summary>Opens a folder as a project, replacing any open one. Never throws: failures end in <see cref="Notice"/>, with the detail in the engine log.</summary>
     /// <param name="root">The folder.</param>
     /// <returns>A task that completes when the project is open or opening failed (see <see cref="Notice"/>).</returns>
     public async Task OpenProjectAsync(string root)
@@ -156,10 +167,25 @@ public sealed partial class ShellViewModel : ObservableObject
                 }
             }
 
+            // The same project opened again (reopen, restart) keeps its tabs and unsaved text;
+            // another project replaces this one only if its unsaved changes may go.
+            var previous = Workspace;
+            var sameProject = previous is not null && SamePath(previous.Root, root);
+            if (previous is not null && !sameProject && !await previous.ConfirmCloseAsync())
+            {
+                return;
+            }
+
+            var carried = sameProject ? previous!.CaptureTabs() : default;
             var project = await _engine.OpenProjectAsync(root);
-            var workspace = new WorkspaceViewModel(project, _engine, _files, _dispatcher, Engine);
+            var workspace = new WorkspaceViewModel(project, _engine, _files, _dispatcher, Engine, _dialogs, _delay);
             workspace.ReopenRequested += (_, _) => _ = ReopenAsync();
             await workspace.LoadAsync();
+            if (sameProject)
+            {
+                workspace.RestoreTabs(carried);
+            }
+
             Workspace?.Dispose();
             Workspace = workspace;
             TrySave(_settings.Load().WithRecentProject(root));
@@ -170,10 +196,18 @@ public sealed partial class ShellViewModel : ObservableObject
             ShowError(ex.Name == ErrorCodes.ProjectInvalid
                 ? $"{root} is not a project: {ex.Message}"
                 : $"The project could not be opened: {ex.Message}");
+            Engine.Report($"Opening {root} failed: {ex}");
         }
         catch (EngineException ex)
         {
             ShowError($"The project could not be opened: {ex.Message}");
+            Engine.Report($"Opening {root} failed: {ex}");
+        }
+        catch (Exception ex)
+        {
+            // Not an engine error, so a bug or an operating-system failure: say so, keep the detail.
+            ShowError($"The project could not be opened because of an unexpected error ({ex.GetType().Name}: {ex.Message}). The engine log has the details.");
+            Engine.Report($"Opening {root} failed unexpectedly: {ex}");
         }
         finally
         {
@@ -181,13 +215,34 @@ public sealed partial class ShellViewModel : ObservableObject
         }
     }
 
-    /// <summary>Closes the project and shows the start page.</summary>
+    /// <summary>Closes the project and shows the start page, asking first about unsaved changes.</summary>
+    /// <returns>A task that completes when the project is closed or the user kept it open.</returns>
     [RelayCommand]
-    private void CloseProject()
+    private async Task CloseProjectAsync()
     {
+        if (Workspace is { } workspace && !await workspace.ConfirmCloseAsync())
+        {
+            return;
+        }
+
         Workspace?.Dispose();
         Workspace = null;
         RefreshRecent();
+    }
+
+    /// <summary>Says whether the window may close: asks about unsaved changes. Never throws.</summary>
+    /// <returns>True when the window may close.</returns>
+    public async Task<bool> ConfirmCloseWindowAsync()
+    {
+        try
+        {
+            return Workspace is null || await Workspace.ConfirmCloseAsync();
+        }
+        catch (Exception ex)
+        {
+            Engine.Report($"Asking about unsaved changes failed: {ex}");
+            return true;
+        }
     }
 
     /// <summary>Restarts the engine, then opens the open project again.</summary>
@@ -223,6 +278,20 @@ public sealed partial class ShellViewModel : ObservableObject
         {
             ShowError($"The engine stopped. Restart it to go on working with the project. {_engine.Failure?.Message}");
         }
+    }
+
+    private static bool SamePath(string a, string b) =>
+        string.Equals(
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)),
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)),
+            OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The dialogs used when none are given: every question is answered "cancel".</summary>
+    private sealed class CancellingDialogs : IDialogService
+    {
+        public Task<UnsavedChangesChoice> AskUnsavedChangesAsync(IReadOnlyList<string> files) => Task.FromResult(UnsavedChangesChoice.Cancel);
+
+        public Task<bool> AskOverwriteAsync(string file) => Task.FromResult(false);
     }
 
     private void ShowError(string message)

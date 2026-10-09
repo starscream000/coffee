@@ -10,8 +10,15 @@ Nothing is released.
 What it does today: starts the engine of the checkout, opens a project
 folder, and shows its tests (as a folder tree with search and tags), every
 problem the engine finds (re-checked when files change), the step files
-(read-only, problem lines marked), the action catalogue with each action's
-parameters, and the engine's log. It cannot run tests yet, because the
+in an editor (undo, redo, save, revert, problem lines marked, and the
+engine's problems for the text being typed), the action catalogue with each action's
+parameters, and the engine's log.
+
+It follows the project folder while it is open: a changed step file (YAML)
+re-reads its tab and validates the tests again; a changed config file, or a
+changed user-action source (`.ts`, `.mts`, `.cts`, `.js`, `.mjs`, `.cjs`
+anywhere under the project, outside dot-folders and `node_modules`), opens
+the project again, because the engine reads both only in `openProject`. It cannot run tests yet, because the
 engine's runner does not exist yet (desktop milestone D2).
 
 It starts the engine as a separate process and talks to it only through the

@@ -15,6 +15,26 @@ public interface IProjectFiles
     /// <exception cref="IOException">The file cannot be read.</exception>
     string ReadText(string root, string relativePath);
 
+    /// <summary>Reads a file's text, or returns null when the file does not exist.</summary>
+    /// <param name="root">The project root.</param>
+    /// <param name="relativePath">The file, relative to the root.</param>
+    /// <returns>The text, or null.</returns>
+    /// <exception cref="IOException">The file exists but cannot be read.</exception>
+    string? TryReadText(string root, string relativePath);
+
+    /// <summary>
+    /// Writes a file as UTF-8 without a byte-order mark, in one step: the text
+    /// goes to a temporary file next to it, which then replaces the file, so a
+    /// crash never leaves half a file. Creates the file (and its folder) when it
+    /// does not exist.
+    /// </summary>
+    /// <param name="root">The project root.</param>
+    /// <param name="relativePath">The file, relative to the root.</param>
+    /// <param name="text">The whole text, with the line endings it should have.</param>
+    /// <exception cref="IOException">The file could not be written; it is unchanged.</exception>
+    /// <exception cref="UnauthorizedAccessException">The file or its folder may not be written.</exception>
+    void WriteText(string root, string relativePath, string text);
+
     /// <summary>
     /// Finds files named <c>*.test.yaml</c> under the root, skipping folders
     /// whose names start with a dot (the data folder, <c>.git</c>) and
@@ -26,7 +46,8 @@ public interface IProjectFiles
     IReadOnlyList<string> FindTestFiles(string root);
 
     /// <summary>
-    /// Watches the root for changes to YAML files. Changes are gathered for a
+    /// Watches the root for changes to YAML files and user-action sources
+    /// (<see cref="ProjectFileKinds.IsWatched"/>). Changes are gathered for a
     /// short while, then reported together on a background thread.
     /// </summary>
     /// <param name="root">The project root.</param>
@@ -50,6 +71,40 @@ public sealed class DiskProjectFiles : IProjectFiles
     /// <inheritdoc />
     public string ReadText(string root, string relativePath) =>
         File.ReadAllText(Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+
+    /// <inheritdoc />
+    public string? TryReadText(string root, string relativePath)
+    {
+        try
+        {
+            return ReadText(root, relativePath);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public void WriteText(string root, string relativePath, string text)
+    {
+        var path = Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar));
+        var folder = Path.GetDirectoryName(path)!;
+        Directory.CreateDirectory(folder);
+        var temporary = Path.Combine(folder, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            File.WriteAllText(temporary, text, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            File.Move(temporary, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporary))
+            {
+                File.Delete(temporary);
+            }
+        }
+    }
 
     /// <inheritdoc />
     public IReadOnlyList<string> FindTestFiles(string root)
@@ -137,7 +192,7 @@ public sealed class DiskProjectFiles : IProjectFiles
 
             try
             {
-                foreach (var file in Directory.EnumerateFiles(fullPath, "*.yaml", SearchOption.AllDirectories))
+                foreach (var file in Directory.EnumerateFiles(fullPath, "*", SearchOption.AllDirectories))
                 {
                     Add(file);
                 }
@@ -151,8 +206,7 @@ public sealed class DiskProjectFiles : IProjectFiles
         private void Add(string fullPath)
         {
             var relative = ToRelative(_root, fullPath);
-            var ignored = relative.Split('/').Any(part => part.StartsWith('.') || part == "node_modules");
-            if (ignored || !relative.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase))
+            if (!ProjectFileKinds.IsWatched(relative))
             {
                 return;
             }
