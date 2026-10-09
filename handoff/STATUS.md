@@ -5,20 +5,20 @@ desktop implementer reads [apps/desktop/handoff/STATUS.md](../apps/desktop/hando
 instead.
 
 - Updated: 2026-10-10
-- **Open instruction:** none. The next one (0007) is published on the owner's
-  word `next`.
-- Waiting on: owner
+- **Open instruction:** [0007: a build for the owner, then fixes, pages and logins](instructions/0007-a-build-then-fixes-and-pages-and-logins.md)
+- Waiting on: implementer
 
 ## Instructions
 
-| No.  | Title                                             | State             | Report                                                   | Review                                                   | Pull requests                                        |
-| ---- | ------------------------------------------------- | ----------------- | -------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------- |
-| 0001 | Finish the Milestone 0 documents                  | merged            | [0001](reports/0001-finish-milestone-0-docs.md)          | [0001](reviews/0001-finish-milestone-0-docs.md)          | [#2](https://github.com/starscream000/coffee/pull/2) |
-| 0002 | Review fixes and the final names                  | merged            | [0002](reports/0002-review-fixes-and-names.md)           | [0002](reviews/0002-review-fixes-and-names.md)           | #3, #4                                               |
-| 0003 | Milestone 1 foundation                            | merged            | [0003](reports/0003-milestone-1-foundation.md)           | [0003](reviews/0003-milestone-1-foundation.md)           | #5, #6, #7, #8, #9                                   |
-| 0004 | Review fixes, user actions, variables and secrets | merged            | [0004](reports/0004-fixes-actions-and-secrets.md)        | [0004](reviews/0004-fixes-actions-and-secrets.md)        | #10, #11, #12, #13                                   |
-| 0005 | Masking and loader fixes, locators, the demo app  | merged            | [0005](reports/0005-masking-loader-locators-demo-app.md) | [0005](reviews/0005-masking-loader-locators-demo-app.md) | #14, #13, #15, #17                                   |
-| 0006 | Review fixes and the runner                       | changes requested | on branch `feat/runner-rows-results`                     | [0006](reviews/0006-review-fixes-and-the-runner.md)      | #19, #21, #23 merged; #25 open                       |
+| No.  | Title                                               | State             | Report                                                   | Review                                                   | Pull requests                                        |
+| ---- | --------------------------------------------------- | ----------------- | -------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------- |
+| 0001 | Finish the Milestone 0 documents                    | merged            | [0001](reports/0001-finish-milestone-0-docs.md)          | [0001](reviews/0001-finish-milestone-0-docs.md)          | [#2](https://github.com/starscream000/coffee/pull/2) |
+| 0002 | Review fixes and the final names                    | merged            | [0002](reports/0002-review-fixes-and-names.md)           | [0002](reviews/0002-review-fixes-and-names.md)           | #3, #4                                               |
+| 0003 | Milestone 1 foundation                              | merged            | [0003](reports/0003-milestone-1-foundation.md)           | [0003](reviews/0003-milestone-1-foundation.md)           | #5, #6, #7, #8, #9                                   |
+| 0004 | Review fixes, user actions, variables and secrets   | merged            | [0004](reports/0004-fixes-actions-and-secrets.md)        | [0004](reviews/0004-fixes-actions-and-secrets.md)        | #10, #11, #12, #13                                   |
+| 0005 | Masking and loader fixes, locators, the demo app    | merged            | [0005](reports/0005-masking-loader-locators-demo-app.md) | [0005](reviews/0005-masking-loader-locators-demo-app.md) | #14, #13, #15, #17                                   |
+| 0006 | Review fixes and the runner                         | changes requested | on branch `feat/runner-rows-results`                     | [0006](reviews/0006-review-fixes-and-the-runner.md)      | #19, #21, #23 merged; #25 open                       |
+| 0007 | A build for the owner, then fixes, pages and logins | open              | –                                                        | –                                                        | continues #25                                        |
 
 States: `open` (published, no review yet), `changes requested`, `approved`,
 `merged`, `replaced`.
@@ -58,12 +58,13 @@ tests start the real engine and read the protocol's schema files.
   place; the next engine instruction changes the documents, the schemas and
   the validator, before plan branch 12.
 
+- 2026-10-10: CSV data files are read as spreadsheets write them (RFC 4180).
+- 2026-10-10: the owner wants a build of the desktop app and the engine on his
+  machine before other work; it is the first task of instruction 0007.
+- 2026-10-10: the desktop track is on hold.
+
 ## Waiting on the owner
 
-- Say `next` to publish instruction 0007 (the fixes for #25, the `regex:`
-  rule, then plan branch 10).
-- CSV data files (review 0006): read them as spreadsheets write them, with
-  quoted values (RFC 4180)? Recommended: yes.
 - npm: create the organisation `cfe` to hold the `@cfe` scope. A free name can
   be taken at any time.
 - Repository visibility: it is public. Decide whether it should be private.
