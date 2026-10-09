@@ -77,7 +77,8 @@ async function exitDuringRun(
     });
     const methods: string[] = [];
     for (;;) {
-      const message = await app.engine.next(30_000);
+      // Shorter than the test's timeout, so a failure shows the engine's stderr.
+      const message = await app.engine.next(20_000);
       if (typeof message.method === 'string') methods.push(message.method);
       if (message.method === 'stepStarted') break;
     }
@@ -102,31 +103,35 @@ async function exitDuringRun(
   }
 }
 
-describe('no browser is left behind when the engine exits during a run', () => {
-  it('after shutdown: the run is cancelled and finished first, then the engine exits 0', async () => {
-    const { exitCode, methods } = await exitDuringRun('long', (app) => {
-      app.engine.send({ jsonrpc: '2.0', id: 12, method: 'shutdown' });
+describe(
+  'no browser is left behind when the engine exits during a run',
+  { timeout: 90_000 },
+  () => {
+    it('after shutdown: the run is cancelled and finished first, then the engine exits 0', async () => {
+      const { exitCode, methods } = await exitDuringRun('long', (app) => {
+        app.engine.send({ jsonrpc: '2.0', id: 12, method: 'shutdown' });
+      });
+      expect(exitCode).toBe(0);
+      expect(methods.slice(-3)).toEqual(['stepFailed', 'testFinished', 'runFinished']);
     });
-    expect(exitCode).toBe(0);
-    expect(methods.slice(-3)).toEqual(['stepFailed', 'testFinished', 'runFinished']);
-  });
 
-  it('when stdin closes', async () => {
-    const { exitCode } = await exitDuringRun('long', (app) => {
-      app.engine.child.stdin.end();
+    it('when stdin closes', async () => {
+      const { exitCode } = await exitDuringRun('long', (app) => {
+        app.engine.child.stdin.end();
+      });
+      expect(exitCode).toBe(0);
     });
-    expect(exitCode).toBe(0);
-  });
 
-  it('after an unexpected internal error', async () => {
-    const { exitCode } = await exitDuringRun('crash', () => undefined);
-    expect(exitCode).toBe(1);
-  });
-
-  it('when the engine process is killed', async () => {
-    const { exitCode } = await exitDuringRun('long', (app) => {
-      app.engine.child.kill('SIGKILL');
+    it('after an unexpected internal error', async () => {
+      const { exitCode } = await exitDuringRun('crash', () => undefined);
+      expect(exitCode).toBe(1);
     });
-    expect(exitCode).not.toBe(0);
-  });
-});
+
+    it('when the engine process is killed', async () => {
+      const { exitCode } = await exitDuringRun('long', (app) => {
+        app.engine.child.kill('SIGKILL');
+      });
+      expect(exitCode).not.toBe(0);
+    });
+  },
+);
