@@ -20,22 +20,22 @@ function runsFolder(names: string[]): string {
 }
 
 const RUNS = [
-  '20261009-100000-aaaa',
-  '20261009-100001-bbbb',
-  '20261009-100002-cccc',
-  '20261009-100003-dddd',
+  '20261009-100000-000-aaaa',
+  '20261009-100001-000-bbbb',
+  '20261009-100002-000-cccc',
+  '20261009-100003-000-dddd',
 ];
 
 describe('pruneRuns', () => {
   it('deletes the oldest runs so that the new run makes keepRuns, and leaves other folders', () => {
     const dir = runsFolder([...RUNS, 'notes']);
     expect(pruneRuns(dir, 3)).toEqual({
-      removed: ['20261009-100000-aaaa', '20261009-100001-bbbb'],
+      removed: ['20261009-100000-000-aaaa', '20261009-100001-000-bbbb'],
       failed: [],
     });
     expect(readdirSync(dir).sort()).toEqual([
-      '20261009-100002-cccc',
-      '20261009-100003-dddd',
+      '20261009-100002-000-cccc',
+      '20261009-100003-000-dddd',
       'notes',
     ]);
   });
@@ -54,8 +54,8 @@ describe('pruneRuns', () => {
       rmSync(folder, { recursive: true });
     });
     expect(result).toEqual({
-      removed: ['20261009-100001-bbbb', '20261009-100002-cccc'],
-      failed: [{ runId: '20261009-100000-aaaa', reason: 'EBUSY: resource busy or locked' }],
+      removed: ['20261009-100001-000-bbbb', '20261009-100002-000-cccc'],
+      failed: [{ runId: '20261009-100000-000-aaaa', reason: 'EBUSY: resource busy or locked' }],
     });
   });
 });

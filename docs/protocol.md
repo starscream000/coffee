@@ -160,7 +160,8 @@ No params. Cancels any run, closes browsers, responds `null`, then exits.
 environment when the config names none; it is absent only when the config has
 no environments. Opening a project loads user actions; naming and loading
 problems arrive as diagnostics. Only one project is open per engine process; opening another
-replaces it. Fails with `ProjectInvalid` if no config file is found.
+replaces it. Fails with `ProjectInvalid` if no config file is found, and with
+`RunInProgress` while a run is going: a run keeps its project until it ends.
 
 ### `listTests`
 
@@ -222,7 +223,7 @@ outside the project is reported as a diagnostic (`FileNotFound`, `NotAFile`,
   "options": { "headed": false, "browser": "chromium", "refreshLogins": false }
 }
 // result (returned before the run starts; progress arrives as events)
-{ "runId": "20261009-054902-1a2b", "resultsDir": "C:/work/shop-tests/.cfe/runs/20261009-054902-1a2b" }
+{ "runId": "20261009-054902-123-1a2b", "resultsDir": "C:/work/shop-tests/.cfe/runs/20261009-054902-123-1a2b" }
 ```
 
 All selected files are validated first. If any has an error, the request fails
@@ -305,7 +306,7 @@ Example line on stdout (shown wrapped):
 
 <!-- prettier-ignore -->
 ```json
-{"jsonrpc":"2.0","method":"stepFailed","params":{"runId":"20261009-054902-1a2b","seq":17,
+{"jsonrpc":"2.0","method":"stepFailed","params":{"runId":"20261009-054902-123-1a2b","seq":17,
 "testId":"tests/checkout/guest-checkout.test.yaml#1","stepId":"steps.3","durationMs":10012,
 "error":{"code":"AssertionFailed","message":"Text of \"cart.count\" is \"0\", expected \"1\".",
 "expected":"1","actual":"0","location":{"file":"tests/checkout/guest-checkout.test.yaml","line":31,"column":5}},
@@ -405,7 +406,7 @@ plus:
 | `-32003` | `ProjectNotOpen`       | A project request before `openProject`                 |
 | `-32004` | `ProjectInvalid`       | No or unreadable config file                           |
 | `-32005` | `StepFilesInvalid`     | `startRun` with validation errors (`data.diagnostics`) |
-| `-32006` | `RunInProgress`        | `startRun` while a run is active                       |
+| `-32006` | `RunInProgress`        | `startRun` or `openProject` while a run is active      |
 | `-32007` | `RunNotFound`          | `cancelRun` / `openSnapshot` with an unknown `runId`   |
 | `-32008` | `SnapshotNotFound`     | `openSnapshot` for a step without a snapshot           |
 | `-32009` | `MessageTooLarge`      | A message over 4 MiB (see [Transport](#transport))     |
