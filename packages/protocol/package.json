@@ -15,6 +15,13 @@
     }
   },
   "files": [
-    "dist"
-  ]
+    "dist",
+    "schema"
+  ],
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "scripts": {
+    "generate:schemas": "tsc -b && node scripts/generate-schemas.mjs"
+  }
 }
