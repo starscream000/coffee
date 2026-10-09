@@ -44,6 +44,11 @@ export interface SessionOptions {
   readonly exit: (code: number) => void;
   /** Reports unexpected handler errors to developers (stderr). */
   readonly logError: (message: string) => void;
+  /**
+   * Called on `shutdown` before it is answered: cancels any run and closes
+   * browsers (docs/protocol.md, "shutdown").
+   */
+  readonly beforeShutdown?: () => Promise<void>;
 }
 
 type JsonObject = Record<string, unknown>;
@@ -85,7 +90,24 @@ export class Session {
   constructor(writer: MessageWriter, options: SessionOptions) {
     this.writer = writer;
     this.options = options;
-    this.handlers.set('shutdown', () => Promise.resolve(null));
+    this.handlers.set('shutdown', async () => {
+      await this.options.beforeShutdown?.();
+      return null;
+    });
+  }
+
+  /**
+   * Sends a notification (an event) to the client.
+   *
+   * @param method - The event's name, such as `stepStarted`.
+   * @param params - The event's fields.
+   */
+  notify(method: string, params: Record<string, unknown>): void {
+    this.writer.send({ jsonrpc: '2.0', method, params }).catch((error: unknown) => {
+      this.options.logError(
+        `Could not send "${method}": ${error instanceof Error ? error.message : String(error)}`,
+      );
+    });
   }
 
   /**

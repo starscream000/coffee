@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Review 0005 findings: masking never changes an action's `paramsSchema`; a
+  `log` event's `data` is walked, so `target` and `candidateIndex` stay
+  readable while other fields are masked; `ctx.locate` tries every candidate
+  once before giving up when the step timeout is shorter than `fallbackGrace`;
+  a candidate Playwright rejects as a selector fails at once with
+  `InvalidSelector`, naming the target and the candidate. The documents state
+  that hidden elements count, except for role candidates.
 - Review 0004 masking and secrets findings: protocol messages are masked field
   by field with one rules table next to the schemas, so masking keeps every
   message valid JSON that matches its schema and never changes keys or
@@ -28,6 +35,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `baseUrl`.
 
 ### Added
+
+- The built-in actions `goto`, `click`, `fill` and `expect.text` run, defined
+  with `defineAction` like user actions; each honours `ctx.signal` and gives
+  Playwright at most the step's remaining time. `expect.text` retries until the
+  text matches or reports `AssertionFailed` with expected and actual values.
+- Demo samples S10, S11, S12 and S14 (`tests/`) and fixtures F1, F2, F3 and F7
+  (`fixtures/failing/`), with shared targets in `targets/demo.targets.yaml`
+  and a "Clear all" button on the to-do page that `after` steps use to reset
+  the demo app. Integration tests run each through the harness in Chromium.
+
+- The runner core: `startRun` validates the selected files (by `files` or
+  `tags`), checks the environment and the browser, creates the run folder,
+  answers with `{ runId, resultsDir }`, then runs each test in a fresh browser
+  context with the environment's viewport, locale and timezone, and sends
+  `runStarted` … `runFinished` with `seq` rising by one. `before` then `steps`
+  until the first failure, the rest skipped; `after` steps always, an unset
+  variable skipping them; step timeouts abort `ctx.signal` and fail with
+  `ActionTimeout`. Step failures carry a stable code, the step's location and,
+  for assertions, expected and actual values. `ctx` is built for every step,
+  `ctx.log` becomes `log` events and `LocatorFallback` warnings carry the
+  step's location.
+- `initialize` reports `chromium` in `capabilities.browsers` when it is
+  installed; without it, `startRun` gives the install command. One browser per
+  run; shutdown, a closed stdin or an internal error cancel the run and close
+  the browser first.
+- The engine owns stdout and stderr: only protocol messages reach stdout, and
+  every write to stderr is masked, including `process.stderr.write` from user
+  actions.
 
 - The demo web server (`examples/demo-app/server/`): Node only, no
   dependency, with the pages that samples S10, S11, S12, S14, F1, F2, F3 and

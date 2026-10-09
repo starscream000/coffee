@@ -58,7 +58,8 @@ packages/protocol   message and event types shared by engine and clients
 packages/engine     core: step file parsing, validation, action registry,
                     context, runner, recorder (later)
 packages/cli        headless command-line client
-apps/desktop        Avalonia app (later milestone; README only for now)
+apps/desktop        Avalonia app; its own implementer and handoff folder
+                    (apps/desktop/handoff/)
 examples/demo-app   a tiny local web app used by integration tests
 docs/               architecture, step format, actions, protocol, ADRs
 ```
@@ -93,7 +94,8 @@ process. Clients never import engine code. ESLint enforces this.
 - `main` is always stable: it builds, lints and passes all tests. Never commit
   directly to `main` and never force-push or rewrite its history. One
   exception: the reviewer commits handoff files (instructions, reviews and
-  `handoff/STATUS.md`) directly to `main`, and nothing else.
+  `handoff/STATUS.md`, and the same files under `apps/desktop/handoff/`)
+  directly to `main`, and nothing else.
 - Only the reviewer merges into `main`, on the owner's word and after CI is
   green. The implementer pushes branches and opens pull requests; it does not
   merge into `main` or push to it.
@@ -130,6 +132,8 @@ Also:
 
 - Before each milestone, give the owner a short plan and wait for the go-ahead.
 - If anything is unclear or seems wrong, ask instead of guessing.
+- Do not change files under `apps/desktop/`; that folder has its own
+  implementer. Ask through the report instead.
 - At the end of each working session, report what was merged, what is in
   progress, and what you need from the owner.
 

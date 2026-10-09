@@ -87,7 +87,8 @@ export interface LocateOptions {
 }
 
 /** Why `locate` failed. */
-export type LocateErrorCode = 'TargetNotFound' | 'UnknownTarget' | 'TargetCycle';
+export type LocateErrorCode =
+  'TargetNotFound' | 'InvalidSelector' | 'UnknownTarget' | 'TargetCycle';
 
 /** One candidate in a {@link LocateError} report. */
 export interface CandidateReport {
@@ -257,7 +258,12 @@ async function attempt(
     let locator = candidateLocator(scope, candidate, options.testIdAttribute);
     if (level.isFrame) locator = locator.and(scope.locator('iframe, frame'));
     // Counts every attached element, hidden ones too, as Playwright's strict mode does.
-    const matches = await locator.count();
+    let matches: number;
+    try {
+      matches = await locator.count();
+    } catch (error) {
+      throw invalidSelector(error, level, candidate) ?? error;
+    }
     level.counts[index] = matches;
     level.tried[index] = candidate;
     if (matches === 1) {
@@ -266,6 +272,30 @@ async function attempt(
     }
   }
   return undefined;
+}
+
+/** Playwright's words for a selector it cannot parse or run. */
+const SELECTOR_ERROR = /while parsing|is not a valid|Unknown engine/;
+
+/**
+ * Turns Playwright's rejection of a candidate's selector into an
+ * `InvalidSelector` error that names the target and the candidate. Waiting
+ * cannot fix a bad selector, so it is not retried. Other errors (a closed
+ * page, for example) are not selector errors and are left to the caller.
+ */
+function invalidSelector(
+  error: unknown,
+  level: Level,
+  candidate: Candidate,
+): LocateError | undefined {
+  if (!(error instanceof Error) || !SELECTOR_ERROR.test(error.message)) return undefined;
+  const reason = (error.message.split('\n')[0] ?? '').replace(/^[\w.]+: /, '');
+  const what =
+    level.name === undefined ? `the inline ${level.param} target` : `target "${level.name}"`;
+  return new LocateError(
+    'InvalidSelector',
+    `The candidate ${describeCandidate(candidate)} of ${what} is not a valid selector: ${reason}`,
+  );
 }
 
 function toUse(level: Level): LocatorUse {
@@ -335,7 +365,8 @@ function describeLevel(level: LevelReport, indent: string): string[] {
 }
 
 function seconds(ms: number): string {
-  return ms % 1000 === 0 ? `${String(ms / 1000)}s` : `${String(ms)}ms`;
+  const whole = Math.round(ms);
+  return whole % 1000 === 0 ? `${String(whole / 1000)}s` : `${String(whole)}ms`;
 }
 
 /** Waits `ms`, or less when the signal is aborted. */
@@ -375,7 +406,8 @@ function aborted(signal: AbortSignal): Promise<'aborted'> {
  * @returns The locator of the first candidate that matches exactly one
  *   element, in its frame and `within` scope.
  * @throws LocateError `TargetNotFound` when time runs out, listing every
- *   candidate at every level with its last match count; `UnknownTarget` or
+ *   candidate at every level with its last match count; `InvalidSelector` at
+ *   once when Playwright rejects a candidate's selector; `UnknownTarget` or
  *   `TargetCycle` when the target's definition is broken.
  * @throws The signal's reason when the signal is aborted.
  * @throws InterpolationError when a `${…}` in a candidate cannot be resolved.
@@ -396,10 +428,14 @@ export async function locate(target: TargetValue, options: LocateOptions): Promi
   const deadline = start + options.timeoutMs;
   const graceEnd = start + options.fallbackGraceMs;
   const abort = aborted(signal);
+  // Set once an attempt has tried every candidate; until then the call does not give up.
+  let triedAll = false;
+  let lastChance = false;
   try {
     for (;;) {
       resetUsed(top);
-      const allowFallback = performance.now() >= graceEnd;
+      const allowFallback = lastChance || performance.now() >= graceEnd;
+      triedAll ||= allowFallback;
       const found = await Promise.race([attempt(top, options.page, allowFallback, options), abort]);
       signal.throwIfAborted();
       if (found !== undefined && found !== 'aborted') {
@@ -408,6 +444,12 @@ export async function locate(target: TargetValue, options: LocateOptions): Promi
         return found.locator;
       }
       const now = performance.now();
+      if (now >= deadline && !triedAll) {
+        // The timeout is shorter than the grace period: one attempt with every
+        // candidate before giving up, so a fallback can still be found.
+        lastChance = true;
+        continue;
+      }
       if (now >= deadline) {
         const report = toReport(top);
         const name = top.name === undefined ? 'The inline target' : `Target "${top.name}"`;

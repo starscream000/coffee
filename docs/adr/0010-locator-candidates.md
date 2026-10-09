@@ -22,7 +22,24 @@ because the page is still loading. For the first `fallbackGrace` of each
 `ctx.locate` call (default **1 s**, set in the config's `defaults` and
 overridable per environment, `0s` turns it off) only the first candidate is
 tried. Fallbacks are tried after that, in order, until the step timeout. The
-same rule applies at every level (frame, `within`, element).
+same rule applies at every level (frame, `within`, element). When the step
+timeout is shorter than `fallbackGrace`, the call still makes one attempt with
+every candidate before it gives up, so a fallback can be found (with its
+warning) instead of a `TargetNotFound` whose fallbacks were never tried.
+
+**What "matches" means.** A candidate matches when exactly one attached element
+fits it, hidden elements included: `ctx.locate` counts what Playwright's strict
+mode counts, so the locator it returns never fails a later action as
+ambiguous. Role candidates never see hidden elements, because Playwright's
+`getByRole` leaves them out; test ID, CSS, text, label and placeholder
+candidates do see them. A page with a hidden copy of an element (a mobile menu,
+a template) therefore needs `nth` or `within` on candidates other than role
+candidates.
+
+**A candidate Playwright rejects** (a CSS or XPath selector it cannot parse)
+fails the call at once with `InvalidSelector`, naming the target, the
+candidate and Playwright's reason. Waiting cannot fix it, so it is not
+retried.
 
 **Warning on every fallback.** Whenever a candidate other than the first is
 used, at any level, the engine emits a `log` event with level `warn`, code

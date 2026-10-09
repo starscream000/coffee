@@ -1,0 +1,14 @@
+# F1 (A4): an assertion fails with expected and actual values; the remaining
+# steps are skipped and the after steps still reset the demo app.
+version: 1
+name: The to-do count is wrong
+steps:
+  - goto: /todos
+  - fill: { target: todos.new, value: Buy milk }
+  - click: todos.add
+  - expect.text: { target: todos.count, equals: 2 }
+    timeout: 2s
+  - click: todos.add
+after:
+  - goto: /todos
+  - click: todos.clearAll

@@ -2,14 +2,20 @@
 // codes of docs/protocol.md: 0 after `shutdown` or when stdin closes, 1 on an
 // unexpected internal error, 3 after a refused handshake. Everything the engine
 // writes, to stdout or to stderr, passes through the secret registry first.
+// Before the process exits, any run is cancelled and its browser closed; if
+// the process is killed outright, Chromium exits on its own when its pipe to
+// Playwright closes.
 
-import { BUILTIN_SPECS } from '../actions/builtin-specs.js';
+import { BUILTIN_ACTIONS } from '../actions/builtins/index.js';
 import { SecretRegistry } from '../context/mask.js';
 import { getEngineInfo } from '../engine-info.js';
 import { registerProjectHandlers } from '../project/handlers.js';
-import { maskingStream, redirectConsoleToStderr } from './console.js';
+import { RunManager } from '../runner/run.js';
+import { availableBrowsers } from '../runner/browser.js';
+import { redirectConsoleToStderr } from './console.js';
 import { LineReader } from './line-reader.js';
 import { MessageWriter } from './message-writer.js';
+import { guardStdio } from './stdio-guard.js';
 import { EXIT_OK, Session } from './session.js';
 
 /** Exit code for an unexpected internal error. */
@@ -40,7 +46,9 @@ export function runStdioServer(): StdioServer {
   // Every message and every line on stderr passes through the registry (ADR 0014).
   const secrets = new SecretRegistry();
   const mask = (text: string): string => secrets.mask(text);
-  redirectConsoleToStderr(maskingStream(mask));
+  const stdout = guardStdio(mask);
+  // process.stderr now masks every write, so the console can write to it directly.
+  redirectConsoleToStderr();
 
   const logError = (message: string): void => {
     process.stderr.write(`${mask(message)}\n`);
@@ -56,17 +64,21 @@ export function runStdioServer(): StdioServer {
     process.exit(EXIT_INTERNAL_ERROR);
   });
 
-  const writer = new MessageWriter(process.stdout, { mask });
+  const writer = new MessageWriter(stdout, { mask });
+  // The run manager sends events through the session created next.
+  const runs = new RunManager((method, params) => {
+    session.notify(method, params);
+  });
   const session = new Session(writer, {
     engineInfo: getEngineInfo(),
-    // No browser can run yet; the runner branches add Chromium.
-    browsers: [],
+    browsers: availableBrowsers(),
     exit: (code) => {
       process.exit(code);
     },
     logError,
+    beforeShutdown: () => runs.stop(),
   });
-  registerProjectHandlers(session, BUILTIN_SPECS, secrets);
+  registerProjectHandlers(session, BUILTIN_ACTIONS, secrets, runs);
 
   const reader = new LineReader();
   process.stdin.on('data', (chunk: Buffer) => {
@@ -78,10 +90,13 @@ export function runStdioServer(): StdioServer {
     for (const item of reader.end()) {
       void session.receive(item);
     }
-    // Answer every request already received before exiting.
-    void session.idle().then(() => {
-      process.exit(EXIT_OK);
-    });
+    // Answer every request already received, cancel any run, then exit.
+    void session
+      .idle()
+      .then(() => runs.stop())
+      .finally(() => {
+        process.exit(EXIT_OK);
+      });
   });
   return { session, secrets };
 }

@@ -10,13 +10,12 @@ import {
   type OpenProjectResult,
   type ValidateParams,
 } from '@cfe/protocol';
-import type { ActionSpec } from '../actions/action-spec.js';
 import { checkSdkVersion, loadUserActions } from '../actions/loader.js';
-import { ActionRegistry } from '../actions/registry.js';
+import { ActionRegistry, type BuiltinAction } from '../actions/registry.js';
 import { SecretRegistry } from '../context/mask.js';
 import { SecretStore } from '../context/secrets.js';
 import { DEFAULT_GLOBS, fileKindOf, type ConfigFile } from '../schema/files.js';
-import { TargetSchema } from '../schema/targets.js';
+import { TargetSchema, type TargetValue } from '../schema/targets.js';
 import { validateFile, type FileValidation } from '../stepfile/validate-file.js';
 import { RpcError } from '../rpc/rpc-error.js';
 import { crossCheck, type CheckContext, type SharedTarget } from './cross-checks.js';
@@ -115,7 +114,7 @@ export class Project {
     root: string,
     configFile: string,
     text: string,
-    builtins: readonly ActionSpec[],
+    builtins: readonly BuiltinAction[],
     options: ProjectOptions,
   ) {
     this.secretRegistry = options.secrets ?? new SecretRegistry();
@@ -134,7 +133,7 @@ export class Project {
    * a client that stays open sees changes made on disk (review 0003,
    * finding 7). Flows are re-read on demand.
    */
-  private refresh(): void {
+  refresh(): void {
     const raw = this.configValidation.source.data;
     const globs = (key: keyof ProjectFiles): readonly string[] => {
       const value = isMapping(raw) ? raw[key] : undefined;
@@ -193,7 +192,7 @@ export class Project {
    */
   static async open(
     root: string,
-    builtins: readonly ActionSpec[],
+    builtins: readonly BuiltinAction[],
     options: ProjectOptions = {},
   ): Promise<Project> {
     const absoluteRoot = resolve(root);
@@ -327,6 +326,30 @@ export class Project {
     return tidyDiagnostics(diagnostics);
   }
 
+  /**
+   * Reads and validates one step file, for running it. Call {@link validate}
+   * first: it refreshes the project's files and reports every problem.
+   *
+   * @param file - Project-relative path.
+   * @returns The file's own validation, or `undefined` when it cannot be read
+   *   or is not a step file.
+   */
+  readStepFile(file: string): FileValidation | undefined {
+    const text = isOutside(file) ? undefined : readFileIfFile(join(this.root, file));
+    return text === undefined ? undefined : this.validateOne(file, text);
+  }
+
+  /**
+   * The shared targets by name, as read by the latest {@link validate}.
+   *
+   * @returns Every shared target whose definition is valid.
+   */
+  sharedTargetValues(): ReadonlyMap<string, TargetValue> {
+    return new Map(
+      [...this.sharedTargets].map(([name, target]) => [name, target.value as TargetValue]),
+    );
+  }
+
   private validateOne(file: string, text: string): FileValidation | undefined {
     const kind = fileKindOf(file, PRODUCT.configFile);
     return kind === undefined
@@ -334,7 +357,14 @@ export class Project {
       : validateFile(file, text, kind, this.registry.specs, this.registry);
   }
 
-  private toProjectPath(file: string): string {
+  /**
+   * Turns a path the client sent into a project-relative one.
+   *
+   * @param file - Project-relative, or absolute inside the project.
+   * @returns Project-relative, with forward slashes; it starts with `../`
+   *   when the file is outside the project.
+   */
+  toProjectPath(file: string): string {
     const absolute = isAbsolute(file) ? file : join(this.root, file);
     return posix(relative(this.root, absolute));
   }

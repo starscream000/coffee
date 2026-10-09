@@ -45,6 +45,7 @@ export const todosPage = document(
   <button type="submit">Add</button>
 </form>
 <p>Items: <span data-testid="todo-count">0</span></p>
+<button type="button" id="clear-all">Clear all</button>
 <ul aria-label="To-dos" data-testid="todo-list"></ul>
 <script>
   const list = document.querySelector('[data-testid="todo-list"]');
@@ -61,6 +62,11 @@ export const todosPage = document(
     count.textContent = String(todos.length);
   }
   fetch('/api/todos').then((response) => response.json()).then(render);
+  // Resets the server's state, as POST /api/reset does: after steps click it.
+  document.getElementById('clear-all').addEventListener('click', async () => {
+    const response = await fetch('/api/reset', { method: 'POST' });
+    render((await response.json()).todos);
+  });
   document.getElementById('add-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const title = document.getElementById('new-todo');

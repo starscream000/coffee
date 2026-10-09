@@ -133,8 +133,8 @@ client                                   engine
 
 `capabilities.browsers` lists the browser names this engine can run. Clients
 must not assume any particular browser; they offer what is listed. An engine
-that cannot launch any browser yet (the engine before the runner exists)
-reports `[]`.
+whose browser is not installed reports `[]`; `startRun` then fails with
+invalid params and a message that gives the command that installs it.
 
 ### `shutdown`
 
@@ -359,7 +359,7 @@ type SnapshotStatus =
   | { state: 'failed'; reason: string }; // recording or masking failed; screenshot only
 
 interface ErrorInfo {
-  code: string; // e.g. "TargetNotFound", "AssertionFailed", "ActionTimeout", "Cancelled"
+  code: string; // e.g. "TargetNotFound", "InvalidSelector", "AssertionFailed", "ActionTimeout", "Cancelled"
   message: string; // secrets already masked
   hint?: string;
   location?: Location;
@@ -368,6 +368,29 @@ interface ErrorInfo {
   candidates?: { candidate: Record<string, unknown>; matches: number }[];
 }
 ```
+
+### Step error codes
+
+`ErrorInfo.code` in `stepFailed`, in 0.1.0. The list is open: clients show the
+message of a code they do not know.
+
+| Code                | When                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| `TargetNotFound`    | No candidate matched exactly one element before the step's time ran out; with `candidates` |
+| `InvalidSelector`   | Playwright rejected a candidate's selector                                                 |
+| `AssertionFailed`   | An `expect.*` action or an `AssertionError`; with `expected` and `actual`                  |
+| `ActionTimeout`     | The step did not finish within its timeout                                                 |
+| `Cancelled`         | The run was cancelled during the step                                                      |
+| `ActionError`       | The action threw: an `ActionError`, or anything that is not an SDK error                   |
+| `PageClosed`        | The step's page was closed while the step ran                                              |
+| `VariableNotSet`    | A `${vars.…}` the step uses was never set (in `after` steps the step is skipped instead)   |
+| `PathNotFound`      | A `${…}` path does not exist                                                               |
+| `InvalidParameters` | The step's parameters are invalid once their `${…}` values are filled in                   |
+| `NotImplemented`    | The step needs something this engine version cannot run yet                                |
+
+For `TargetNotFound`, `candidates` lists the candidates of the level where the
+search stopped (the element itself, or the frame or `within` target it is in),
+each with its last match count; the message names every level.
 
 ## Error codes
 

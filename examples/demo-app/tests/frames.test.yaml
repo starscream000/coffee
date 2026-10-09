@@ -1,0 +1,8 @@
+# S14: a field inside an iframe inside an iframe; locators report every level.
+version: 1
+name: Pay inside nested frames
+steps:
+  - goto: /frames
+  - fill: { target: payment.cardNumber, value: 4242 4242 4242 4242 }
+  - click: payment.pay
+  - expect.text: { target: payment.status, equals: Paid with card ending 4242 }

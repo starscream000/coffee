@@ -52,3 +52,31 @@ export function interpolatable<T extends z.ZodType>(
 
 /** A plain JSON-like mapping of string keys to any values. */
 export const AnyMappingSchema = z.record(z.string(), z.unknown());
+
+const DURATION_UNITS: Readonly<Record<string, number>> = {
+  ms: 1,
+  s: 1_000,
+  m: 60_000,
+  h: 3_600_000,
+};
+
+/**
+ * Converts a duration such as `500ms`, `10s`, `2m` or `12h` to milliseconds.
+ *
+ * @param duration - A duration that passed {@link DurationSchema}.
+ * @returns Milliseconds.
+ * @throws Error when the text is not a duration.
+ *
+ * @example
+ * ```ts
+ * durationToMs('10s'); // 10000
+ * ```
+ */
+export function durationToMs(duration: string): number {
+  const match = /^(\d+)(ms|s|m|h)$/.exec(duration);
+  const unit = match?.[2];
+  if (match === null || unit === undefined) {
+    throw new Error(`"${duration}" is not a duration such as 500ms, 10s, 2m or 12h.`);
+  }
+  return Number(match[1]) * (DURATION_UNITS[unit] ?? 1);
+}

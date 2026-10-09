@@ -3,6 +3,9 @@
 // Proves check I1, the oversized-line half of I3, and that the engine writes
 // nothing before the first request. Needs `tsc -b` first (pnpm verify does it).
 import { spawn } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { MAX_MESSAGE_BYTES, PROTOCOL_VERSION } from '@cfe/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { fileURLToPath } from 'node:url';
@@ -11,8 +14,11 @@ import { ENGINE_MAIN, EngineProcess } from '../testing/engine-process.js';
 const TEST_ENGINES = fileURLToPath(new URL('../../test/engines/', import.meta.url));
 
 const engines: EngineProcess[] = [];
+/** An empty folder as Playwright's browser folder: the engine finds no browser. */
+const NO_BROWSERS = mkdtempSync(join(tmpdir(), 'cfe-no-browsers-'));
+
 function startEngine(): EngineProcess {
-  const engine = new EngineProcess();
+  const engine = new EngineProcess(undefined, undefined, { PLAYWRIGHT_BROWSERS_PATH: NO_BROWSERS });
   engines.push(engine);
   return engine;
 }

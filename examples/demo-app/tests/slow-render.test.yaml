@@ -1,0 +1,8 @@
+# S12: a placeholder matches the CSS fallback at once; the real button, the
+# first candidate, appears after 500 ms and wins without a warning.
+version: 1
+name: The first candidate wins on a slow page
+steps:
+  - goto: /slow-render
+  - click: cart.checkout
+  - expect.text: { target: cart.status, equals: Checked out }
