@@ -365,7 +365,8 @@ function describeLevel(level: LevelReport, indent: string): string[] {
 }
 
 function seconds(ms: number): string {
-  return ms % 1000 === 0 ? `${String(ms / 1000)}s` : `${String(ms)}ms`;
+  const whole = Math.round(ms);
+  return whole % 1000 === 0 ? `${String(whole / 1000)}s` : `${String(whole)}ms`;
 }
 
 /** Waits `ms`, or less when the signal is aborted. */
