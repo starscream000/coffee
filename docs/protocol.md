@@ -270,6 +270,7 @@ detect gaps. Times are ISO 8601 UTC strings; durations are milliseconds.
 - Other `warn` codes in 0.1.0: `StrayActionCode` (a user action kept running
   after its step ended), `PageReplaced` (a closed page was replaced for an
   `after` step), `SdkVersionMismatch`, `RunCleanupFailed` (an old run folder
+  could not be deleted), `LoginCleanupFailed` (an old saved login
   could not be deleted).
 
 Example line on stdout (shown wrapped):

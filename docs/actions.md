@@ -1,6 +1,6 @@
 # Actions
 
-> Status: **Proposal, revised after the second review** (2026-10-09).
+> Status: **Accepted design** (2026-10-09).
 
 Every step calls an action. Built-in actions and the user's own actions are
 defined the same way, with `defineAction`, and live in the same registry.
@@ -121,9 +121,9 @@ target name or an inline candidate list; in `run` it is an unresolved
 ### Trust model
 
 **User actions are code, and they run with the engine's full access to the
-machine and the network.** **Opening a project runs its code.** User actions are ordinary TypeScript that
-the engine imports into its own process when a project is opened, before any
-test is selected. They run with the same rights as the engine: they can read
+machine and the network.** They are ordinary TypeScript that the engine imports
+into its own process when a project is opened, before any test is selected, so
+opening a project runs its code. They run with the same rights as the engine: they can read
 and write files, start processes, use the network and read any environment
 variable through `process.env`. The engine does not sandbox them, and step
 files can send requests anywhere through `api`. Opening a repository in the
@@ -276,6 +276,14 @@ Any step, whatever its action, may also use the common keys `name`, `page`,
 `wait.response` also matches responses that arrived **since the previous step
 started**, so "click, then wait for the request it caused" works without a race
 (the investigation for ADR 0007 hit exactly this race with plain Playwright).
+
+Response headers stored by `as` (in `wait.response` and `api`) keep their real
+values, so a test can read a token from a response and send it on. When such a
+response has a `Cookie`, `Set-Cookie` or `Authorization` header, the engine
+registers its value as a secret for the rest of the run (for cookie headers,
+each cookie's value), so it is masked wherever the engine writes it out
+([ADR 0014](adr/0014-secret-masking.md)). `expect.response` does the same for
+the headers it reads.
 
 ### Assertions
 
