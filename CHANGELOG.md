@@ -14,8 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI workflow running lint, format check, type check and tests on Linux,
   Windows and macOS.
 - `CLAUDE.md`, `README.md` and `CONTRIBUTING.md`.
-- Placeholder product name "Coffee" (command `coffee`), defined once in
-  `packages/protocol/src/product.ts`.
+- Product identity defined once in `packages/protocol/src/product.ts`: display
+  name "Coffee"; command, data folder and npm scope as separate values
+  (interim `coffee`, `.coffee`, `@test-tool` until the owner chooses).
 - Design proposals: architecture, step file format, actions and engine
   protocol, with architecture decision records in `docs/adr/`, and the
   v0.1.0 definition of done.
