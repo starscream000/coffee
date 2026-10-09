@@ -68,7 +68,12 @@ export function runStdioServer(): StdioServer {
   // The run manager sends events through the session created next.
   const engineInfo = getEngineInfo();
   const runs: RunManager = new RunManager(
-    (method, params): string => session.notify(method, params),
+    {
+      render: (method, params): string => session.renderNotification(method, params),
+      send: (line): void => {
+        session.sendLine(line);
+      },
+    },
     { engineVersion: engineInfo.version, protocolVersion: engineInfo.protocolVersion },
   );
   const session: Session = new Session(writer, {

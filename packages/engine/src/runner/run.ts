@@ -23,8 +23,17 @@ import { DEFAULT_KEEP_RUNS, pruneRuns, type PruneResult } from './keep-runs.js';
 import { RunFolder, type RunFolderInfo } from './run-folder.js';
 import { runTest, type EmitEvent, type TestInstance, type TestStatus } from './test-run.js';
 
-/** Sends one notification to the client. */
-export type Notify = (method: string, params: Record<string, unknown>) => string;
+/**
+ * How a run's events reach the client: each is rendered first (masked, within
+ * the size limit), recorded in the run folder, and only then sent, so a
+ * client that reads the folder on any event finds that event there already.
+ */
+export interface EventChannel {
+  /** Renders an event as the line that will be sent. */
+  render(method: string, params: Record<string, unknown>): string;
+  /** Sends a rendered line. */
+  send(line: string): void;
+}
 
 /** How long `after` steps may run once a run is cancelled (docs/architecture.md). */
 export const CANCEL_LIMIT_MS = 30_000;
@@ -57,22 +66,22 @@ interface PlannedTest {
  *
  * @example
  * ```ts
- * const runs = new RunManager(notify, { engineVersion: '0.1.0', protocolVersion: '0.1.0' });
+ * const runs = new RunManager(channel, { engineVersion: '0.1.0', protocolVersion: '0.1.0' });
  * const { runId } = await runs.start(project, params);
  * await runs.stop(); // on shutdown
  * ```
  */
 export class RunManager {
-  private readonly notify: Notify;
+  private readonly channel: EventChannel;
   private readonly info: RunFolderInfo;
   private current: { cancel: AbortController; done: Promise<void> } | undefined;
 
   /**
-   * @param notify - Sends events to the client and returns each line as sent.
+   * @param channel - Renders and sends events to the client.
    * @param info - The engine's versions, for `run.json`.
    */
-  constructor(notify: Notify, info: RunFolderInfo) {
-    this.notify = notify;
+  constructor(channel: EventChannel, info: RunFolderInfo) {
+    this.channel = channel;
     this.info = info;
   }
 
@@ -143,23 +152,33 @@ export class RunManager {
     const cancel = new AbortController();
     let seq = 0;
     let folderBroken = false;
+    // Record first, then send (review 0006, finding 1): when a client receives
+    // an event, the run folder already holds it.
     const emit: EmitEvent = (method, eventParams) => {
       seq += 1;
-      const line = this.notify(method, { runId, seq, ...eventParams });
-      if (folderBroken) return;
-      try {
-        folder.record(line);
-      } catch (error) {
+      const line = this.channel.render(method, { runId, seq, ...eventParams });
+      let failure: string | undefined;
+      if (!folderBroken) {
+        try {
+          folder.record(line);
+        } catch (error) {
+          folderBroken = true;
+          failure = error instanceof Error ? error.message : String(error);
+        }
+      }
+      this.channel.send(line);
+      if (failure !== undefined) {
         // The run goes on; the client still receives every event.
-        folderBroken = true;
         seq += 1;
-        this.notify('log', {
-          runId,
-          seq,
-          level: 'error',
-          code: 'RunFolderFailed',
-          message: `The run folder could not be written, so it is incomplete: ${error instanceof Error ? error.message : String(error)}`,
-        });
+        this.channel.send(
+          this.channel.render('log', {
+            runId,
+            seq,
+            level: 'error',
+            code: 'RunFolderFailed',
+            message: `The run folder could not be written, so it is incomplete: ${failure}`,
+          }),
+        );
       }
     };
     // Start once the answer has been written: the session writes it right
