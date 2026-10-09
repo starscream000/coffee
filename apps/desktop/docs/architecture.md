@@ -125,17 +125,41 @@ types are written by hand and how they are kept honest:
 - **Settings**: Node path, engine path and recent projects, stored as JSON in
   the user's application data folder under the product's display name.
 
-## Runs (milestone D2, planned)
+## Runs
 
-- A `RunViewModel` is built purely from events, keyed by `testId` and
-  `stepId`, so a live run and a finished run read back from `events.ndjson`
-  (ADR 0015 of the repository) use the same code path.
-- Events are applied in `seq` order; a gap in `seq` marks the run view as
-  incomplete rather than guessing.
-- Screenshots are read from the absolute paths in `screenshotReady`; the app
-  never builds artifact paths itself.
-- `openSnapshot` asks the engine to show a step's page state; a
-  `SnapshotUnavailable` error shows `data.screenshot` instead.
+- **Starting**: Run all, Run selected (a test, or every test shown in a
+  folder of the explorer), Run tag, and Run in a test's tab. Each sends
+  `startRun` with the chosen environment and `options.headed` ("Show
+  browser"). Running is off, with the reason shown, while the engine is not
+  running or reports no browser in `capabilities.browsers`; the reason then
+  names the command that installs Chromium for the engine of a checkout.
+- **Unsaved files**: the engine runs what is on disk, so a run with unsaved
+  tabs first asks to save and run, run without saving, or cancel.
+- **One run at a time**: a second start while a run goes on only says so.
+  `RunInProgress` and `StepFilesInvalid` refusals are explained; the problems
+  of the latter go to the problems panel.
+- **The run model**: a `RunViewModel` is built purely from events, keyed by
+  `testId` and `stepId`, so a live run and a finished run read back from
+  `events.ndjson` (ADR 0015 of the repository) use the same code path. Events
+  that arrive before the answer to `startRun` are kept and applied once the
+  run id is known. A gap in `seq` is noted rather than guessed over. Steps
+  are grouped into before, steps and after and indented under the flow step
+  that called them. A step skipped before it started (after a failure) has
+  no title or line, so it is listed in its test's messages.
+- **Cancel**: `cancelRun`; the run ends when `runFinished` arrives. If the
+  engine stops during a run, the run is marked unfinished and keeps what was
+  reported. Closing the project cancels a run that is still going.
+- **The run tab**: the test instances with their state; the selected test's
+  steps; the selected step's details (error code, message, hint, expected and
+  actual, locator candidates, warnings and fallbacks, parameters), a button
+  that opens the file at the step's line, and its screenshot, or "No
+  screenshot was recorded." Screenshots are read from the absolute paths in
+  `screenshotReady`; the app never builds artifact paths itself.
+- **Page states**: "Open page state" appears once `snapshotReady` arrived (or
+  a step result says the snapshot was saved) and sends `openSnapshot`; a
+  `SnapshotUnavailable` error shows `data.screenshot` instead. The engine of
+  protocol 0.1.0 does not yet take screenshots or save page states, so with
+  it every step shows "No screenshot was recorded." and no button.
 
 ## Threading
 

@@ -4,6 +4,7 @@
              xmlns:vm="using:Desktop.App.ViewModels"
              xmlns:services="using:Desktop.App.Services"
              xmlns:views="using:Desktop.App.Views"
+             xmlns:runs="using:Desktop.App.ViewModels.Runs"
              x:Class="Desktop.App.Views.WorkspaceView"
              x:DataType="vm:WorkspaceViewModel">
   <UserControl.DataTemplates>
@@ -12,6 +13,9 @@
     </DataTemplate>
     <DataTemplate DataType="vm:ActionCatalogViewModel">
       <views:ActionCatalogView />
+    </DataTemplate>
+    <DataTemplate DataType="runs:RunTabViewModel">
+      <views:RunTabView />
     </DataTemplate>
   </UserControl.DataTemplates>
 
@@ -27,6 +31,17 @@
       <StackPanel DockPanel.Dock="Top" Margin="8,8,8,4" Spacing="6">
         <TextBox x:Name="SearchBox" Text="{Binding Explorer.SearchText}" PlaceholderText="Search tests by name or path" />
         <ComboBox ItemsSource="{Binding Explorer.Tags}" SelectedItem="{Binding Explorer.SelectedTag}" HorizontalAlignment="Stretch" />
+        <WrapPanel x:Name="RunButtons">
+          <Button x:Name="RunSelectedButton" Content="Run selected" Command="{Binding RunSelectedCommand}" IsEnabled="{Binding Runs.CanRun}" Margin="0,0,4,4"
+                  ToolTip.Tip="Run the selected test, or every test shown in the selected folder." />
+          <Button Content="Run tag" Command="{Binding RunTagCommand}" IsEnabled="{Binding Runs.CanRun}" Margin="0,0,4,4"
+                  ToolTip.Tip="Run every test with the chosen tag." />
+          <Button x:Name="RunAllButton" Content="Run all" Command="{Binding RunAllCommand}" IsEnabled="{Binding Runs.CanRun}" Margin="0,0,4,4" />
+          <CheckBox Content="Show browser" IsChecked="{Binding Runs.Headed}" Margin="0,0,4,4"
+                    ToolTip.Tip="Show the browser window while the tests run." />
+        </WrapPanel>
+        <SelectableTextBlock x:Name="RunUnavailable" Text="{Binding Runs.UnavailableReason}" TextWrapping="Wrap" Classes="small"
+                             IsVisible="{Binding Runs.UnavailableReason, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
       <TreeView x:Name="ExplorerTree" ItemsSource="{Binding Explorer.Roots}" SelectedItem="{Binding Explorer.SelectedNode}">
         <TreeView.Styles>
@@ -69,23 +84,32 @@
 
     <GridSplitter Grid.Column="1" Grid.Row="0" Grid.RowSpan="3" ResizeDirection="Columns" />
 
-    <!-- Tabs: step files and the action catalogue -->
-    <TabControl x:Name="Tabs" Grid.Column="2" Grid.Row="0" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab}" Padding="0">
-      <TabControl.ItemTemplate>
-        <DataTemplate x:DataType="vm:WorkspaceTabViewModel">
-          <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding ToolTip}">
-            <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" />
-            <Button Content="×" Padding="4,0" FontSize="12" Background="Transparent" VerticalAlignment="Center"
-                    IsVisible="{Binding CanClose}" Command="{Binding CloseCommand}" ToolTip.Tip="Close" />
-          </StackPanel>
-        </DataTemplate>
-      </TabControl.ItemTemplate>
-      <TabControl.ContentTemplate>
-        <DataTemplate x:DataType="vm:WorkspaceTabViewModel">
-          <ContentControl Content="{Binding}" />
-        </DataTemplate>
-      </TabControl.ContentTemplate>
-    </TabControl>
+    <!-- Tabs: step files, runs and the action catalogue, under the run notice -->
+    <DockPanel Grid.Column="2" Grid.Row="0">
+      <Border DockPanel.Dock="Top" Padding="10,6" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+              IsVisible="{Binding Runs.Notice, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding Runs.DismissNoticeCommand}" />
+          <SelectableTextBlock x:Name="RunNotice" Text="{Binding Runs.Notice}" TextWrapping="Wrap" VerticalAlignment="Center" />
+        </DockPanel>
+      </Border>
+      <TabControl x:Name="Tabs" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab}" Padding="0">
+        <TabControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:WorkspaceTabViewModel">
+            <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding ToolTip}">
+              <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" />
+              <Button Content="×" Padding="4,0" FontSize="12" Background="Transparent" VerticalAlignment="Center"
+                      IsVisible="{Binding CanClose}" Command="{Binding CloseCommand}" ToolTip.Tip="Close" />
+            </StackPanel>
+          </DataTemplate>
+        </TabControl.ItemTemplate>
+        <TabControl.ContentTemplate>
+          <DataTemplate x:DataType="vm:WorkspaceTabViewModel">
+            <ContentControl Content="{Binding}" />
+          </DataTemplate>
+        </TabControl.ContentTemplate>
+      </TabControl>
+    </DockPanel>
 
     <GridSplitter Grid.Column="2" Grid.Row="1" ResizeDirection="Rows" />
 
