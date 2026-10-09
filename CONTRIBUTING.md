@@ -52,5 +52,5 @@ to the [ADR index](docs/adr/README.md).
 
 ## Secrets
 
-Never commit secrets, saved logins or run output. `.testtool/` and `.env*`
+Never commit secrets, saved logins or run output. the product data folder (`.coffee/`) and `.env*`
 files are ignored by Git for this reason.

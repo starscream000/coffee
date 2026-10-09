@@ -6,7 +6,7 @@ ask the owner instead of guessing.
 
 ## What we are building
 
-Test Tool (working name) is a desktop tool for recording, editing and running
+Coffee (placeholder name; the owner will supply the final one) is a desktop tool for recording, editing and running
 end-to-end web tests. It has three parts:
 
 1. **Engine**: a headless TypeScript program on Node.js that uses the
@@ -80,7 +80,11 @@ process. Clients never import engine code. ESLint enforces this.
 - Validate step files against a schema and report errors with file and line.
 - Pin the Node version (`.nvmrc`). Commit the lockfile. Never commit secrets.
 - Do not add a licence file. The project is "All rights reserved" for now
-  (`"license": "UNLICENSED"` in every package.json).
+  (`"license": "UNLICENSED"` in every package.json). Copyright holder:
+  starscream000.
+- Never write the product name literally in code. Use `PRODUCT` from
+  `packages/protocol/src/product.ts`, the single place to rename the product.
+  Its test checks the files that cannot import it.
 - Do not add features the owner has not asked for.
 
 ## Git rules

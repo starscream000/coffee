@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Process entry point of the `testtool` command.
+// Process entry point of the command-line program (name: PRODUCT.command).
 
 import { runCli } from './cli.js';
 
