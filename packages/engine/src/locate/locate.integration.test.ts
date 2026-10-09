@@ -327,4 +327,59 @@ describe('ctx.locate in Chromium', () => {
       },
     ]);
   });
+
+  // Review 0005, finding 2.
+  it('tries every candidate before giving up when the timeout is shorter than the grace period', async () => {
+    await page.setContent('<button id="real" data-testid="pay">Pay</button>');
+    const reports = new Reports();
+    const locator = await locate(
+      'payButton',
+      options(reports, {
+        timeoutMs: 400,
+        fallbackGraceMs: 1_000,
+        targets: { payButton: [{ role: 'button', name: 'Pay now' }, { testId: 'pay' }] },
+      }),
+    );
+    expect(await locator.getAttribute('id')).toBe('real');
+    expect(reports.uses[0]?.candidateIndex).toBe(1);
+    expect(reports.warnings).toEqual([
+      expect.objectContaining({
+        code: 'LocatorFallback',
+        data: { target: 'payButton', candidateIndex: 1 },
+      }),
+    ]);
+  });
+
+  // Review 0005, finding 3.
+  it('fails at once with InvalidSelector for a candidate Playwright rejects', async () => {
+    await page.setContent('<div>x</div>');
+    const started = performance.now();
+    let error: unknown;
+    try {
+      await locate(
+        'broken',
+        options(new Reports(), {
+          timeoutMs: 10_000,
+          targets: { broken: [{ css: 'div[[' }, { testId: 'x' }] },
+        }),
+      );
+    } catch (caught) {
+      error = caught;
+    }
+    expect(performance.now() - started).toBeLessThan(1_000);
+    expect(error).toBeInstanceOf(LocateError);
+    expect(error).toMatchObject({ code: 'InvalidSelector' });
+    expect((error as LocateError).message).toMatch(
+      /^The candidate css="div\[\[" of target "broken" is not a valid selector: Unexpected token/,
+    );
+  });
+
+  it('leaves a closed page to the caller instead of calling it a selector error', async () => {
+    await page.setContent('<div>x</div>');
+    const closing = await browser.newPage();
+    await closing.close();
+    await expect(
+      locate([{ css: 'div' }], { ...options(new Reports()), page: closing }),
+    ).rejects.toThrow(/has been closed/);
+  });
 });

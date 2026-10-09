@@ -182,6 +182,7 @@ Every error the engine raises extends `CoffeeError` (named from `PRODUCT` in
 code) with:
 
 - `code`: stable, machine-readable (`StepFileInvalid`, `TargetNotFound`,
+  `InvalidSelector`,
   `AssertionFailed`, `ActionTimeout`, `UnknownAction`, `FlowNotFound`,
   `ActionNameNotNamespaced`, …),
 - `message`: one or two sentences a tester can act on, secrets masked,

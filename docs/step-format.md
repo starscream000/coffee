@@ -207,6 +207,13 @@ Candidate kinds, in the order the recorder will write them:
 | `testId`      | `{ testId: checkout }`          | `getByTestId`                   |
 | `css`         | `{ css: '#cart .btn-primary' }` | `locator(css)`                  |
 
+A candidate **matches** when exactly one attached element fits it, hidden
+elements included. Role candidates never see hidden elements, as in
+Playwright; the other kinds do. A page with a hidden copy of an element
+therefore needs `nth` or `within` for candidates other than `role`
+([ADR 0010](adr/0010-locator-candidates.md)). A candidate whose selector
+Playwright cannot parse fails the step at once with `InvalidSelector`.
+
 Text-like fields (`name`, `label`, `placeholder`, `text`) match exactly by
 default; add `exact: false` for substring matching. Any candidate may add
 `nth: 0` to pick one of several matches, which the recorder only writes when

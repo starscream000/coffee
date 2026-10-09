@@ -219,7 +219,9 @@ way to read an environment variable, and only one declared as a secret.
 Returns a Playwright `Locator` for the first candidate that matches exactly one
 element, polling until the step timeout or until `ctx.signal` is aborted. If no
 candidate matches, it throws `TargetNotFound` listing every candidate and how
-many elements each matched ([ADR 0010](adr/0010-locator-candidates.md)).
+many elements each matched ([ADR 0010](adr/0010-locator-candidates.md)). A
+candidate whose selector Playwright rejects fails at once with
+`InvalidSelector`, naming the target and the candidate.
 
 It supports the long form of targets: it resolves the `frame` chain from the
 outside in (each frame target must match exactly one `<iframe>`), then the

@@ -359,7 +359,7 @@ type SnapshotStatus =
   | { state: 'failed'; reason: string }; // recording or masking failed; screenshot only
 
 interface ErrorInfo {
-  code: string; // e.g. "TargetNotFound", "AssertionFailed", "ActionTimeout", "Cancelled"
+  code: string; // e.g. "TargetNotFound", "InvalidSelector", "AssertionFailed", "ActionTimeout", "Cancelled"
   message: string; // secrets already masked
   hint?: string;
   location?: Location;
