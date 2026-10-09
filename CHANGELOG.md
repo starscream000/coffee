@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Review 0004 masking and secrets findings: protocol messages are masked field
+  by field with one rules table next to the schemas, so masking keeps every
+  message valid JSON that matches its schema and never changes keys or
+  identifiers; console output and internal error logs on stderr are masked;
+  `${…}` paths reach own properties only; an empty environment variable counts
+  as unset, so the `.env` value is used.
 - Review 0004 loader findings: user actions that import CommonJS packages
   using Node built-ins load; the load-error hint fits the cause; a changed
   imported file is picked up by the next `openProject` in the same engine; stale
@@ -23,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Variables, run-time interpolation and environment profiles in the engine;
+  secrets loaded from the process environment and `.env`, rejected under 4
+  characters, and reported by `validate` where a test uses one without a value.
+  Every protocol message and every line on stderr is masked, before any
+  truncation.
 - User actions: `@cfe/engine/sdk` (`defineAction`, `target()`, `z`,
   `ActionError`, `AssertionError` and the type of `ctx`); one registry for
   built-in and user actions with the naming rules of ADR 0016; loading with

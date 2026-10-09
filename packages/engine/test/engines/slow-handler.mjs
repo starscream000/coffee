@@ -3,7 +3,7 @@
 // being answered and check that the answer still arrives.
 import { runStdioServer } from '../../dist/rpc/stdio-server.js';
 
-const session = runStdioServer();
+const { session } = runStdioServer();
 session.register('listTests', async () => {
   await new Promise((resolve) => setTimeout(resolve, 400));
   return { tests: [] };

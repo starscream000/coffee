@@ -29,12 +29,44 @@ HTML-escaped. Values reach actions only through `ctx.secrets.get` or
 **Masking text.** One function, `mask(text)`, replaces every registered form
 with `•••`. It is applied at the exit points, not at each call site:
 
-| Exit point       | How                                                                                                    |
-| ---------------- | ------------------------------------------------------------------------------------------------------ |
-| Protocol         | The JSON-RPC writer masks every serialised message before writing it to stdout                         |
-| Logs             | `ctx.log`, engine stderr logging and error messages go through the same writer or `mask`               |
-| Run folder files | `run.json`, `events.ndjson` and every text file are written through a masking file writer              |
-| Variable values  | Events carry step params uninterpolated (`${secrets.X}` stays as written), so values are not even sent |
+| Exit point       | How                                                                                                                          |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Protocol         | The JSON-RPC writer masks each message field by field (see below), before truncation, then writes it to stdout               |
+| Logs             | `ctx.log` goes through the writer; the console replacement and the engine's own error logging pass every line to `mask`      |
+| Run folder files | `run.json` and `events.ndjson` hold protocol messages and are masked like them; other text files go through a masking writer |
+| Variable values  | Events carry step params uninterpolated (`${secrets.X}` stays as written), so values are not even sent                       |
+
+**Masking protocol messages.** Masking must never damage a message: after
+masking, a message is still valid JSON, still validates against its protocol
+schema, and keeps every identifier. So `mask` is never applied to the
+serialised text or to object keys; it is applied to string values, field by
+field, following one table next to the protocol schemas
+(`packages/protocol/src/masking.ts`):
+
+- **Kept as they are:** the envelope (`jsonrpc`, `id`, `method`), error codes
+  and error names, and the fields the protocol defines as identifiers or fixed
+  values: `runId`, `testId`, `stepId`, `parentStepId`, `seq`, `section`,
+  `action`, `page`, `status`, `level`, `severity`, `code`, `state`, every file
+  and folder path, environment names, login names, numbers and booleans.
+- **Masked:** every string inside a field that carries free text or user data:
+  `message`, `hint`, `expected`, `actual`, a step's `params`, `candidate`,
+  `data`, `title`, `reason` where it is free text, log text, and any field the
+  table does not name, so a new field is masked until someone decides
+  otherwise. A test fails when a protocol schema has a field the table does not
+  name.
+- **Walked:** containers (`result`, `error`, an event's `params`,
+  `diagnostics`, `locators`, …), whose fields are looked up in the table in
+  turn.
+
+The reason identifiers can be kept: they come from files in the repository
+(step files, action files, the config) and from the engine itself, and the
+repository never holds secret values; those live in the environment or in the
+git-ignored `.env` file. Masking happens before long strings are truncated, so
+truncation cannot cut a secret in half and leave a recognisable piece.
+
+Stderr is an exit point too. The console replacement that keeps stdout for the
+protocol ([ADR 0005](0005-json-rpc-over-stdio.md)) writes through `mask`, and so
+does the engine's own logging of internal errors.
 
 **Masking traces (snapshots).** Tracing runs with `screenshots: false` (no
 screencast images, which cannot be masked). When a step's chunk is written, the
@@ -98,8 +130,15 @@ run folder for the session cookie's value; it fails on any match.
 Known limits, documented for users: a secret drawn into a canvas or image, or
 shown only in part (such as the last four digits), cannot be detected; and a
 secret the application transforms (for example hashes or base64-encodes it)
-appears in its transformed form. Masking costs one string scan per message and
-per artifact.
+appears in its transformed form. Masking costs one string scan per masked
+field and per artifact.
+
+What field-by-field masking gives up: a secret that equals an identifier, or
+part of a file path, is not masked in that identifier or path (for example a
+secret `checkout` in `tests/checkout/guest.test.yaml`). It is still masked in
+every message, log line and error text. The alternative, masking the
+serialised text, broke messages whenever a secret equalled a key or a piece of
+JSON syntax such as `jsonrpc` or `2.0","` (review 0004, finding 1).
 
 ## Revisit when
 

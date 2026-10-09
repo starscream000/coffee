@@ -28,9 +28,17 @@ export class EngineProcess {
    *
    * @param entry - Script to run; defaults to the engine's main.
    * @param args - Arguments after the script.
+   * @param env - Extra environment variables for the engine process.
    */
-  constructor(entry: string = ENGINE_MAIN, args: readonly string[] = ['--stdio']) {
-    this.child = spawn(process.execPath, [entry, ...args], { stdio: 'pipe' });
+  constructor(
+    entry: string = ENGINE_MAIN,
+    args: readonly string[] = ['--stdio'],
+    env: Readonly<Record<string, string>> = {},
+  ) {
+    this.child = spawn(process.execPath, [entry, ...args], {
+      stdio: 'pipe',
+      env: { ...process.env, ...env },
+    });
     this.child.stdout.setEncoding('utf8');
     this.child.stdout.on('data', (text: string) => {
       this.stdoutBytes += text.length;
@@ -108,6 +116,26 @@ export class EngineProcess {
   async request(id: number, method: string, params?: unknown): Promise<Record<string, unknown>> {
     this.send({ jsonrpc: '2.0', id, method, ...(params === undefined ? {} : { params }) });
     return this.next();
+  }
+
+  /**
+   * Waits until stderr contains some text. stdout and stderr are separate
+   * pipes, so a line written to stderr before a response can arrive after it.
+   *
+   * @param text - Text to wait for.
+   * @param timeoutMs - How long to wait.
+   * @returns Everything received on stderr so far.
+   * @throws Error when the text does not arrive in time.
+   */
+  async waitForStderr(text: string, timeoutMs = 10_000): Promise<string> {
+    const deadline = Date.now() + timeoutMs;
+    while (!this.stderr.includes(text)) {
+      if (Date.now() > deadline) {
+        throw new Error(`"${text}" never reached stderr. stderr: ${this.stderr}`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    return this.stderr;
   }
 
   /**
