@@ -120,7 +120,11 @@ describe('engine over stdio', () => {
   it('review 0003 finding 1: no console method writes to stdout', async () => {
     const engine = new EngineProcess(`${TEST_ENGINES}noisy-console.mjs`, []);
     engines.push(engine);
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Wait until the last console call's output has arrived, however slow the machine.
+    const deadline = Date.now() + 10_000;
+    while (!engine.stderr.includes('Assertion failed') && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
     expect(engine.stdoutBytes).toBe(0);
     for (const text of [
       'log',
