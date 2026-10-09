@@ -19,14 +19,14 @@ steps:
 
 ## Repository layout
 
-| Path                | Contents                                                       |
-| ------------------- | -------------------------------------------------------------- |
-| `packages/protocol` | Message and event types shared by the engine and clients       |
-| `packages/engine`   | Step file parsing, validation, actions, runner                 |
-| `packages/cli`      | Command-line client (`cfe`, package `@cfe/cli`)                |
-| `apps/desktop`      | Avalonia desktop app (later milestone)                         |
-| `examples/demo-app` | Small local web app used by integration tests (Milestone 1)    |
-| `docs/`             | Architecture, step format, actions, protocol, decision records |
+| Path                | Contents                                                         |
+| ------------------- | ---------------------------------------------------------------- |
+| `packages/protocol` | Message and event types shared by the engine and clients         |
+| `packages/engine`   | Step file parsing, validation, actions, runner                   |
+| `packages/cli`      | Command-line client (`cfe`, package `@cfe/cli`)                  |
+| `apps/desktop`      | Avalonia desktop app (in progress, see `apps/desktop/README.md`) |
+| `examples/demo-app` | Small local web app used by integration tests (Milestone 1)      |
+| `docs/`             | Architecture, step format, actions, protocol, decision records   |
 
 ## Getting started
 
