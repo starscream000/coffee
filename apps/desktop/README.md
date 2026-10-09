@@ -10,7 +10,8 @@ Nothing is released.
 What it does today: starts the engine of the checkout, opens a project
 folder, and shows its tests (as a folder tree with search and tags), every
 problem the engine finds (re-checked when files change), the step files
-(read-only, problem lines marked), the action catalogue with each action's
+in an editor (undo, redo, save, revert, problem lines marked, and the
+engine's problems for the text being typed), the action catalogue with each action's
 parameters, and the engine's log.
 
 It follows the project folder while it is open: a changed step file (YAML)

@@ -39,36 +39,6 @@ public sealed class ProblemsAndFilesTests
     }
 
     [Fact]
-    public void Step_file_marks_lines_with_problems_including_ranges()
-    {
-        var file = new StepFileViewModel("tests/a.test.yaml");
-        file.SetText("version: 1\r\nname: A\nsteps:\n  - clik: x\n");
-        file.ApplyDiagnostics([
-            Make.Error("tests/a.test.yaml", 4),
-            Make.Warning("tests/a.test.yaml", 2) with { EndLine = 3 },
-            Make.Error("tests/other.test.yaml", 1),
-        ]);
-
-        Assert.Equal(4, file.Lines.Count);
-        Assert.Equal([LineMark.None, LineMark.Warning, LineMark.Warning, LineMark.Error], file.Lines.Select(l => l.Mark));
-        Assert.Equal("UnknownAction: Unknown action.", file.Lines[3].Messages);
-        Assert.Equal("1 error, 1 warning", file.ProblemSummary);
-        Assert.Equal("a.test.yaml", file.Title);
-    }
-
-    [Fact]
-    public void Step_file_keeps_marks_when_its_text_is_reloaded_and_reveals_clamped_lines()
-    {
-        var file = new StepFileViewModel("a.test.yaml");
-        file.SetText("a\nb\n");
-        file.ApplyDiagnostics([Make.Error("a.test.yaml", 2)]);
-        file.SetText("a\nb\nc\n");
-        Assert.True(file.Lines[1].IsError);
-        file.Reveal(99);
-        Assert.Same(file.Lines[2], file.RevealedLine);
-    }
-
-    [Fact]
     public void Action_catalogue_reads_parameters_from_the_schema_and_searches()
     {
         var schema = JsonDocument.Parse("""

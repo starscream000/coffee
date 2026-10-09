@@ -17,3 +17,4 @@ A record marked "Proposed" needs the owner's approval before it is binding.
 | [D0003](0003-hand-written-protocol-types.md)     | Write the protocol types by hand, checked by the schemas   | Proposed                     |
 | [D0004](0004-finding-node-and-the-engine.md)     | Find Node and the engine in a fixed order                  | Proposed                     |
 | [D0005](0005-mvvm-with-the-community-toolkit.md) | Use MVVM with CommunityToolkit.Mvvm and xUnit              | Proposed                     |
+| [D0006](0006-avaloniaedit-for-step-files.md)     | Edit step files with AvaloniaEdit                          | Proposed                     |

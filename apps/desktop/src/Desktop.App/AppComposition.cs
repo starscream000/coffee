@@ -17,6 +17,13 @@ public static class AppComposition
         var dispatcher = new AvaloniaDispatcher();
         var settings = new JsonSettingsStore(JsonSettingsStore.DefaultPath);
         var engine = new EngineService(settings, dispatcher);
-        return new ShellViewModel(engine, settings, new AvaloniaFolderPicker(owner), new DiskProjectFiles(), dispatcher);
+        return new ShellViewModel(
+            engine,
+            settings,
+            new AvaloniaFolderPicker(owner),
+            new DiskProjectFiles(),
+            dispatcher,
+            dialogs: new AvaloniaDialogService(() => owner() as Window),
+            delay: new RealDelay());
     }
 }

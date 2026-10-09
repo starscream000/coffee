@@ -16,6 +16,8 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     private readonly IEngineService _engine;
     private readonly IProjectFiles _files;
     private readonly IUiDispatcher _dispatcher;
+    private readonly IDialogService _dialogs;
+    private readonly IDelay _delay;
     private readonly HashSet<string> _pendingChanges = new(StringComparer.Ordinal);
     private IDisposable? _watch;
     private Task _refresh = Task.CompletedTask;
@@ -29,8 +31,19 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     /// <param name="files">The project's files.</param>
     /// <param name="dispatcher">The UI thread, for file-change notices.</param>
     /// <param name="engineStatus">The engine's status and log, shown in the bottom panel.</param>
-    public WorkspaceViewModel(OpenProjectResult project, IEngineService engine, IProjectFiles files, IUiDispatcher dispatcher, EngineStatusViewModel engineStatus)
+    /// <param name="dialogs">Asks about unsaved changes and overwriting.</param>
+    /// <param name="delay">Waits before validating text while typing.</param>
+    public WorkspaceViewModel(
+        OpenProjectResult project,
+        IEngineService engine,
+        IProjectFiles files,
+        IUiDispatcher dispatcher,
+        EngineStatusViewModel engineStatus,
+        IDialogService dialogs,
+        IDelay delay)
     {
+        _dialogs = dialogs;
+        _delay = delay;
         ArgumentNullException.ThrowIfNull(project);
         EngineStatus = engineStatus;
         _engine = engine;
@@ -135,10 +148,14 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         var tab = Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == file);
         if (tab is null)
         {
-            tab = new StepFileViewModel(file);
-            tab.CloseRequested += (_, _) => CloseTab(tab);
-            Load(tab);
-            Tabs.Add(tab);
+            tab = new StepFileViewModel(file, new StepFileServices(Root, _files, _engine, _dialogs, _delay, EngineStatus.Report));
+            var opened = tab;
+            opened.CloseRequested += (_, _) => CloseTab(opened);
+            opened.ContentDiagnosticsChanged += (_, diagnostics) => Problems.SetFileOverride(opened.File, diagnostics);
+            opened.Saved += (_, _) => _ = ValidateAsync();
+            opened.LoadFromDisk();
+            opened.ApplyDiagnostics(Problems.All);
+            Tabs.Add(opened);
         }
 
         SelectedTab = tab;
@@ -173,6 +190,11 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        foreach (var tab in Tabs.OfType<StepFileViewModel>())
+        {
+            tab.Dispose();
+        }
+
         _watch?.Dispose();
         _watch = null;
     }
@@ -207,7 +229,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
 
             foreach (var tab in Tabs.OfType<StepFileViewModel>().Where(t => changed.Contains(t.File)))
             {
-                Load(tab);
+                tab.OnDiskChanged();
             }
 
             if (changed.Any(f => f.EndsWith(".test.yaml", StringComparison.OrdinalIgnoreCase)))
@@ -273,24 +295,17 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void Load(StepFileViewModel tab)
-    {
-        try
-        {
-            tab.SetText(_files.ReadText(Root, tab.File));
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            tab.SetLoadError($"{tab.File} cannot be read: {ex.Message}");
-        }
-
-        tab.ApplyDiagnostics(Problems.All);
-    }
-
     private void CloseTab(StepFileViewModel tab)
     {
         var index = Tabs.IndexOf(tab);
+        if (index < 0)
+        {
+            return;
+        }
+
         Tabs.Remove(tab);
+        Problems.SetFileOverride(tab.File, null);
+        tab.Dispose();
         if (SelectedTab is null || SelectedTab == tab)
         {
             SelectedTab = Tabs[Math.Clamp(index - 1, 0, Tabs.Count - 1)];

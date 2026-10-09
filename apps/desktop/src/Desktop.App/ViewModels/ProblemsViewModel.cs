@@ -26,6 +26,7 @@ public sealed partial class ProblemsViewModel : ObservableObject
 {
     private IReadOnlyList<Diagnostic> _projectDiagnostics = [];
     private IReadOnlyList<Diagnostic> _validationDiagnostics = [];
+    private readonly Dictionary<string, IReadOnlyList<Diagnostic>> _overrides = new(StringComparer.Ordinal);
 
     /// <summary>Raised when the user picks a problem: open its file at its line.</summary>
     public event EventHandler<Diagnostic>? ProblemActivated;
@@ -80,6 +81,26 @@ public sealed partial class ProblemsViewModel : ObservableObject
         Rebuild();
     }
 
+    /// <summary>
+    /// Shows <paramref name="diagnostics"/> for <paramref name="file"/> instead of
+    /// what the project and the validation of files on disk say about it: the
+    /// problems of text being edited. Null removes the override.
+    /// </summary>
+    /// <param name="file">The file, relative to the project root.</param>
+    /// <param name="diagnostics">Its problems, or null.</param>
+    public void SetFileOverride(string file, IReadOnlyList<Diagnostic>? diagnostics)
+    {
+        if (diagnostics is not null)
+        {
+            _overrides[file] = diagnostics;
+            Rebuild();
+        }
+        else if (_overrides.Remove(file))
+        {
+            Rebuild();
+        }
+    }
+
     /// <summary>Errors and warnings per file.</summary>
     /// <returns>Counts by relative path.</returns>
     public IReadOnlyDictionary<string, (int Errors, int Warnings)> CountsByFile() =>
@@ -101,6 +122,8 @@ public sealed partial class ProblemsViewModel : ObservableObject
     private void Rebuild()
     {
         All = [.. _projectDiagnostics.Concat(_validationDiagnostics)
+            .Where(d => !_overrides.ContainsKey(d.File))
+            .Concat(_overrides.Values.SelectMany(o => o))
             .Distinct()
             .OrderBy(d => d.File, StringComparer.Ordinal)
             .ThenBy(d => d.Line)
