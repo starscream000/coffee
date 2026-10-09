@@ -73,6 +73,10 @@ tests start the real engine and read the protocol's schema files.
   with test coverage later, perhaps through a plugin. This does not change the
   rule "No AI features" in `CLAUDE.md`: nothing is to be built from this note
   until the owner decides so.
+- 2026-10-10, also to be noted: the desktop app is meant to make the whole
+  experience low-code, or even no-code. A tester should be able to record,
+  edit and run tests without writing code; the YAML files and the TypeScript
+  actions stay underneath for those who want them.
 
 ## Waiting on the owner
 
