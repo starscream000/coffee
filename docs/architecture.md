@@ -1,14 +1,16 @@
 # Architecture
 
-> Status: **Proposal, revised after the first review** (2026-10-09). Nothing
-> here is implemented yet. Decisions from the review are listed in
+> Status: **Proposal, revised after the second review** (2026-10-09). Nothing
+> here is implemented yet. Decisions from the reviews are listed in
 > [Review decisions](#review-decisions); questions still open are in
 > [Open questions](#open-questions).
 
-"Coffee" is a placeholder product name. In code it comes only from
-`PRODUCT` in `packages/protocol/src/product.ts` ([ADR 0017](adr/0017-product-identity.md));
-this document uses the names derived from it: the `coffee` command,
-`coffee.config.yaml` and the `.coffee/` data folder.
+The product is called **Coffee**. Its command, data folder and npm scope are
+separate names, still to be chosen because `coffee` and `.coffee` belong to
+CoffeeScript ([ADR 0019](adr/0019-four-product-names.md)). In code all four come
+only from `PRODUCT` in `packages/protocol/src/product.ts`. This document uses
+the interim values: the `coffee` command, `coffee.config.yaml`, the
+`.coffee/` data folder and the `@test-tool` scope.
 
 ## Goals
 
@@ -151,7 +153,7 @@ limit).
 | User actions           | `actions/**/*.ts` (configurable)               | yes       |
 | Project config         | `coffee.config.yaml` at the repo root          | yes       |
 | Secrets                | process environment, optionally a local `.env` | **never** |
-| Saved login state      | `.coffee/logins/<env>/<login>.json`            | **never** |
+| Saved login state      | `.coffee/logins/<key>.json` (ADR 0018)         | **never** |
 | Compiled user actions  | `.coffee/cache/actions/`                       | **never** |
 | Run results, artifacts | `.coffee/runs/<runId>/…`                       | **never** |
 
@@ -203,7 +205,7 @@ Answers from the owner's review of 2026-10-09, folded into the documents:
 
 | #   | Topic                   | Decision                                                                                                           |
 | --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| 1   | Product name            | Placeholder "Coffee", defined once ([ADR 0017](adr/0017-product-identity.md))                                      |
+| 1   | Product name            | "Coffee", defined once; later split into four names ([ADR 0019](adr/0019-four-product-names.md))                   |
 | 2   | `ctx.env`               | The selected environment profile; raw process environment never exposed; secrets only via `ctx.secrets`            |
 | 3   | Data rows               | Whole test only in v0.1.0, each row its own test instance; no `forEach` ([ADR 0013](adr/0013-data-rows.md))        |
 | 4   | Browsers                | Chromium only in v0.1.0; browser stays a config field; no Chromium assumption in protocol or public API            |
@@ -216,6 +218,23 @@ Answers from the owner's review of 2026-10-09, folded into the documents:
 | 11  | Node pin                | Raise to the current 24 LTS patch after the owner confirms the local upgrade; CI uses `.nvmrc`                     |
 | 12  | Copyright holder        | starscream000                                                                                                      |
 
+Second review, 2026-10-09:
+
+| #   | Topic                 | Decision                                                                                                                                  |
+| --- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 17  | Names                 | Display name "Coffee" final; command, folder and npm scope split out and chosen by the owner ([ADR 0019](adr/0019-four-product-names.md)) |
+| 18  | Frames                | Targets may name the `frame` they are in, nestable; `ctx.locate` resolves it                                                              |
+| 19  | Scoping               | Targets may be `within` another target, with interpolation                                                                                |
+| 20  | Unset vars in `after` | The step is skipped with "skipped: <name> was never set", not failed                                                                      |
+| 21  | Saved logins          | `maxAge` (default 12h), `freshLogin` per test, hashed cache keys ([ADR 0018](adr/0018-saved-logins.md))                                   |
+| 22  | Skipping tests        | `skip: "<reason>"`; skipped tests are validated and reported with the reason                                                              |
+| 23  | Run settings          | Fixed default viewport, locale and timezone, overridable per environment                                                                  |
+| 24  | SDK                   | One SDK copy (the engine's); SDK errors identified by a tag field                                                                         |
+| 25  | Ignored `ctx.signal`  | Step failed, its page closed, its `ctx` sealed                                                                                            |
+| 26  | Trust model           | Documented in [actions.md](actions.md#trust-model): opening a project runs its code                                                       |
+| 27  | Deliberate gaps       | Listed in [step-format.md](step-format.md#not-in-v010)                                                                                    |
+| 28  | Release               | v0.1.0 is tagged only after CI passes on all three systems                                                                                |
+
 ## Open questions
 
 13. **Built-in names with a dot.** Rule 8 reserves un-namespaced names for
@@ -223,10 +242,8 @@ Answers from the owner's review of 2026-10-09, folded into the documents:
     reserve the `expect` and `wait` namespaces for built-ins. Alternative:
     rename them to `expectText`, `waitForUrl` and so on. See
     [ADR 0016](adr/0016-action-names.md).
-14. **npm scope.** User actions import `@test-tool/engine/sdk`, so the npm scope
-    is user-visible but cannot come from the `PRODUCT` constant. Rename it
-    together with the product (one scripted change), or keep the neutral
-    `@test-tool` scope permanently?
+14. **Command, folder and npm scope names.** Three options proposed to the
+    owner; see [ADR 0019](adr/0019-four-product-names.md).
 15. **Snapshot format.** Approve Playwright tracing per step
     ([ADR 0007](adr/0007-page-snapshot-format.md)), or keep MHTML?
 16. **Run retention.** Page states take disk space on every run. Should v0.1.0
