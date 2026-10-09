@@ -1,5 +1,6 @@
-# Continuous integration: type check, lint, format check and tests on
-# Linux, Windows and macOS for every push and pull request.
+# Continuous integration: type check, lint, format check and tests, and the
+# desktop app's build and tests, on Linux, Windows and macOS for every push
+# and pull request.
 name: CI
 
 on:
@@ -35,3 +36,37 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm exec vitest run
+
+  # The desktop app (apps/desktop): code style, a warnings-as-errors build and
+  # all C# tests. The engine is built first, because some desktop tests start
+  # the real engine and read the protocol's JSON Schema files.
+  desktop:
+    name: desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      ContinuousIntegrationBuild: true
+      DOTNET_NOLOGO: true
+      # Real-engine tests fail instead of skipping when the engine is missing.
+      DESKTOP_TESTS_REQUIRE_ENGINE: 1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: apps/desktop/global.json
+          cache: true
+          cache-dependency-path: apps/desktop/**/packages.lock.json
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: dotnet restore apps/desktop/Desktop.slnx --locked-mode
+      - run: dotnet format apps/desktop/Desktop.slnx --verify-no-changes --no-restore
+      - run: dotnet build apps/desktop/Desktop.slnx --no-restore -c Release
+      - run: dotnet test apps/desktop/Desktop.slnx --no-build -c Release
