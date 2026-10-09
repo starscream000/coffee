@@ -2,7 +2,7 @@
 // shared by the engine and every client, and the product identity. Message
 // types are added in Milestone 1 once docs/protocol.md is approved.
 
-export { PRODUCT, PRODUCT_ID, PRODUCT_NAME } from './product.js';
+export { PRODUCT } from './product.js';
 
 /**
  * Version of the engine protocol described in `docs/protocol.md`.
