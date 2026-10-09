@@ -1,6 +1,6 @@
 # 0015. Write each run to its own folder with a fixed layout
 
-- Status: Proposed
+- Status: Accepted (owner, 2026-10-09)
 - Date: 2026-10-09
 
 ## Context
@@ -48,7 +48,15 @@ Rules:
 - Folder names use only `[a-z0-9.~-]`, and a step's path stays under
   160 characters from the project root so it fits Windows' 260-character
   limit in typical locations.
-- The engine never deletes runs in v0.1.0 (retention is open question 16).
+- **Keep the last N runs.** The setting `keepRuns` in the config's `defaults`
+  (default **20**; `0` keeps all runs) is applied **at the start of each run**,
+  before the new run folder is created: the engine lists `runs/`, sorts by
+  `runId` (which sorts by time), and deletes the oldest folders until at most
+  `keepRuns - 1` remain, so that the new run makes `keepRuns`. It deletes only
+  folders whose name is a valid `runId`; anything else in `runs/` is left
+  alone. A folder that cannot be deleted (for example because a file is open)
+  is skipped with a `warn` log and retried at the next run. The run itself never
+  fails because of clean-up.
 
 ## Alternatives rejected
 
@@ -58,6 +66,10 @@ Rules:
   or delete by hand; can be added as an index later.
 - **Results outside the repository (user profile folder)**: harder to find, and
   CI systems collect artifacts from the workspace.
+- **Clean-up at the end of a run**: a crashed or cancelled run would skip it,
+  and the folder would grow without bound.
+- **Clean-up by age instead of count**: a project run rarely would lose all its
+  history.
 
 ## Consequences
 

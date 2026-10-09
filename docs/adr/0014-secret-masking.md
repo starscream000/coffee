@@ -1,6 +1,6 @@
 # 0014. Mask secrets at every exit point, by value
 
-- Status: Proposed
+- Status: Accepted (owner, 2026-10-09)
 - Date: 2026-10-09
 
 ## Context
@@ -41,8 +41,23 @@ screencast images, which cannot be masked). When a step's chunk is written, the
 engine rewrites every text entry in the zip (`trace.trace`, `trace.network`,
 text resources) through `mask`, removes binary resources whose text form
 contains a secret, and only then sends `snapshotReady`. If rewriting fails, the
-chunk is deleted and the step reports "snapshot unavailable" rather than keeping
-an unmasked file.
+chunk is deleted and the step reports `snapshot: "failed"` rather than keeping
+an unmasked file ([ADR 0007](0007-page-snapshot-format.md)).
+
+**Sensitive headers, not only declared secrets.** Declared secrets are not the
+only sensitive data a trace holds. By default, the values of the request and
+response headers `Cookie`, `Set-Cookie` and `Authorization` (matched without
+regard to case) are replaced with `•••` in every trace chunk, whether or not
+they contain a declared secret. The header names stay visible so the trace
+still shows that a session or token was sent. The same rule applies to the
+`headers` that `api`, `wait.response` and `expect.response` store in
+variables or report in errors.
+
+**Saved logins.** Saved login state (cookies and storage) is written only to
+the git-ignored data folder (`.coffee/logins/`, [ADR 0018](0018-saved-logins.md)),
+never into step files, results or events; the protocol has no message that
+carries it. Its file names are hashes and its metadata holds no parameter
+values.
 
 **Masking screenshots.** The engine takes each step's screenshot itself with
 Playwright's `mask` option, covering:
@@ -53,10 +68,11 @@ Playwright's `mask` option, covering:
 
 Password fields are already shown as dots by the browser.
 
-**Proof.** An integration test runs a test that fills, sends and displays a
-secret, then searches every byte of the protocol stream and every file in the
-run folder (unzipped) for each registered form of the secret, and fails on any
-match.
+**Proof.** An acceptance check (A9 in the definition of done) runs a test that
+logs in, fills, sends and displays a secret, then searches every byte of the
+protocol stream, every file in the run folder (zips unpacked) and every file in
+`.coffee/logins/` for each registered form of the secret, and searches the
+run folder for the session cookie's value; it fails on any match.
 
 ## Alternatives rejected
 

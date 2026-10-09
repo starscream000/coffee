@@ -1,6 +1,6 @@
 # 0012. Run tests with our own runner on the Playwright library
 
-- Status: Proposed
+- Status: Accepted (owner, 2026-10-09)
 - Date: 2026-10-09
 
 ## Context
@@ -45,6 +45,9 @@ Playwright Test files, but running never depends on it.
 
 ## Revisit when
 
-The owner asks for retries, sharding or parallel workers and implementing them
-in our runner would take more than a milestone, or Playwright Test gains a
-public programmatic API that supports per-step hooks and cancellation.
+- the owner asks for retries, sharding or parallel workers and implementing
+  them in our runner would take more than a milestone, or
+- parallel runs and JUnit-style report output are required before the server
+  milestone (v0.4.0), or
+- Playwright Test gains a public programmatic API that supports per-step hooks
+  and cancellation.

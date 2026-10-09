@@ -1,6 +1,6 @@
 # 0010. Resolve targets by trying candidates in stored order
 
-- Status: Proposed
+- Status: Accepted (owner, 2026-10-09)
 - Date: 2026-10-09
 
 ## Context
@@ -16,6 +16,18 @@ aborted, at least every 100 ms: try each candidate in stored order and use the
 first one that matches **exactly one** element. Candidates that match zero or
 several elements are skipped. When time runs out, fail with `TargetNotFound`,
 listing every candidate and its last match count.
+
+**Grace period for the first candidate.** A weaker candidate must not win only
+because the page is still loading. For the first `fallbackGrace` of each
+`ctx.locate` call (default **1 s**, set in the config's `defaults` and
+overridable per environment, `0s` turns it off) only the first candidate is
+tried. Fallbacks are tried after that, in order, until the step timeout. The
+same rule applies at every level (frame, `within`, element).
+
+**Warning on every fallback.** Whenever a candidate other than the first is
+used, at any level, the engine emits a `log` event with level `warn`, code
+`LocatorFallback`, the target name, the index used and the step's location, in
+addition to the `candidateIndex` in the step result.
 
 A target's `frame` and `within` (each itself a target, nestable) are resolved
 first with the same rule, from the outside in: each frame target must match
@@ -38,6 +50,10 @@ files on its own.
   match different elements.
 - **Score-based choice (most specific match wins)**: harder to explain to
   testers than "first one that works, in the order you see".
+- **No grace period**: on a page that renders progressively, a CSS fallback can
+  match a placeholder before the role-based first candidate appears.
+- **A grace period on every candidate**: makes a broken first candidate cost
+  the grace period once per candidate instead of once per call.
 - **Self-healing (rewrite the file when a fallback matches)**: changes the
   source of truth behind the user's back; the recorder or desktop app can offer
   this explicitly later.
@@ -45,7 +61,8 @@ files on its own.
 ## Consequences
 
 Tests survive changes that break one candidate, and clients can show which
-targets have drifted. A wrong but unique fallback match is possible; the
+targets have drifted. A step whose first candidate is broken takes at least
+`fallbackGrace` longer; the warning makes such steps easy to find and fix. A wrong but unique fallback match is possible; the
 reliability ordering keeps that risk low, and the reported `candidateIndex`
 makes it visible. `expect.count` is the documented exception (several matches
 expected), and `expect.visible: false` passes when no candidate matches a

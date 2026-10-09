@@ -45,8 +45,8 @@ Login parameters usually include a password.
 ## Consequences
 
 Changing a password, the login flow or the environment automatically produces a
-new session. Old cache files remain until the folder is cleared (retention is
-open question 16). The storage state files hold live session cookies; they are
+new session. Old cache files remain until the folder is cleared; `keepRuns`
+(ADR 0015) covers run folders only. The storage state files hold live session cookies; they are
 git-ignored and never sent over the protocol.
 
 ## Revisit when
