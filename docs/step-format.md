@@ -1,6 +1,6 @@
 # Step file format
 
-> Status: **Proposal, revised after the second review** (2026-10-09). The
+> Status: **Accepted design** (2026-10-09). The
 > display name "Coffee" is final; the command, data-folder and config-file names
 > used below (`coffee`, `.coffee/`, `coffee.config.yaml`) are interim until the
 > owner chooses them ([ADR 0019](adr/0019-four-product-names.md)).
@@ -499,11 +499,13 @@ browser storage state, and reuses it for every page that names the login
 | `with`   | Parameters for the flow                                            |
 | `maxAge` | How long a saved state may be reused: `30m`, `12h` (default `12h`) |
 
-- The saved state is stored under a **cache key**: a SHA-256 hash of the
-  environment name, the login name, the flow file's content and the resolved
-  `with` values (including secrets). Only the hash is stored, never the
-  parameter values. Changing a password, the flow or the environment therefore
-  produces a new key, and the old state is not used.
+- The saved state is stored under a **cache key**: an HMAC-SHA-256 of the
+  environment name, the login name, the content of the login flow file and of
+  every flow it calls, and the resolved `with` values (including secrets). The
+  HMAC key is a random key kept in the data folder
+  ([ADR 0018](adr/0018-saved-logins.md)). Only the cache key is stored, never
+  the parameter values. Changing a password, a flow or the environment
+  therefore produces a new cache key, and the old state is not used.
 - A saved state older than `maxAge` is not used; the flow runs again and
   replaces it. `--refresh-logins` forces this for the whole run.
 - A test with **`freshLogin: true`** signs in from scratch for every page that
