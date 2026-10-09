@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Protocol: an optional `data` object on the `log` event; `LocatorFallback`
+  carries `{ target, candidateIndex }` there. A compatible change; the protocol
+  stays 0.1.0.
+- Review 0003 rulings written into the specification: the shared targets file
+  layout, `call` paths relative to the project root, `${env.X}` and its reserved
+  names, `row` not in flows, page checks in flows, default globs, where each
+  diagnostic points, and the protocol details of rulings 7 to 13.
 - `openProject` and `validate` requests: the engine finds a project's files
   from its config, and validation adds the cross-file checks (targets and their
   cycles, flows with their parameters and cycles, pages, logins, data files,

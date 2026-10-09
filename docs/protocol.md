@@ -17,6 +17,8 @@
   diagnostic logging for developers; clients may show or ignore it.
 - Client → engine: requests (with `id`). Engine → client: responses and
   notifications (events, without `id`). The engine sends no requests in `0.x`.
+  The protocol defines no notifications from the client; the engine ignores
+  any message without an `id`.
 - Every message the engine writes passes through secret masking first
   ([ADR 0014](adr/0014-secret-masking.md)).
 - **No file contents.** Messages never carry the contents of screenshots,
@@ -27,7 +29,10 @@
   (`MAX_MESSAGE_BYTES` in `@cfe/protocol`, [ADR 0005](adr/0005-json-rpc-over-stdio.md)):
   - The engine never sends a longer line. It first truncates long string fields
     (`message`, `expected`, `actual`, log text) to 64 KiB each, marked
-    `… [truncated N characters]`. If the message is still too large, a response
+    `… [truncated N characters]`. The 64 KiB limit counts **bytes of UTF-8**,
+    marker included; `N` counts the removed **characters (Unicode code
+    points)**. A string is never cut inside a character, and secrets are masked
+    before anything is truncated. If the message is still too large, a response
     becomes the error `MessageTooLarge` and an event is replaced by a `log`
     event (level `error`, code `MessageTooLarge`) naming the event type, test
     and step. The run continues.
@@ -127,7 +132,9 @@ client                                   engine
 ```
 
 `capabilities.browsers` lists the browser names this engine can run. Clients
-must not assume any particular browser; they offer what is listed.
+must not assume any particular browser; they offer what is listed. An engine
+that cannot launch any browser yet (the engine before the runner exists)
+reports `[]`.
 
 ### `shutdown`
 
@@ -149,8 +156,10 @@ No params. Cancels any run, closes browsers, responds `null`, then exits.
 }
 ```
 
-Opening a project loads user actions; naming and loading problems arrive as
-diagnostics. Only one project is open per engine process; opening another
+`defaultEnvironment` is the config's `defaults.environment`, or the first
+environment when the config names none; it is absent only when the config has
+no environments. Opening a project loads user actions; naming and loading
+problems arrive as diagnostics. Only one project is open per engine process; opening another
 replaces it. Fails with `ProjectInvalid` if no config file is found.
 
 ### `listTests`
@@ -182,7 +191,11 @@ replaces it. Fails with `ProjectInvalid` if no config file is found.
 
 ### `validate`
 
-Validates files on disk, or an unsaved editor buffer passed as `content`.
+Validates files on disk, or an unsaved editor buffer passed as `content`. One
+of the two is required; without either, the request fails with invalid params
+("it needs "files" … or "content" …"). A path that is missing, a folder or
+outside the project is reported as a diagnostic (`FileNotFound`, `NotAFile`,
+`FileOutsideProject`), not as an error.
 
 ```jsonc
 // params
@@ -248,7 +261,7 @@ detect gaps. Times are ISO 8601 UTC strings; durations are milliseconds.
 | `screenshotReady` | `testId`, `stepId`, `page`, `path`, `width`, `height`                                                                         |
 | `snapshotReady`   | `testId`, `stepId`, `page`                                                                                                    |
 | `pageOpened`      | `testId`, `stepId`, `page`, `automatic` (`true` when no step named it)                                                        |
-| `log`             | `level` (`debug`, `info`, `warn`, `error`), `message`, `code?`, `testId?`, `stepId?`, `location?`                             |
+| `log`             | `level` (`debug`, `info`, `warn`, `error`), `message`, `code?`, `testId?`, `stepId?`, `location?`, `data?`                    |
 | `testSkipped`     | `testId`, `reason`: the test's `skip` text (sent instead of `testStarted` … `testFinished`)                                   |
 | `testFinished`    | `testId`, `status` (`passed`, `failed`, `cancelled`), `durationMs`                                                            |
 | `runFinished`     | `status`, `durationMs`, `totals`: `{ passed, failed, cancelled, skipped }`                                                    |
@@ -265,10 +278,16 @@ detect gaps. Times are ISO 8601 UTC strings; durations are milliseconds.
   `message` "skipped: orderNumber was never set". It is not a failure.
 - A test with `skip` produces one `testSkipped` per data row and counts in
   `totals.skipped`.
+- `log.data` is an optional object of facts that belong to the message's
+  `code`, for clients that act on them; its fields are documented per code.
 - Whenever a target is found by a candidate other than its first, at any level
   (frame, `within`, element), the engine sends a `log` event with level
-  `warn`, code `LocatorFallback`, the target name, the index used and the
-  step's `location`.
+  `warn`, code `LocatorFallback` and the step's `location`, with
+  `data: { target, candidateIndex }`: the target's name (absent for an inline
+  target) and the index of the candidate used.
+- `runFinished.status` is `cancelled` when the run was cancelled, otherwise
+  `failed` when any test instance failed, otherwise `passed` (skipped tests do
+  not make a run fail).
 - `snapshot` in a step result says what happened to the page snapshot. A
   snapshot problem never changes the step's own status.
 - Other `warn` codes in 0.1.0: `StrayActionCode` (a user action kept running
@@ -371,8 +390,8 @@ A failing **test** is not a protocol error: it is reported through events.
 
 ## Engine exit codes
 
-| Code | Meaning                                       |
-| ---- | --------------------------------------------- |
-| 0    | Normal exit after `shutdown` or stdin closed  |
-| 1    | Unexpected internal error (details on stderr) |
-| 3    | Refused the client during the handshake       |
+| Code | Meaning                                                                                                                |
+| ---- | ---------------------------------------------------------------------------------------------------------------------- |
+| 0    | Normal exit after `shutdown` or stdin closed                                                                           |
+| 1    | Unexpected internal error (details on stderr), or started without `--stdio` (a message on stderr says how to start it) |
+| 3    | Refused the client during the handshake                                                                                |
