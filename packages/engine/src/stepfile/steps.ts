@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { paramKeys, targetParamKeys, type ActionSpec } from '../actions/action-spec.js';
+import type { NotLoaded } from '../actions/registry.js';
 import { DurationSchema, PageNameSchema } from '../schema/common.js';
 import { reportIssues } from '../schema/issues.js';
 import { keysAt } from '../schema/shape.js';
@@ -74,10 +75,11 @@ export function normalizeSteps(
   listPath: DataPath,
   actions: ReadonlyMap<string, ActionSpec>,
   sink: DiagnosticSink,
+  notLoaded?: NotLoaded,
 ): NormalizedStep[] {
   const result: NormalizedStep[] = [];
   list.forEach((raw, index) => {
-    const step = normalizeStep(raw, [...listPath, index], actions, sink);
+    const step = normalizeStep(raw, [...listPath, index], actions, sink, notLoaded);
     if (step !== undefined) {
       result.push(step);
     }
@@ -90,11 +92,12 @@ function normalizeStep(
   path: DataPath,
   actions: ReadonlyMap<string, ActionSpec>,
   sink: DiagnosticSink,
+  notLoaded?: NotLoaded,
 ): NormalizedStep | undefined {
   if (typeof raw === 'string') {
     const spec = actions.get(raw);
     if (spec === undefined) {
-      reportUnknownAction(raw, path, actions, sink, false);
+      reportUnknownAction(raw, path, actions, sink, false, notLoaded);
       return undefined;
     }
     return finish(spec, undefined, path, path, 'bare', {}, sink);
@@ -133,7 +136,7 @@ function normalizeStep(
   const unknown = others.filter((key) => !actions.has(key));
   if (known.length === 0) {
     const [first, ...rest] = unknown;
-    reportUnknownAction(first ?? '', [...path, first ?? ''], actions, sink, true);
+    reportUnknownAction(first ?? '', [...path, first ?? ''], actions, sink, true, notLoaded);
     for (const key of rest) {
       reportUnknownStepKey(key, [...path, key], actions, sink);
     }
@@ -254,12 +257,28 @@ function reportUnknownAction(
   actions: ReadonlyMap<string, ActionSpec>,
   sink: DiagnosticSink,
   atKey: boolean,
+  notLoaded?: NotLoaded,
 ): void {
+  const rejected = notLoaded?.rejected.get(name);
+  if (rejected !== undefined) {
+    sink.error(
+      path,
+      'ActionNotLoaded',
+      `The action "${name}" did not load: ${rejected.reason}`,
+      `See ${rejected.location.file}:${String(rejected.location.line)}.`,
+      atKey,
+    );
+    return;
+  }
+  const failed = notLoaded?.failedFiles ?? [];
   sink.error(
     path,
     'UnknownAction',
     `"${name}" is not an action.`,
-    didYouMeanHint(name, actions.keys()) ?? 'See docs/actions.md for the built-in actions.',
+    didYouMeanHint(name, actions.keys()) ??
+      (failed.length > 0 && name.includes('.')
+        ? `These action files failed to load, and the action may be in one of them: ${failed.join(', ')}.`
+        : 'See docs/actions.md for the built-in actions.'),
     atKey,
   );
 }

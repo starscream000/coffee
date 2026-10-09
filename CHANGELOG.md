@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- User actions: `@cfe/engine/sdk` (`defineAction`, `target()`, `z`,
+  `ActionError`, `AssertionError` and the type of `ctx`); one registry for
+  built-in and user actions with the naming rules of ADR 0016; loading with
+  esbuild into `.cfe/cache/actions/` against the engine's single SDK copy;
+  user actions in `openProject`, `validate` and the new `listActions`.
 - Protocol: an optional `data` object on the `log` event; `LocatorFallback`
   carries `{ target, candidateIndex }` there. A compatible change; the protocol
   stays 0.1.0.

@@ -4,6 +4,7 @@
 
 import type { Diagnostic } from '@cfe/protocol';
 import type { ActionSpec } from '../actions/action-spec.js';
+import type { NotLoaded } from '../actions/registry.js';
 import {
   FILE_SCHEMAS,
   SUPPORTED_VERSION,
@@ -79,6 +80,8 @@ function isMapping(value: unknown): value is Record<string, unknown> {
  * @param text - The file's contents.
  * @param kind - What the file is (from its name).
  * @param actions - Every known action by name.
+ * @param notLoaded - User actions and files that failed to load, so a step
+ *   calling one says so.
  * @returns The parsed file and every problem found in it. Never throws for
  *   problems in the file.
  *
@@ -93,6 +96,7 @@ export function validateFile(
   text: string,
   kind: FileKind,
   actions: ReadonlyMap<string, ActionSpec>,
+  notLoaded?: NotLoaded,
 ): FileValidation {
   const source = parseSource(file, text);
   const sink = new DiagnosticSink(source);
@@ -151,7 +155,9 @@ export function validateFile(
   const sections: Record<string, NormalizedStep[]> = {};
   for (const section of STEP_SECTIONS[kind]) {
     const list = data[section];
-    sections[section] = Array.isArray(list) ? normalizeSteps(list, [section], actions, sink) : [];
+    sections[section] = Array.isArray(list)
+      ? normalizeSteps(list, [section], actions, sink, notLoaded)
+      : [];
   }
   const allSteps = Object.values(sections).flat();
 
