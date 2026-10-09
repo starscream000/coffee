@@ -5,20 +5,21 @@ desktop implementer reads [apps/desktop/handoff/STATUS.md](../apps/desktop/hando
 instead.
 
 - Updated: 2026-10-10
-- **Open instruction:** [0007: a build for the owner, then fixes, pages and logins](instructions/0007-a-build-then-fixes-and-pages-and-logins.md)
-- Waiting on: implementer
+- **Open instruction:** none. The next one (0008) is published on the owner's
+  word `next`.
+- Waiting on: owner
 
 ## Instructions
 
-| No.  | Title                                               | State             | Report                                                   | Review                                                   | Pull requests                                        |
-| ---- | --------------------------------------------------- | ----------------- | -------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------- |
-| 0001 | Finish the Milestone 0 documents                    | merged            | [0001](reports/0001-finish-milestone-0-docs.md)          | [0001](reviews/0001-finish-milestone-0-docs.md)          | [#2](https://github.com/starscream000/coffee/pull/2) |
-| 0002 | Review fixes and the final names                    | merged            | [0002](reports/0002-review-fixes-and-names.md)           | [0002](reviews/0002-review-fixes-and-names.md)           | #3, #4                                               |
-| 0003 | Milestone 1 foundation                              | merged            | [0003](reports/0003-milestone-1-foundation.md)           | [0003](reviews/0003-milestone-1-foundation.md)           | #5, #6, #7, #8, #9                                   |
-| 0004 | Review fixes, user actions, variables and secrets   | merged            | [0004](reports/0004-fixes-actions-and-secrets.md)        | [0004](reviews/0004-fixes-actions-and-secrets.md)        | #10, #11, #12, #13                                   |
-| 0005 | Masking and loader fixes, locators, the demo app    | merged            | [0005](reports/0005-masking-loader-locators-demo-app.md) | [0005](reviews/0005-masking-loader-locators-demo-app.md) | #14, #13, #15, #17                                   |
-| 0006 | Review fixes and the runner                         | changes requested | on branch `feat/runner-rows-results`                     | [0006](reviews/0006-review-fixes-and-the-runner.md)      | #19, #21, #23 merged; #25 open                       |
-| 0007 | A build for the owner, then fixes, pages and logins | open              | –                                                        | –                                                        | continues #25                                        |
+| No.  | Title                                               | State  | Report                                                          | Review                                                          | Pull requests                                        |
+| ---- | --------------------------------------------------- | ------ | --------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
+| 0001 | Finish the Milestone 0 documents                    | merged | [0001](reports/0001-finish-milestone-0-docs.md)                 | [0001](reviews/0001-finish-milestone-0-docs.md)                 | [#2](https://github.com/starscream000/coffee/pull/2) |
+| 0002 | Review fixes and the final names                    | merged | [0002](reports/0002-review-fixes-and-names.md)                  | [0002](reviews/0002-review-fixes-and-names.md)                  | #3, #4                                               |
+| 0003 | Milestone 1 foundation                              | merged | [0003](reports/0003-milestone-1-foundation.md)                  | [0003](reviews/0003-milestone-1-foundation.md)                  | #5, #6, #7, #8, #9                                   |
+| 0004 | Review fixes, user actions, variables and secrets   | merged | [0004](reports/0004-fixes-actions-and-secrets.md)               | [0004](reviews/0004-fixes-actions-and-secrets.md)               | #10, #11, #12, #13                                   |
+| 0005 | Masking and loader fixes, locators, the demo app    | merged | [0005](reports/0005-masking-loader-locators-demo-app.md)        | [0005](reviews/0005-masking-loader-locators-demo-app.md)        | #14, #13, #15, #17                                   |
+| 0006 | Review fixes and the runner                         | merged | [0006](reports/0006-review-fixes-and-the-runner.md)             | [0006](reviews/0006-review-fixes-and-the-runner.md)             | #19, #21, #23, #25                                   |
+| 0007 | A build for the owner, then fixes, pages and logins | merged | [0007](reports/0007-a-build-then-fixes-and-pages-and-logins.md) | [0007](reviews/0007-a-build-then-fixes-and-pages-and-logins.md) | #25, #27, #28, #29                                   |
 
 States: `open` (published, no review yet), `changes requested`, `approved`,
 `merged`, `replaced`.
@@ -26,10 +27,11 @@ States: `open` (published, no review yet), `changes requested`, `approved`,
 ## Where the plan stands
 
 Milestone 0 is finished. Of the 16 branches in
-[the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 8 are on `main`: a
-test file now runs in a real browser and reports through the event stream.
-Branch 9 (data rows, skipped tests, the run folder, `listTests`) is pull
-request #25 and waits for two fixes (review 0006, findings 1 and 2).
+[the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 10 are on `main`:
+the engine runs tests in a real browser with data rows, a run folder, several
+pages, saved logins and cancelling. It has four built-in actions so far.
+Next are branches 11 to 13 (the remaining built-in actions), then 14 (page
+states), 15 (the command-line `run`) and 16 (the release).
 
 ## The desktop track
 
@@ -80,6 +82,11 @@ tests start the real engine and read the protocol's schema files.
 
 ## Waiting on the owner
 
+- Say `next` to publish instruction 0008 (plan branches 11 to 13).
+- The demo password (review 0007): commit a demo-only
+  `examples/demo-app/.env`, so the demo project opens without errors?
+  Recommended: yes. Until then, opening the demo shows two `SecretNotSet`
+  errors unless `DEMO_PASSWORD` is set.
 - npm: create the organisation `cfe` to hold the `@cfe` scope. A free name can
   be taken at any time.
 - Repository visibility: it is public. Decide whether it should be private.

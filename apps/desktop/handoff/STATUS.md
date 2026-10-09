@@ -19,11 +19,11 @@ States: `open` (published, no review yet), `changes requested`, `approved`,
 
 ## Requests
 
-| No.   | Title                                                                                                            | To       | State                                                      |
-| ----- | ---------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------- |
-| R0001 | [A CI job for the desktop app](requests/R0001-ci-job-for-the-desktop-app.md)                                     | reviewer | done: the `desktop` job is on `main` (pull request #18)    |
-| R0002 | [Tell the engine track about the desktop track](requests/R0002-tell-the-engine-track-about-the-desktop-track.md) | reviewer | accepted; finished by engine instruction 0006              |
-| R0003 | [`listTests` before the runner](requests/R0003-list-tests-before-the-runner.md)                                  | reviewer | accepted as option 2; arrives with engine instruction 0006 |
+| No.   | Title                                                                                                            | To       | State                                                     |
+| ----- | ---------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------- |
+| R0001 | [A CI job for the desktop app](requests/R0001-ci-job-for-the-desktop-app.md)                                     | reviewer | done: the `desktop` job is on `main` (pull request #18)   |
+| R0002 | [Tell the engine track about the desktop track](requests/R0002-tell-the-engine-track-about-the-desktop-track.md) | reviewer | done: the root documents are on `main` (pull request #19) |
+| R0003 | [`listTests` before the runner](requests/R0003-list-tests-before-the-runner.md)                                  | reviewer | done: `listTests` is on `main` (pull request #25)         |
 
 ## Where the plan stands
 
@@ -45,6 +45,17 @@ runs (D2) once the engine's runner is on `main`.
 - 2026-10-10: editing step files comes first for the desktop.
 - 2026-10-10: the owner's `merge` for the desktop work covered pull request
   #18, the reviewer's CI job.
+
+## Notes for the next desktop instruction
+
+- The track is on hold on the owner's word (2026-10-10).
+- The engine on `main` now runs tests and answers `listTests`, so runs
+  (milestone D2) are possible and the explorer's fallback can be removed.
+- `RealEngineAppTests` pins the demo config's whole list of environments; it
+  should check only what it needs (review 0007 of the engine track, finding 2).
+- The owner's notes in the root status file: the app is meant to be low-code
+  or no-code, so parameter forms and the targets editor come before
+  text-editing extras.
 
 ## Waiting on the owner
 
