@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- A step's timeout starts once its page is ready, so signing in with a saved
+  login is limited by the login flow's own step timeouts.
 - Run ids carry milliseconds (`20261009-054902-123-1a2b`), so they sort by
   start time exactly and `keepRuns` always deletes the oldest runs.
 - CSV data files are read as spreadsheets write them (RFC 4180): quoted values
@@ -54,6 +56,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `baseUrl`.
 
 ### Added
+
+- Saved logins (ADR 0018): a page with a login signs in on first use by
+  running the login flow, and the storage state is saved under
+  `.cfe/logins/<key>.json`, where the key is an HMAC-SHA-256 of the
+  environment, the login, its flows and its resolved `with` values; no file
+  holds a parameter value. `maxAge` (default 12h), `freshLogin`,
+  `refreshLogins`, and clean-up of stale states at the start of a run
+  (`LoginCleanupFailed` for one that cannot be deleted). A failing login flow
+  fails the step that needed it with the flow's own error and location.
+- Demo pages `/login` and `/account`, the logins `customer` and `admin`, and
+  samples S8 and S18.
 
 - Named pages: `main` and the declared pages open on first use, pages with
   the same login share a browser context, a step's `opens` names the tab it

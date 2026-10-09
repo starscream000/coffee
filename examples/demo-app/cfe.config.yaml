@@ -18,3 +18,13 @@ environments:
       expectedTimezone: UTC
 
 secrets: [DEMO_PASSWORD]
+
+# S8, S18, I11: two saved logins that sign in through the demo app's /login.
+logins:
+  customer:
+    flow: flows/login.flow.yaml
+    with: { user: alice, password: '${secrets.DEMO_PASSWORD}' }
+  admin:
+    flow: flows/login.flow.yaml
+    with: { user: ada, password: '${secrets.DEMO_PASSWORD}' }
+    maxAge: 2h

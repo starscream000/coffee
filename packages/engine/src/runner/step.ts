@@ -120,11 +120,17 @@ function whenAborted(signal: AbortSignal): Promise<never> {
  */
 export async function executeStep(step: NormalizedStep, run: StepRun): Promise<StepResult> {
   const start = performance.now();
-  const deadline = start + run.timeoutMs;
+  // The step's timeout starts once its page is ready: signing in with a saved
+  // login runs the login flow, whose steps have timeouts of their own.
+  let deadline = start + run.timeoutMs;
   const controller = new AbortController();
-  const timer = setTimeout(() => {
-    controller.abort(new StepStopped('timeout'));
-  }, run.timeoutMs);
+  let timer: NodeJS.Timeout | undefined;
+  const startTimer = (): void => {
+    deadline = performance.now() + run.timeoutMs;
+    timer = setTimeout(() => {
+      controller.abort(new StepStopped('timeout'));
+    }, run.timeoutMs);
+  };
   const onCancel = (): void => {
     controller.abort(new StepStopped('cancelled'));
   };
@@ -154,6 +160,7 @@ export async function executeStep(step: NormalizedStep, run: StepRun): Promise<S
       run.pages.page(pageName, run.section),
       whenAborted(controller.signal),
     ]);
+    startTimer();
     const interpolation = {
       vars: run.vars,
       env: run.profile,

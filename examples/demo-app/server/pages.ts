@@ -29,6 +29,7 @@ export const homePage = document(
     <li><a href="/frames">Frames</a></li>
     <li><a href="/tabs">Tabs</a></li>
     <li><a href="/settings">Browser settings</a></li>
+    <li><a href="/login">Sign in</a></li>
   </ul>
 </nav>`,
 );
@@ -198,3 +199,50 @@ export const settingsPage = document(
     Intl.DateTimeFormat().resolvedOptions().timeZone;
 </script>`,
 );
+
+/** `/login`: signs in with a user name and a password (S8, S18, I11). */
+export const loginPage = document(
+  'Sign in',
+  `<h1>Sign in</h1>
+<form id="login-form">
+  <label for="username">Username</label>
+  <input id="username" name="username" autocomplete="username">
+  <label for="password">Password</label>
+  <input id="password" name="password" type="password" autocomplete="current-password">
+  <button type="submit">Sign in</button>
+</form>
+<p role="alert" data-testid="login-error"></p>
+<script>
+  document.getElementById('login-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+      }),
+    });
+    if (response.ok) {
+      location.href = '/account';
+    } else {
+      document.querySelector('[data-testid="login-error"]').textContent = 'Wrong user or password.';
+    }
+  });
+</script>`,
+);
+
+/**
+ * `/account`: who is signed in, from the session cookie.
+ *
+ * @param user - The signed-in user, HTML-escaped; empty when nobody is.
+ * @returns The page.
+ */
+export function accountPage(user: string): string {
+  return document(
+    'Account',
+    user === ''
+      ? '<h1>Account</h1>\n<p>Not signed in. <a href="/login">Sign in</a></p>'
+      : `<h1>Account</h1>\n<p>Signed in as <span data-testid="account-user">${user}</span></p>`,
+  );
+}

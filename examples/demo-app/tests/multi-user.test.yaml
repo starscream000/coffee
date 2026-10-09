@@ -1,0 +1,14 @@
+# S8: two saved logins on two named pages, each in its own browser context.
+# A second run within maxAge reuses the saved states.
+version: 1
+name: A customer and an admin side by side
+pages:
+  main: { login: customer }
+  backoffice: { login: admin }
+steps:
+  - goto: /account
+  - expect.text: { target: account.user, equals: alice }
+  - goto: /account
+    page: backoffice
+  - expect.text: { target: account.user, equals: ada }
+    page: backoffice

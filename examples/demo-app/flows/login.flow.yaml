@@ -1,0 +1,12 @@
+# The demo app's login flow, used by the saved logins "customer" and "admin".
+version: 1
+name: Sign in
+params:
+  user: { type: string }
+  password: { type: string }
+steps:
+  - goto: /login
+  - fill: { target: login.username, value: '${params.user}' }
+  - fill: { target: login.password, value: '${params.password}' }
+  - click: login.submit
+  - expect.text: { target: account.user, equals: '${params.user}' }

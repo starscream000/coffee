@@ -66,3 +66,13 @@ targets:
     - testId: locale
   settings.timezone:
     - testId: timezone
+  # S8, S18: signing in, and who is signed in.
+  login.username:
+    - label: Username
+  login.password:
+    - label: Password
+  login.submit:
+    - role: button
+      name: Sign in
+  account.user:
+    - testId: account-user

@@ -20,8 +20,13 @@ import type { EmitEvent } from './test-run.js';
 /** Playwright's storage state: cookies and local storage of a signed-in session. */
 export type StorageState = Awaited<ReturnType<BrowserContext['storageState']>>;
 
-/** Gives the storage state of a saved login, signing in when needed. */
-export type LoginStates = (login: string) => Promise<StorageState>;
+/**
+ * Gives the storage state of a saved login, signing in when needed.
+ *
+ * @param login - The login's name.
+ * @param stepId - The step that first needs it, for log events.
+ */
+export type LoginStates = (login: string, stepId: string) => Promise<StorageState>;
 
 /** What a {@link PageSet} needs. */
 export interface PageSetOptions {
@@ -175,6 +180,17 @@ export class PageSet {
     }
   }
 
+  /**
+   * The storage state of the context of pages without a login, for a login
+   * flow that has just signed in.
+   *
+   * @returns The cookies and storage, or undefined when no page was opened.
+   */
+  async storageState(): Promise<StorageState | undefined> {
+    const context = this.contexts.get('');
+    return context === undefined ? undefined : (await context).storageState();
+  }
+
   /** Forgets the current step without waiting, for a step that failed. */
   clearStep(): void {
     this.current = undefined;
@@ -237,7 +253,10 @@ export class PageSet {
   private async createContext(login: string | undefined): Promise<BrowserContext> {
     await this.startDiscovery();
     const { profile } = this.options;
-    const storageState = login === undefined ? undefined : await this.options.logins(login);
+    const storageState =
+      login === undefined
+        ? undefined
+        : await this.options.logins(login, this.current?.stepId ?? this.lastStepId);
     const context = await this.options.browser.newContext({
       viewport: profile.settings.viewport,
       locale: profile.settings.locale,
