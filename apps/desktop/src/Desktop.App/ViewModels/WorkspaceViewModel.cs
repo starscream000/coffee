@@ -6,7 +6,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Desktop.App.Services;
 using Desktop.Engine;
-using Desktop.Protocol;
 using Desktop.Protocol.Messages;
 
 namespace Desktop.App.ViewModels;
@@ -17,7 +16,12 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     private readonly IEngineService _engine;
     private readonly IProjectFiles _files;
     private readonly IUiDispatcher _dispatcher;
+    private readonly HashSet<string> _pendingChanges = new(StringComparer.Ordinal);
     private IDisposable? _watch;
+    private Task _refresh = Task.CompletedTask;
+    private bool _refreshing;
+    private int _validateGeneration;
+    private int _listGeneration;
 
     /// <summary>Creates the workspace for a project the engine has opened. Call <see cref="LoadAsync"/> next.</summary>
     /// <param name="project">The engine's answer to <c>openProject</c>.</param>
@@ -98,35 +102,28 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     /// <summary>Lists tests and actions, validates every test file, and starts watching the folder.</summary>
     /// <param name="cancellationToken">Stops waiting.</param>
     /// <returns>A task that completes when everything is loaded.</returns>
-    /// <exception cref="EngineException">The engine failed.</exception>
+    /// <exception cref="EngineException">The engine failed or sent something unusable; the caller reports it.</exception>
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
         await LoadTestsAsync(cancellationToken);
         Actions.Load(await _engine.ListActionsAsync(cancellationToken));
-        await ValidateAsync(cancellationToken);
+        await ValidateCoreAsync(cancellationToken);
         _watch ??= _files.Watch(Root, batch => _dispatcher.Post(() => _ = OnFilesChangedAsync(batch)));
     }
 
-    /// <summary>Validates every test file again.</summary>
+    /// <summary>Validates every test file again. Never throws: a failure is shown in <see cref="Status"/> with the detail in the engine log.</summary>
     /// <param name="cancellationToken">Stops waiting.</param>
     /// <returns>A task that completes when the problems are updated.</returns>
     [RelayCommand]
     public async Task ValidateAsync(CancellationToken cancellationToken = default)
     {
-        IsBusy = true;
         try
         {
-            var diagnostics = await _engine.ValidateAsync(Explorer.Files, cancellationToken);
-            Problems.SetValidationDiagnostics(diagnostics);
-            Status = $"Validated {Plural(Explorer.Files.Count, "test file")} at {DateTime.Now:HH:mm:ss}: {Problems.Summary.ToLowerInvariant()}.";
+            await ValidateCoreAsync(cancellationToken);
         }
-        catch (EngineException ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            Status = $"Validation failed: {ex.Message}";
-        }
-        finally
-        {
-            IsBusy = false;
+            Fail("Validation failed", ex);
         }
     }
 
@@ -151,36 +148,26 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Handles a batch of changed files: re-reads open tabs, re-lists tests when test files came or went, re-validates.</summary>
+    /// <summary>
+    /// Handles a batch of changed files. A change to the config or to a user
+    /// action's source asks for the project to be opened again; otherwise open
+    /// tabs are re-read, tests re-listed when test files came or went, and all
+    /// test files validated again. One refresh runs at a time: batches that
+    /// arrive meanwhile are joined into one more refresh. Never throws.
+    /// </summary>
     /// <param name="changed">Relative paths.</param>
-    /// <returns>A task that completes when the views are updated.</returns>
-    public async Task OnFilesChangedAsync(IReadOnlyCollection<string> changed)
+    /// <returns>A task that completes when every refresh asked for so far has run.</returns>
+    public Task OnFilesChangedAsync(IReadOnlyCollection<string> changed)
     {
         ArgumentNullException.ThrowIfNull(changed);
-        if (changed.Contains(Product.ConfigFile))
+        _pendingChanges.UnionWith(changed);
+        if (!_refreshing)
         {
-            ReopenRequested?.Invoke(this, EventArgs.Empty);
-            return;
+            _refreshing = true;
+            _refresh = RefreshWhilePendingAsync();
         }
 
-        foreach (var tab in Tabs.OfType<StepFileViewModel>().Where(t => changed.Contains(t.File)))
-        {
-            Load(tab);
-        }
-
-        try
-        {
-            if (changed.Any(f => f.EndsWith(".test.yaml", StringComparison.OrdinalIgnoreCase)))
-            {
-                await LoadTestsAsync();
-            }
-
-            await ValidateAsync();
-        }
-        catch (EngineException ex)
-        {
-            Status = $"Could not refresh after a file change: {ex.Message}";
-        }
+        return _refresh;
     }
 
     /// <inheritdoc />
@@ -190,9 +177,92 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         _watch = null;
     }
 
+    private async Task RefreshWhilePendingAsync()
+    {
+        try
+        {
+            while (_pendingChanges.Count > 0)
+            {
+                var batch = _pendingChanges.ToList();
+                _pendingChanges.Clear();
+                await RefreshAsync(batch);
+            }
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    private async Task RefreshAsync(IReadOnlyCollection<string> changed)
+    {
+        try
+        {
+            if (changed.Any(ProjectFileKinds.NeedsReopen))
+            {
+                _pendingChanges.Clear();
+                ReopenRequested?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
+            foreach (var tab in Tabs.OfType<StepFileViewModel>().Where(t => changed.Contains(t.File)))
+            {
+                Load(tab);
+            }
+
+            if (changed.Any(f => f.EndsWith(".test.yaml", StringComparison.OrdinalIgnoreCase)))
+            {
+                await LoadTestsAsync();
+            }
+
+            await ValidateCoreAsync();
+        }
+        catch (Exception ex)
+        {
+            Fail("Could not refresh after a file change", ex);
+        }
+    }
+
+    private async Task ValidateCoreAsync(CancellationToken cancellationToken = default)
+    {
+        var generation = ++_validateGeneration;
+        IsBusy = true;
+        try
+        {
+            var files = Explorer.Files;
+            var diagnostics = await _engine.ValidateAsync(files, cancellationToken);
+            if (generation != _validateGeneration)
+            {
+                return;
+            }
+
+            Problems.SetValidationDiagnostics(diagnostics);
+            Status = $"Validated {Plural(files.Count, "test file")} at {DateTime.Now:HH:mm:ss}: {Problems.Summary.ToLowerInvariant()}.";
+        }
+        finally
+        {
+            if (generation == _validateGeneration)
+            {
+                IsBusy = false;
+            }
+        }
+    }
+
+    private void Fail(string what, Exception ex)
+    {
+        Status = $"{what}: {ex.Message}";
+        EngineStatus.Report($"{what}: {ex}");
+    }
+
     private async Task LoadTestsAsync(CancellationToken cancellationToken = default)
     {
+        var generation = ++_listGeneration;
         var tests = await _engine.ListTestsAsync(cancellationToken);
+        if (generation != _listGeneration)
+        {
+            return;
+        }
+
         if (tests is null)
         {
             Explorer.LoadFallback(_files.FindTestFiles(Root));

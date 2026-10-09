@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Review D0001, findings 3 to 7: starting and stopping the engine run one at
+  a time in the order asked, and nothing starts once the app is shutting
+  down; an event handler that throws no longer stops the connection from
+  reading, and any other end of reading fails the waiting requests; no
+  command or background task loses an exception (the notice bar or the
+  status line says what failed, the engine log has the detail); one refresh
+  at a time after file changes, with the newest answer winning; a changed
+  user-action source reopens the project.
 - Review D0001, findings 1 and 2: the engine locator tests describe both the
   Windows rules and the others with paths that mean the same on every system,
   and the real-engine app test starts the engine once instead of twice.

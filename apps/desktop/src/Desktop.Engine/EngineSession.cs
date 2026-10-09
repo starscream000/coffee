@@ -144,7 +144,8 @@ public sealed class EngineSession : IAsyncDisposable
     /// <summary>
     /// After every start and stop asked for earlier, sends <c>shutdown</c> and
     /// waits for the engine to exit; kills it if it does not answer within
-    /// <paramref name="grace"/>. Does nothing when no engine runs.
+    /// <paramref name="grace"/>. When no engine runs, only moves a failed session to
+    /// <see cref="EngineState.Stopped"/>.
     /// </summary>
     /// <param name="grace">How long to wait for a clean exit; 10 seconds when null.</param>
     /// <param name="cancellationToken">Stops waiting; the engine is then killed.</param>
@@ -233,6 +234,13 @@ public sealed class EngineSession : IAsyncDisposable
 
         if (transport is null)
         {
+            // Nothing runs; a session that had failed is now simply stopped.
+            if (State == EngineState.Failed)
+            {
+                Engine = null;
+                SetState(EngineState.Stopped);
+            }
+
             return;
         }
 

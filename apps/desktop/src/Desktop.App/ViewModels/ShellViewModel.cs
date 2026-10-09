@@ -94,12 +94,15 @@ public sealed partial class ShellViewModel : ObservableObject
     /// <returns>A task that completes when the engine is ready or has failed.</returns>
     public Task InitializeAsync() => _engine.StartAsync();
 
-    /// <summary>Closes the project and stops the engine. Called when the window closes.</summary>
+    /// <summary>
+    /// Closes the project and stops the engine for good. Called when the window
+    /// closes; any start asked for afterwards does nothing.
+    /// </summary>
     /// <returns>A task that completes when the engine is gone.</returns>
     public async Task ShutdownAsync()
     {
         Workspace?.Dispose();
-        await _engine.StopAsync();
+        await _engine.ShutdownAsync();
     }
 
     /// <summary>Asks for a folder and opens it as a project.</summary>
@@ -130,7 +133,7 @@ public sealed partial class ShellViewModel : ObservableObject
         RefreshRecent();
     }
 
-    /// <summary>Opens a folder as a project, replacing any open one.</summary>
+    /// <summary>Opens a folder as a project, replacing any open one. Never throws: failures end in <see cref="Notice"/>, with the detail in the engine log.</summary>
     /// <param name="root">The folder.</param>
     /// <returns>A task that completes when the project is open or opening failed (see <see cref="Notice"/>).</returns>
     public async Task OpenProjectAsync(string root)
@@ -170,10 +173,18 @@ public sealed partial class ShellViewModel : ObservableObject
             ShowError(ex.Name == ErrorCodes.ProjectInvalid
                 ? $"{root} is not a project: {ex.Message}"
                 : $"The project could not be opened: {ex.Message}");
+            Engine.Report($"Opening {root} failed: {ex}");
         }
         catch (EngineException ex)
         {
             ShowError($"The project could not be opened: {ex.Message}");
+            Engine.Report($"Opening {root} failed: {ex}");
+        }
+        catch (Exception ex)
+        {
+            // Not an engine error, so a bug or an operating-system failure: say so, keep the detail.
+            ShowError($"The project could not be opened because of an unexpected error ({ex.GetType().Name}: {ex.Message}). The engine log has the details.");
+            Engine.Report($"Opening {root} failed unexpectedly: {ex}");
         }
         finally
         {

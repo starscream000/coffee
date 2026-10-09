@@ -145,7 +145,7 @@ public sealed class ShellAndWorkspaceTests
         var shell = setup.Shell();
         await shell.InitializeAsync();
         await shell.ShutdownAsync();
-        Assert.Equal(["start", "stop"], setup.Engine.Calls);
+        Assert.Equal(["start", "shutdown"], setup.Engine.Calls);
     }
 
     [Fact]

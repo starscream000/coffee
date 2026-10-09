@@ -124,36 +124,46 @@ internal sealed class FakeEngineService : IEngineService
         }
     }
 
-    public Task StopAsync()
+    public Task ShutdownAsync()
     {
-        Calls.Add("stop");
+        Calls.Add("shutdown");
         SetState(EngineState.Stopped);
         return Task.CompletedTask;
     }
 
-    public Task<OpenProjectResult> OpenProjectAsync(string root, CancellationToken cancellationToken = default)
+    /// <summary>Runs before each request is answered, with the method's name: may wait, or throw to fail it.</summary>
+    public Func<string, Task>? BeforeAnswer { get; set; }
+
+    public async Task<OpenProjectResult> OpenProjectAsync(string root, CancellationToken cancellationToken = default)
     {
         Calls.Add($"openProject {root}");
-        return Task.FromResult(OpenProject(root));
+        await Before("openProject");
+        return OpenProject(root);
     }
 
-    public Task<IReadOnlyList<TestInfo>?> ListTestsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<TestInfo>?> ListTestsAsync(CancellationToken cancellationToken = default)
     {
         Calls.Add("listTests");
-        return Task.FromResult(Tests);
+        await Before("listTests");
+        return Tests;
     }
 
-    public Task<IReadOnlyList<ActionInfo>> ListActionsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ActionInfo>> ListActionsAsync(CancellationToken cancellationToken = default)
     {
         Calls.Add("listActions");
-        return Task.FromResult(Actions);
+        await Before("listActions");
+        return Actions;
     }
 
-    public Task<IReadOnlyList<Diagnostic>> ValidateAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Diagnostic>> ValidateAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default)
     {
         Calls.Add($"validate {string.Join(',', files)}");
-        return Task.FromResult(Validate(files));
+        var answer = Validate(files);
+        await Before("validate");
+        return answer;
     }
+
+    private Task Before(string method) => BeforeAnswer?.Invoke(method) ?? Task.CompletedTask;
 }
 
 /// <summary>Builders of protocol values for tests.</summary>

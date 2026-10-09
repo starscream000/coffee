@@ -22,16 +22,13 @@ public sealed partial class EngineStatusViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(engine);
         _engine = engine;
         engine.StateChanged += (_, _) => Refresh();
-        engine.LogLine += (_, line) =>
-        {
-            Log.Add(line);
-            while (Log.Count > MaxLogLines)
-            {
-                Log.RemoveAt(0);
-            }
-        };
+        engine.LogLine += (_, line) => Add(line);
         Refresh();
     }
+
+    /// <summary>Writes a line of the app's own into the engine log, such as the detail of an error shown in short elsewhere.</summary>
+    /// <param name="text">The line.</param>
+    public void Report(string text) => Add(new EngineLogLine(DateTimeOffset.Now, EngineLogSource.App, text));
 
     /// <summary>The engine log: what the app did, the engine's stderr, protocol problems.</summary>
     public ObservableCollection<EngineLogLine> Log { get; } = [];
@@ -59,6 +56,15 @@ public sealed partial class EngineStatusViewModel : ObservableObject
     /// <summary>True when the engine reports at least one browser it can run.</summary>
     [ObservableProperty]
     private bool _canRunTests;
+
+    private void Add(EngineLogLine line)
+    {
+        Log.Add(line);
+        while (Log.Count > MaxLogLines)
+        {
+            Log.RemoveAt(0);
+        }
+    }
 
     private void Refresh()
     {

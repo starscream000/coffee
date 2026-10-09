@@ -49,7 +49,7 @@ public sealed class EngineSessionTests
     {
         var (session, _, _) = Create((request, engine) =>
         {
-            engine.ExitSoon(3);
+            engine.ExitAfterReply(3);
             return Task.FromResult<FakeReply?>(FakeReply.Fail(-32002, ErrorCodes.IncompatibleProtocol, "Update the engine.", new
             {
                 name = ErrorCodes.IncompatibleProtocol,
