@@ -1,4 +1,4 @@
-// Code-behind of the application: creates the main window at start.
+// Code-behind of the application: builds the app's objects and the main window.
 
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -18,7 +18,9 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow();
+            var window = new MainWindow();
+            window.DataContext = AppComposition.CreateShell(() => window);
+            desktop.MainWindow = window;
         }
 
         base.OnFrameworkInitializationCompleted();

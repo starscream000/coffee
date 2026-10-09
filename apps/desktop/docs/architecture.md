@@ -97,14 +97,17 @@ types are written by hand and how they are kept honest:
   project is open; then a three-part layout:
   - left: the test explorer (folders and test files; search; tags);
   - centre: tabs for open step files (read-only for now, with line numbers and
-    problems marked) and the action catalogue;
+    problems marked; a plain virtualised list, so no editor component is
+    needed until editing arrives in D4) and the action catalogue;
   - bottom: problems (diagnostics with file, line and column) and the engine
     log;
   - top: project, environment, engine status, and the run controls (disabled
     until the engine reports a browser in `capabilities.browsers`).
 - **Problems**: the diagnostics of `openProject` plus those of `validate` over
-  all test files. A file change on disk (watched under the project root,
-  debounced) re-validates that file.
+  all test files. YAML changes under the project root (watched, gathered for
+  300 ms) re-read the open tabs, re-list the tests when test files came or
+  went, and validate all test files again (flows and targets affect the tests
+  that use them); a change to the config file opens the project again.
 - **Settings**: Node path, engine path and recent projects, stored as JSON in
   the user's application data folder under the product's display name.
 

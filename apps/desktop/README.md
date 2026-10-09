@@ -7,6 +7,13 @@ engine grows) run and review a project's end-to-end tests.
 Status: **in progress** (desktop milestone D1, see the [plan](docs/plan.md)).
 Nothing is released.
 
+What it does today: starts the engine of the checkout, opens a project
+folder, and shows its tests (as a folder tree with search and tags), every
+problem the engine finds (re-checked when files change), the step files
+(read-only, problem lines marked), the action catalogue with each action's
+parameters, and the engine's log. It cannot run tests yet, because the
+engine's runner does not exist yet (desktop milestone D2).
+
 It starts the engine as a separate process and talks to it only through the
 engine protocol described in [docs/protocol.md](../../docs/protocol.md). It
 never references engine code. This folder is a .NET solution and is not part of

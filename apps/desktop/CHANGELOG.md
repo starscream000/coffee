@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The workspace shell: a start page with recent projects and the engine's
+  state; opening a project folder through the engine; the test explorer,
+  tabs for step files and the action catalogue, the problems panel and the
+  engine log; re-validation when YAML files change and reopening when the
+  config changes; restarting the engine (and reopening the project) after a
+  crash; a settings panel for the Node and engine paths. Headless UI tests
+  render every screen, and one test opens `examples/demo-app` through the
+  real engine.
 - App services and view models, tested without a window: the engine service
   (start, stop, log, requests) with its status and a bounded engine log; the
   test explorer (folder tree, search, tags, problem counts, and a fallback

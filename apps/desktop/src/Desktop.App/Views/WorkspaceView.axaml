@@ -1,0 +1,154 @@
+<!-- An open project: test explorer on the left, tabs in the centre, problems and engine log below, status bar. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Desktop.App.ViewModels"
+             xmlns:services="using:Desktop.App.Services"
+             xmlns:views="using:Desktop.App.Views"
+             x:Class="Desktop.App.Views.WorkspaceView"
+             x:DataType="vm:WorkspaceViewModel">
+  <UserControl.DataTemplates>
+    <DataTemplate DataType="vm:StepFileViewModel">
+      <views:StepFileView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:ActionCatalogViewModel">
+      <views:ActionCatalogView />
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <Grid ColumnDefinitions="320,4,*" RowDefinitions="*,4,230,Auto">
+    <!-- Test explorer -->
+    <DockPanel Grid.Column="0" Grid.Row="0" Grid.RowSpan="3">
+      <Border DockPanel.Dock="Top" Classes="panelHeader">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Right" Classes="muted small" Text="{Binding Explorer.Summary}" VerticalAlignment="Center" />
+          <TextBlock Classes="heading" Text="Tests" />
+        </DockPanel>
+      </Border>
+      <StackPanel DockPanel.Dock="Top" Margin="8,8,8,4" Spacing="6">
+        <TextBox x:Name="SearchBox" Text="{Binding Explorer.SearchText}" PlaceholderText="Search tests by name or path" />
+        <ComboBox ItemsSource="{Binding Explorer.Tags}" SelectedItem="{Binding Explorer.SelectedTag}" HorizontalAlignment="Stretch" />
+        <TextBlock Text="{Binding Explorer.Notice}" TextWrapping="Wrap" Classes="muted small" FontStyle="Italic"
+                   IsVisible="{Binding Explorer.Notice, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+      <TreeView x:Name="ExplorerTree" ItemsSource="{Binding Explorer.Roots}" SelectedItem="{Binding Explorer.SelectedNode}">
+        <TreeView.Styles>
+          <Style Selector="TreeViewItem" x:DataType="vm:ExplorerNodeViewModel">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded}" />
+          </Style>
+        </TreeView.Styles>
+        <TreeView.ItemTemplate>
+          <TreeDataTemplate x:DataType="vm:ExplorerNodeViewModel" ItemsSource="{Binding Children}">
+            <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding Path}">
+              <TextBlock Text="•" Classes="muted" IsVisible="{Binding IsTest}" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" IsVisible="{Binding IsFolder}" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding DisplayName}" IsVisible="{Binding IsTest}" VerticalAlignment="Center" />
+              <Border Classes="badge error" IsVisible="{Binding HasErrors}" ToolTip.Tip="Errors">
+                <TextBlock Classes="small" Text="{Binding ErrorCount}" />
+              </Border>
+              <Border Classes="badge warning" IsVisible="{Binding HasWarningsOnly}" ToolTip.Tip="Warnings">
+                <TextBlock Classes="small" Text="{Binding WarningCount}" />
+              </Border>
+              <TextBlock Text="{Binding RowsText}" Classes="muted small" VerticalAlignment="Center" />
+              <ItemsControl ItemsSource="{Binding Tags}" IsVisible="{Binding HasTags}" VerticalAlignment="Center">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <Border Classes="badge">
+                      <TextBlock Classes="small" Text="{Binding}" />
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </TreeDataTemplate>
+        </TreeView.ItemTemplate>
+      </TreeView>
+    </DockPanel>
+
+    <GridSplitter Grid.Column="1" Grid.Row="0" Grid.RowSpan="3" ResizeDirection="Columns" />
+
+    <!-- Tabs: step files and the action catalogue -->
+    <TabControl x:Name="Tabs" Grid.Column="2" Grid.Row="0" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab}" Padding="0">
+      <TabControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:WorkspaceTabViewModel">
+          <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding ToolTip}">
+            <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" />
+            <Button Content="×" Padding="4,0" FontSize="12" Background="Transparent" VerticalAlignment="Center"
+                    IsVisible="{Binding CanClose}" Command="{Binding CloseCommand}" ToolTip.Tip="Close" />
+          </StackPanel>
+        </DataTemplate>
+      </TabControl.ItemTemplate>
+      <TabControl.ContentTemplate>
+        <DataTemplate x:DataType="vm:WorkspaceTabViewModel">
+          <ContentControl Content="{Binding}" />
+        </DataTemplate>
+      </TabControl.ContentTemplate>
+    </TabControl>
+
+    <GridSplitter Grid.Column="2" Grid.Row="1" ResizeDirection="Rows" />
+
+    <!-- Problems and engine log -->
+    <TabControl Grid.Column="2" Grid.Row="2" Padding="0">
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="Problems" FontSize="14" VerticalAlignment="Center" />
+            <TextBlock x:Name="ProblemSummary" Text="{Binding Problems.Summary}" Classes="muted small" VerticalAlignment="Center" />
+          </StackPanel>
+        </TabItem.Header>
+        <DockPanel>
+          <CheckBox DockPanel.Dock="Top" Margin="8,2" Content="Show warnings" IsChecked="{Binding Problems.ShowWarnings}" />
+          <ListBox x:Name="ProblemList" ItemsSource="{Binding Problems.Items}" SelectedItem="{Binding Problems.SelectedItem}" Grid.IsSharedSizeScope="True">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:ProblemItemViewModel">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="ProblemLocation" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Ellipse Grid.Column="0" Width="8" Height="8" Margin="0,6,8,0" VerticalAlignment="Top"
+                           Fill="{StaticResource ErrorBrush}" IsVisible="{Binding IsError}" />
+                  <Ellipse Grid.Column="0" Width="8" Height="8" Margin="0,6,8,0" VerticalAlignment="Top"
+                           Fill="{StaticResource WarningBrush}" IsVisible="{Binding !IsError}" />
+                  <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                    <TextBlock Text="{Binding Location}" Classes="code small" />
+                    <TextBlock Text="{Binding Diagnostic.Code}" Classes="muted small" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="2" Text="{Binding Text}" TextWrapping="Wrap" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </TabItem>
+      <TabItem Header="Engine log" FontSize="14">
+        <ListBox ItemsSource="{Binding EngineStatus.Log}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="services:EngineLogLine">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{Binding Time, StringFormat='{}{0:HH:mm:ss}'}" Classes="muted code small" />
+                <TextBlock Text="{Binding Source}" Classes="muted code small" Width="64" />
+                <SelectableTextBlock Text="{Binding Text}" Classes="code small" TextWrapping="Wrap" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </TabItem>
+    </TabControl>
+
+    <!-- Status bar -->
+    <Border Grid.Row="3" Grid.ColumnSpan="3" Padding="10,4" BorderThickness="0,1,0,0"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Classes="muted small" Text="{Binding LoginsText, StringFormat='Saved logins: {0}'}" />
+        <ProgressBar DockPanel.Dock="Left" IsIndeterminate="True" Width="60" Margin="0,0,8,0" IsVisible="{Binding IsBusy}" />
+        <TextBlock x:Name="StatusText" Classes="small" Text="{Binding Status}" TextTrimming="CharacterEllipsis" />
+      </DockPanel>
+    </Border>
+  </Grid>
+</UserControl>

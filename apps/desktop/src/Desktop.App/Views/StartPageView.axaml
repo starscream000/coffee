@@ -1,0 +1,55 @@
+<!-- The start page: open a project folder or a recent project; the engine's state. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Desktop.App.ViewModels"
+             x:Class="Desktop.App.Views.StartPageView"
+             x:DataType="vm:ShellViewModel">
+  <ScrollViewer>
+    <StackPanel MaxWidth="640" Margin="24,48" Spacing="20" HorizontalAlignment="Center">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding ProductName}" FontSize="32" FontWeight="SemiBold" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Browse, check and manage the end-to-end tests of a project. Open the folder that holds its config file." />
+      </StackPanel>
+      <Button x:Name="OpenFolderButton" Content="Open a project folder…" Command="{Binding OpenFolderCommand}" Classes="accent" Padding="16,8" />
+
+      <StackPanel Spacing="6" IsVisible="{Binding HasRecentProjects}">
+        <TextBlock Classes="heading" Text="Recent projects" />
+        <ItemsControl ItemsSource="{Binding RecentProjects}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:RecentProjectViewModel">
+              <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                <Button Grid.Column="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                        IsEnabled="{Binding Exists}"
+                        Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenRecentCommand}"
+                        CommandParameter="{Binding}">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Path}" Classes="muted small" />
+                  </StackPanel>
+                </Button>
+                <Button Grid.Column="1" Content="Forget" Margin="6,0,0,0" VerticalAlignment="Stretch"
+                        Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).ForgetRecentCommand}"
+                        CommandParameter="{Binding}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <Border Padding="12" CornerRadius="6" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
+        <StackPanel Spacing="6">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Ellipse Classes="status" Classes.ready="{Binding Engine.IsReady}" Classes.busy="{Binding Engine.IsBusy}" Classes.failed="{Binding Engine.IsFailed}" />
+            <TextBlock Classes="heading" Text="{Binding Engine.StateText}" />
+          </StackPanel>
+          <SelectableTextBlock Text="{Binding Engine.Detail}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding Engine.IsFailed}">
+            <Button Content="Try again" Command="{Binding RestartEngineCommand}" />
+            <Button Content="Settings" Command="{Binding ToggleSettingsCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
