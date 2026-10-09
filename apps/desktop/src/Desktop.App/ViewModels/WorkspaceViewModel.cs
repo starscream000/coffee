@@ -150,9 +150,17 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         {
             tab = new StepFileViewModel(file, new StepFileServices(Root, _files, _engine, _dialogs, _delay, EngineStatus.Report));
             var opened = tab;
-            opened.CloseRequested += (_, _) => CloseTab(opened);
+            opened.CloseRequested += (_, _) => _ = CloseTabAsync(opened);
             opened.ContentDiagnosticsChanged += (_, diagnostics) => Problems.SetFileOverride(opened.File, diagnostics);
             opened.Saved += (_, _) => _ = ValidateAsync();
+            opened.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(StepFileViewModel.IsDirty))
+                {
+                    OnPropertyChanged(nameof(HasUnsavedChanges));
+                    SaveAllCommand.NotifyCanExecuteChanged();
+                }
+            };
             opened.LoadFromDisk();
             opened.ApplyDiagnostics(Problems.All);
             Tabs.Add(opened);
@@ -185,6 +193,75 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         }
 
         return _refresh;
+    }
+
+    /// <summary>True when at least one tab has unsaved changes.</summary>
+    public bool HasUnsavedChanges => Tabs.OfType<StepFileViewModel>().Any(t => t.IsDirty);
+
+    /// <summary>Saves every tab with unsaved changes.</summary>
+    /// <returns>True when every one was saved.</returns>
+    public async Task<bool> SaveAllAsync()
+    {
+        var saved = true;
+        foreach (var tab in Tabs.OfType<StepFileViewModel>().Where(t => t.IsDirty).ToList())
+        {
+            saved &= await tab.SaveAsync();
+        }
+
+        return saved;
+    }
+
+    [RelayCommand(CanExecute = nameof(HasUnsavedChanges))]
+    private async Task SaveAll() => await SaveAllAsync();
+
+    /// <summary>
+    /// Says whether the project may close: when tabs have unsaved changes, asks
+    /// once whether to save them all, discard them, or not close.
+    /// </summary>
+    /// <returns>True when the project may close.</returns>
+    public async Task<bool> ConfirmCloseAsync()
+    {
+        var unsaved = Tabs.OfType<StepFileViewModel>().Where(t => t.IsDirty).Select(t => t.File).ToList();
+        if (unsaved.Count == 0)
+        {
+            return true;
+        }
+
+        return await _dialogs.AskUnsavedChangesAsync(unsaved) switch
+        {
+            UnsavedChangesChoice.Save => await SaveAllAsync(),
+            UnsavedChangesChoice.Discard => true,
+            _ => false,
+        };
+    }
+
+    /// <summary>The open step file tabs, with the text of those that have unsaved changes, to restore after opening the project again.</summary>
+    /// <returns>The tabs, in order, and which one is selected.</returns>
+    public (IReadOnlyList<(string File, string? EditedText)> Tabs, string? Selected) CaptureTabs() =>
+        ([.. Tabs.OfType<StepFileViewModel>().Select(t => (t.File, t.IsDirty ? t.Document.Text : null))],
+         (SelectedTab as StepFileViewModel)?.File);
+
+    /// <summary>Opens tabs captured from the workspace this one replaces, putting back unsaved text.</summary>
+    /// <param name="captured">What <see cref="CaptureTabs"/> returned.</param>
+    public void RestoreTabs((IReadOnlyList<(string File, string? EditedText)> Tabs, string? Selected) captured)
+    {
+        foreach (var (file, edited) in captured.Tabs)
+        {
+            OpenFile(file);
+            if (edited is not null && Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == file) is { } tab)
+            {
+                tab.RestoreEdits(edited);
+            }
+        }
+
+        if (captured.Selected is { } selected)
+        {
+            OpenFile(selected);
+        }
+        else if (captured.Tabs.Count > 0)
+        {
+            SelectedTab = Actions;
+        }
     }
 
     /// <inheritdoc />
@@ -295,8 +372,21 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void CloseTab(StepFileViewModel tab)
+    private async Task CloseTabAsync(StepFileViewModel tab)
     {
+        try
+        {
+            if (!await tab.ConfirmCloseAsync())
+            {
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Fail($"Could not close {tab.File}", ex);
+            return;
+        }
+
         var index = Tabs.IndexOf(tab);
         if (index < 0)
         {

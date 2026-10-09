@@ -167,10 +167,24 @@ public sealed partial class ShellViewModel : ObservableObject
                 }
             }
 
+            // The same project opened again (reopen, restart) keeps its tabs and unsaved text;
+            // another project replaces this one only if its unsaved changes may go.
+            var previous = Workspace;
+            var sameProject = previous is not null && SamePath(previous.Root, root);
+            if (previous is not null && !sameProject && !await previous.ConfirmCloseAsync())
+            {
+                return;
+            }
+
+            var carried = sameProject ? previous!.CaptureTabs() : default;
             var project = await _engine.OpenProjectAsync(root);
             var workspace = new WorkspaceViewModel(project, _engine, _files, _dispatcher, Engine, _dialogs, _delay);
             workspace.ReopenRequested += (_, _) => _ = ReopenAsync();
             await workspace.LoadAsync();
+            if (sameProject)
+            {
+                workspace.RestoreTabs(carried);
+            }
 
             Workspace?.Dispose();
             Workspace = workspace;
@@ -201,13 +215,34 @@ public sealed partial class ShellViewModel : ObservableObject
         }
     }
 
-    /// <summary>Closes the project and shows the start page.</summary>
+    /// <summary>Closes the project and shows the start page, asking first about unsaved changes.</summary>
+    /// <returns>A task that completes when the project is closed or the user kept it open.</returns>
     [RelayCommand]
-    private void CloseProject()
+    private async Task CloseProjectAsync()
     {
+        if (Workspace is { } workspace && !await workspace.ConfirmCloseAsync())
+        {
+            return;
+        }
+
         Workspace?.Dispose();
         Workspace = null;
         RefreshRecent();
+    }
+
+    /// <summary>Says whether the window may close: asks about unsaved changes. Never throws.</summary>
+    /// <returns>True when the window may close.</returns>
+    public async Task<bool> ConfirmCloseWindowAsync()
+    {
+        try
+        {
+            return Workspace is null || await Workspace.ConfirmCloseAsync();
+        }
+        catch (Exception ex)
+        {
+            Engine.Report($"Asking about unsaved changes failed: {ex}");
+            return true;
+        }
     }
 
     /// <summary>Restarts the engine, then opens the open project again.</summary>
@@ -244,6 +279,12 @@ public sealed partial class ShellViewModel : ObservableObject
             ShowError($"The engine stopped. Restart it to go on working with the project. {_engine.Failure?.Message}");
         }
     }
+
+    private static bool SamePath(string a, string b) =>
+        string.Equals(
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)),
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)),
+            OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The dialogs used when none are given: every question is answered "cancel".</summary>
     private sealed class CancellingDialogs : IDialogService

@@ -118,6 +118,10 @@ types are written by hand and how they are kept honest:
   unsaved changes; with unsaved changes, a bar offers to reload or keep. The
   app's own save is not mistaken for a change from outside, because a tab
   compares the disk with the text it last read or saved.
+- **Unsaved changes**: closing a tab, the project or the window, or opening
+  another project, asks (through `IDialogService`) whether to save, discard
+  or cancel. Opening the same project again keeps the open tabs and their
+  unsaved text, so an automatic reopen never loses work.
 - **Settings**: Node path, engine path and recent projects, stored as JSON in
   the user's application data folder under the product's display name.
 

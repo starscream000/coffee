@@ -38,6 +38,8 @@
                       MinWidth="120" ToolTip.Tip="Environment for runs" />
             <Button Content="Validate" Command="{Binding Workspace.ValidateCommand, FallbackValue={x:Null}}"
                     ToolTip.Tip="Check every test file again." />
+            <Button Content="Save all" Command="{Binding Workspace.SaveAllCommand, FallbackValue={x:Null}}"
+                    ToolTip.Tip="Save every file with unsaved changes." />
             <Button Content="Close project" Command="{Binding CloseProjectCommand}" />
           </StackPanel>
           <Button Content="Open folder…" Command="{Binding OpenFolderCommand}" />

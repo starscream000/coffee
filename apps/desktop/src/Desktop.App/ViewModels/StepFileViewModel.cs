@@ -309,6 +309,22 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
         return true;
     }
 
+    /// <inheritdoc />
+    public override async Task<bool> ConfirmCloseAsync()
+    {
+        if (!IsDirty)
+        {
+            return true;
+        }
+
+        return await _services.Dialogs.AskUnsavedChangesAsync([File]) switch
+        {
+            UnsavedChangesChoice.Save => await SaveAsync(),
+            UnsavedChangesChoice.Discard => true,
+            _ => false,
+        };
+    }
+
     [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task Save() => await SaveAsync();
 

@@ -34,8 +34,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Stop the engine first (it closes its browsers), then close for real.
+        // Ask about unsaved changes, stop the engine (it closes its browsers), then close for real.
         e.Cancel = true;
+        if (!await shell.ConfirmCloseWindowAsync())
+        {
+            return;
+        }
+
         _shutDown = true;
         await shell.ShutdownAsync();
         Close();
