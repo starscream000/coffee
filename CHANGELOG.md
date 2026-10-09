@@ -22,8 +22,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   v0.1.0 definition of done.
 - Handoff protocol in `handoff/`: numbered instructions, reports and reviews
   that pass work between the reviewer and the implementer.
+- Design additions from the reviews: target frames and `within`, `skip` with
+  a reason, saved-login `maxAge` and `freshLogin`, fixed viewport, locale and
+  timezone, the `snapshots`, `fallbackGrace` and `keepRuns` settings, a 4 MiB
+  protocol message limit, and a "Not in v0.1.0" list of deliberate gaps.
+- ADRs 0018 (saved-login cache) and 0019 (four product names), and the v0.1.0
+  plan in `docs/milestones/v0.1.0-plan.md`.
 
 ### Changed
 
 - Git rules: pull requests are merged into `main` only by the reviewer, on the
   owner's word.
+- ADRs 0005 to 0017 accepted. Page snapshots use Playwright tracing (one chunk
+  per step, measured at about 20 ms and 7 KB per step on a small page), user
+  actions use the engine's single SDK copy, built-in names keep their dots with
+  `expect`, `wait`, `api` and the command name reserved as namespaces.

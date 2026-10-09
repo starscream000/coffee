@@ -1,6 +1,6 @@
 # 0006. Use Zod for schemas, and `yaml` for parsing
 
-- Status: Proposed
+- Status: Accepted (owner, 2026-10-09)
 - Date: 2026-10-09
 
 ## Context

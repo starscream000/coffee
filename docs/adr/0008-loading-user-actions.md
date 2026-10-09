@@ -1,6 +1,6 @@
 # 0008. Compile user actions with esbuild
 
-- Status: Proposed
+- Status: Accepted (owner, 2026-10-09)
 - Date: 2026-10-09
 
 ## Context
@@ -15,11 +15,21 @@ extensions in imports.
 1. Find files with the config's `actions` globs (default `actions/**/*.ts`).
 2. Bundle each file with esbuild into ESM in `.coffee/cache/actions/`, with a
    source map. Imports of the user's own files are bundled in; packages are
-   resolved from the user's `node_modules`; `@test-tool/engine` and
-   `playwright` stay external so the engine provides them.
+   resolved from the user's `node_modules`. An esbuild plugin rewrites every
+   import of `@test-tool/engine/sdk` (and `playwright`) to the absolute path of
+   the **running engine's own copy**, so there is exactly one SDK in the
+   process. A user's installed copy is used only by their editor and `tsc`.
+   If the user's `node_modules` has a different version of the package than the
+   engine, `openProject` reports a diagnostic with both versions and what to
+   run, for example:
+   `actions/: warning SdkVersionMismatch: your repository has @test-tool/engine
+0.1.2 but the engine is 0.2.0; your editor's types may not match what runs.
+Run "pnpm add -D @test-tool/engine@0.2.0".` It is a warning, not an error,
+   because the running code is always the engine's own copy; the mismatch can
+   only mislead the user's editor. It is never silently accepted.
 3. `import()` the output. The default export must be one action or an array of
-   actions; the engine checks each object's shape (it does not rely on class
-   identity, so the user's copy of the SDK may be a different version).
+   actions; the engine checks each object's shape. SDK errors are recognised by
+   their `sdkError` tag field, not by `instanceof`.
 4. Check names ([ADR 0016](0016-action-names.md)) and that `shorthand` names an
    existing parameter.
 5. Every failure (compile error, import error, bad export, bad name, duplicate)
@@ -27,6 +37,10 @@ extensions in imports.
    traces into the user's file and line.
 
 The cache is keyed by file content hash, so unchanged files are not rebuilt.
+
+The definition of done checks the single copy: a project with a different SDK
+version installed still receives the engine's `defineAction`, `target()` and
+error tags, and gets the `SdkVersionMismatch` diagnostic.
 
 ## Alternatives rejected
 

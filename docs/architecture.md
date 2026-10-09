@@ -1,14 +1,16 @@
 # Architecture
 
-> Status: **Proposal, revised after the first review** (2026-10-09). Nothing
-> here is implemented yet. Decisions from the review are listed in
+> Status: **Accepted design, revised for instruction 0001** (2026-10-09).
+> Nothing here is implemented yet. Decisions from the reviews are listed in
 > [Review decisions](#review-decisions); questions still open are in
 > [Open questions](#open-questions).
 
-"Coffee" is a placeholder product name. In code it comes only from
-`PRODUCT` in `packages/protocol/src/product.ts` ([ADR 0017](adr/0017-product-identity.md));
-this document uses the names derived from it: the `coffee` command,
-`coffee.config.yaml` and the `.coffee/` data folder.
+The product is called **Coffee**. Its command, data folder and npm scope are
+separate names, still to be chosen because `coffee` and `.coffee` belong to
+CoffeeScript ([ADR 0019](adr/0019-four-product-names.md)). In code all four come
+only from `PRODUCT` in `packages/protocol/src/product.ts`. This document uses
+the interim values: the `coffee` command, `coffee.config.yaml`, the
+`.coffee/` data folder and the `@test-tool` scope.
 
 ## Goals
 
@@ -100,8 +102,12 @@ After each step the runner calls the internal `PageStateRecorder`, which saves
 a screenshot and a snapshot and can open a snapshot later. The snapshot format
 is hidden behind this interface, and clients only ever receive a screenshot
 path and a `snapshotReady` notice; they open a snapshot through the
-`openSnapshot` request. The recommended implementation is Playwright tracing
-with one trace chunk per step ([ADR 0007](adr/0007-page-snapshot-format.md)).
+`openSnapshot` request. The implementation is Playwright tracing with one
+trace chunk per step ([ADR 0007](adr/0007-page-snapshot-format.md)), measured at
+about 20 ms and 7 KB per step on a small page. The `snapshots` setting
+(`always` by default, `onFailure`, `off`) controls it. A snapshot that cannot
+be recorded, masked or opened never fails a test: the step keeps its
+screenshot and its result says the snapshot failed.
 
 ## Lifecycle of a run
 
@@ -151,7 +157,7 @@ limit).
 | User actions           | `actions/**/*.ts` (configurable)               | yes       |
 | Project config         | `coffee.config.yaml` at the repo root          | yes       |
 | Secrets                | process environment, optionally a local `.env` | **never** |
-| Saved login state      | `.coffee/logins/<env>/<login>.json`            | **never** |
+| Saved login state      | `.coffee/logins/<key>.json` (ADR 0018)         | **never** |
 | Compiled user actions  | `.coffee/cache/actions/`                       | **never** |
 | Run results, artifacts | `.coffee/runs/<runId>/…`                       | **never** |
 
@@ -203,7 +209,7 @@ Answers from the owner's review of 2026-10-09, folded into the documents:
 
 | #   | Topic                   | Decision                                                                                                           |
 | --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| 1   | Product name            | Placeholder "Coffee", defined once ([ADR 0017](adr/0017-product-identity.md))                                      |
+| 1   | Product name            | "Coffee", defined once; later split into four names ([ADR 0019](adr/0019-four-product-names.md))                   |
 | 2   | `ctx.env`               | The selected environment profile; raw process environment never exposed; secrets only via `ctx.secrets`            |
 | 3   | Data rows               | Whole test only in v0.1.0, each row its own test instance; no `forEach` ([ADR 0013](adr/0013-data-rows.md))        |
 | 4   | Browsers                | Chromium only in v0.1.0; browser stays a config field; no Chromium assumption in protocol or public API            |
@@ -216,19 +222,41 @@ Answers from the owner's review of 2026-10-09, folded into the documents:
 | 11  | Node pin                | Raise to the current 24 LTS patch after the owner confirms the local upgrade; CI uses `.nvmrc`                     |
 | 12  | Copyright holder        | starscream000                                                                                                      |
 
+Second review, 2026-10-09:
+
+| #   | Topic                 | Decision                                                                                                                                  |
+| --- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 17  | Names                 | Display name "Coffee" final; command, folder and npm scope split out and chosen by the owner ([ADR 0019](adr/0019-four-product-names.md)) |
+| 18  | Frames                | Targets may name the `frame` they are in, nestable; `ctx.locate` resolves it                                                              |
+| 19  | Scoping               | Targets may be `within` another target, with interpolation                                                                                |
+| 20  | Unset vars in `after` | The step is skipped with "skipped: <name> was never set", not failed                                                                      |
+| 21  | Saved logins          | `maxAge` (default 12h), `freshLogin` per test, hashed cache keys ([ADR 0018](adr/0018-saved-logins.md))                                   |
+| 22  | Skipping tests        | `skip: "<reason>"`; skipped tests are validated and reported with the reason                                                              |
+| 23  | Run settings          | Fixed default viewport, locale and timezone, overridable per environment                                                                  |
+| 24  | SDK                   | One SDK copy (the engine's); SDK errors identified by a tag field                                                                         |
+| 25  | Ignored `ctx.signal`  | Step failed, its page closed, its `ctx` sealed                                                                                            |
+| 26  | Trust model           | Documented in [actions.md](actions.md#trust-model): opening a project runs its code                                                       |
+| 27  | Deliberate gaps       | Listed in [step-format.md](step-format.md#not-in-v010)                                                                                    |
+| 28  | Release               | v0.1.0 is tagged only after CI passes on all three systems                                                                                |
+
+Instruction 0001, 2026-10-09 (settles open questions 13, 15 and 16):
+
+| #   | Topic                     | Decision                                                                                                                                    |
+| --- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 13  | Built-in names with a dot | Built-ins keep their dots; namespaces `expect`, `wait`, `api` and the command name are reserved ([ADR 0016](adr/0016-action-names.md))      |
+| 15  | Snapshot format           | Playwright tracing, one chunk per step, with a `snapshots` setting and a screenshot fallback ([ADR 0007](adr/0007-page-snapshot-format.md)) |
+| 16  | Run retention             | `keepRuns`, default 20, 0 keeps all, applied at the start of a run ([ADR 0015](adr/0015-results-layout.md))                                 |
+| 29  | Runner                    | Own runner on the Playwright library ([ADR 0012](adr/0012-own-runner.md))                                                                   |
+| 30  | Process                   | Work passes through `handoff/`; only the reviewer merges into `main`                                                                        |
+| 31  | History                   | `main` on GitHub reached `1c873f1` without a `--no-ff` merge; accepted once, no rewriting                                                   |
+| 32  | Protocol size             | No file contents in messages; 4 MiB maximum message size ([ADR 0005](adr/0005-json-rpc-over-stdio.md))                                      |
+| 33  | Locator fallback          | 1 s grace period for the first candidate, configurable, and a warning on every fallback ([ADR 0010](adr/0010-locator-candidates.md))        |
+| 34  | Sensitive headers         | `Cookie`, `Set-Cookie` and `Authorization` masked in traces by default ([ADR 0014](adr/0014-secret-masking.md))                             |
+
 ## Open questions
 
-13. **Built-in names with a dot.** Rule 8 reserves un-namespaced names for
-    built-ins, but `expect.text` and `wait.url` contain a dot. Proposed: also
-    reserve the `expect` and `wait` namespaces for built-ins. Alternative:
-    rename them to `expectText`, `waitForUrl` and so on. See
-    [ADR 0016](adr/0016-action-names.md).
-14. **npm scope.** User actions import `@test-tool/engine/sdk`, so the npm scope
-    is user-visible but cannot come from the `PRODUCT` constant. Rename it
-    together with the product (one scripted change), or keep the neutral
-    `@test-tool` scope permanently?
-15. **Snapshot format.** Approve Playwright tracing per step
-    ([ADR 0007](adr/0007-page-snapshot-format.md)), or keep MHTML?
-16. **Run retention.** Page states take disk space on every run. Should v0.1.0
-    keep all runs (users delete `.coffee/runs` themselves) or add a
-    `keepRuns` setting?
+14. **Command, folder and npm scope names.** Three options are in
+    [report 0001](../handoff/reports/0001-finish-milestone-0-docs.md); see also
+    [ADR 0019](adr/0019-four-product-names.md).
+15. **ADR 0018 (saved logins).** Written after the second chat review and not
+    yet reviewed: approve the HMAC-keyed cache design or ask for changes.

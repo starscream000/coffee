@@ -1,7 +1,6 @@
 # 0016. Namespace user actions; reserve plain names for built-ins
 
-- Status: Accepted (owner, 2026-10-09), except the reserved namespaces (open
-  question 13)
+- Status: Accepted (owner, 2026-10-09)
 - Date: 2026-10-09
 
 ## Context
@@ -15,8 +14,22 @@ user action named like a future built-in would break when that built-in ships.
 - **User actions must be namespaced**: `<namespace>.<name>`, for example
   `auth.fillOtp`.
 - **Names without a dot are reserved for built-ins**, now and in future.
-- Proposed (open question 13): the namespaces of built-ins, `expect` and `wait`,
-  are reserved as well.
+- **Reserved namespaces** (owner decision, 2026-10-09): `expect`, `wait`, `api`
+  and the product's command name (`PRODUCT.command`, so `coffee.` today).
+  Built-in names keep their dots (`expect.text`, `wait.url`). The list lives
+  in **one place** in the engine, a single exported constant in the `actions`
+  module:
+
+  ```ts
+  export const RESERVED_NAMESPACES: readonly string[] = ['expect', 'wait', 'api', PRODUCT.command];
+  ```
+
+  Built-ins and the name check both read it; nothing else lists namespaces.
+
+- A user action in a reserved namespace fails at load time with
+  `ActionNamespaceReserved`, for example: `Action "expect.priceFormat" uses
+the namespace "expect", which is reserved for built-in actions. Use your own
+namespace, for example "shop.expectPriceFormat".`
 - A violation fails **at load time**, before any test runs, with a diagnostic
   that points at the action file and suggests a name:
   `Action "fillOtp" needs a namespace, for example "auth.fillOtp". Names without
@@ -29,9 +42,11 @@ a dot are reserved for built-in actions.` (code `ActionNameNotNamespaced`).
   later built-in could still break a user's tests.
 - **A fixed prefix for all user actions (`custom.`, `x.`)**: wastes the
   namespace on noise instead of meaning (`auth.`, `shop.`).
-- **Renaming built-ins to drop the dot (`expectText`)**: the alternative for
-  question 13; reads less well in YAML and loses the grouping in completion
-  lists.
+- **Renaming built-ins to drop the dot (`expectText`)**: reads less well in
+  YAML and loses the grouping in completion lists.
+- **Reserving only today's built-in namespaces (`expect`, `wait`)**: `api`
+  is a likely namespace for future HTTP built-ins, and the product's own name
+  is the natural place for product-specific built-ins.
 
 ## Consequences
 
