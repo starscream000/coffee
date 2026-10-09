@@ -14,7 +14,7 @@ Written only by the reviewer. The desktop implementer reads this first.
 
 | No.   | Title              | State                     | Report                                       | Review | Pull requests |
 | ----- | ------------------ | ------------------------- | -------------------------------------------- | ------ | ------------- |
-| D0001 | Desktop foundation | reported, awaiting review | [D0001](reports/D0001-desktop-foundation.md) | –      | see report    |
+| D0001 | Desktop foundation | reported, awaiting review | [D0001](reports/D0001-desktop-foundation.md) | –      | #16           |
 
 States: `open`, `reported`, `changes requested`, `approved`, `merged`,
 `replaced`.

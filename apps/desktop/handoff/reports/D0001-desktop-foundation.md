@@ -13,8 +13,8 @@ problems (re-checked when files change), the step files and the action
 catalogue. It cannot run tests yet because the engine's runner does not exist.
 Nothing outside `apps/desktop/` changed. Four things are needed next: the owner's
 answers to the questions below, a review, the three
-[requests](../requests/), and permission to open the pull requests (not opened
-yet, see "Not done").
+[requests](../requests/). The owner opened one pull request for the whole
+stack: [#16](https://github.com/starscream000/coffee/pull/16).
 
 ## Branches and pull requests
 
@@ -22,10 +22,10 @@ Stacked; merge in this order. Line counts leave out the lock files.
 
 | Branch                         | Last commit                                   | Pull request | Pushed | Changed lines (of which tests; docs) |
 | ------------------------------ | --------------------------------------------- | ------------ | ------ | ------------------------------------ |
-| `desktop/chore/scaffold`       | `815d2c8`                                     | not opened   | yes    | +1,553 −7 (180; 1,001 docs)          |
-| `desktop/feat/protocol-client` | `72c51f3`                                     | not opened   | yes    | +3,865 −18 (1,286)                   |
-| `desktop/feat/app-view-models` | `6902f3e`                                     | not opened   | yes    | +1,983 (512)                         |
-| `desktop/feat/workspace-shell` | the commit that adds this report (branch tip) | not opened   | yes    | +1,583 −18 (475), before this report |
+| `desktop/chore/scaffold`       | `815d2c8`                                     | #16          | yes    | +1,553 −7 (180; 1,001 docs)          |
+| `desktop/feat/protocol-client` | `72c51f3`                                     | #16          | yes    | +3,865 −18 (1,286)                   |
+| `desktop/feat/app-view-models` | `6902f3e`                                     | #16          | yes    | +1,983 (512)                         |
+| `desktop/feat/workspace-shell` | the commit that adds this report (branch tip) | #16          | yes    | +1,583 −18 (475), before this report |
 
 `desktop/feat/protocol-client` is far over the 1,500-line guideline, and I
 noticed only after pushing it. Splitting it now would rewrite pushed history,
@@ -120,15 +120,15 @@ instead. All of them ran and passed here.
    them, and make D2 (runs) wait for engine plan branch 8, so the live run view
    is built against real events; until then, D4 (editing) can go first,
    because it needs nothing new from the engine.
-2. **Should the desktop track open pull requests?** The root process has the
-   implementer open one per branch. This session did not open any yet (see
-   "Not done"). Recommended: yes, four pull requests into `main`, merged in the
-   order above.
+2. **One pull request or four?** [#16](https://github.com/starscream000/coffee/pull/16)
+   merges the whole stack (head `desktop/feat/workspace-shell`) as one merge
+   commit; the four branches stay as the commit history inside it. The root
+   process uses one pull request per branch, which keeps each feature visible
+   as its own merge. Recommended: keep #16 as it is; the commits match the
+   branches one to one, so review can still go branch by branch.
 
 ## Not done, not pushed, not verified
 
-- **Pull requests are not opened.** This session opens pull requests only
-  when the owner says so. All four branches are pushed.
 - **Not checked on Windows or macOS.** There is no CI job for C#
   ([R0001](../requests/R0001-ci-job-for-the-desktop-app.md)), and only Linux
   was available. Windows-specific code paths (`node.exe`, `;` in PATH) are
