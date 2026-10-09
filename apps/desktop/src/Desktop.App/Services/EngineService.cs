@@ -153,6 +153,10 @@ public sealed class EngineService : IEngineService, IAsyncDisposable
         files.Count == 0 ? [] : (await _session.Client.ValidateFilesAsync(files, cancellationToken).ConfigureAwait(false)).Diagnostics;
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Diagnostic>> ValidateContentAsync(string file, string text, CancellationToken cancellationToken = default) =>
+        (await _session.Client.ValidateContentAsync(file, text, cancellationToken).ConfigureAwait(false)).Diagnostics;
+
+    /// <inheritdoc />
     public async ValueTask DisposeAsync() => await ShutdownAsync().ConfigureAwait(false);
 
     private void Log(EngineLogSource source, string text)

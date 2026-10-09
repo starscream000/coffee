@@ -61,6 +61,13 @@ public interface IEngineService
     /// <param name="cancellationToken">Stops waiting.</param>
     /// <returns>The problems found.</returns>
     Task<IReadOnlyList<Diagnostic>> ValidateAsync(IReadOnlyList<string> files, CancellationToken cancellationToken = default);
+
+    /// <summary>Sends <c>validate</c> for an unsaved buffer.</summary>
+    /// <param name="file">The file the text belongs to, relative to the project root.</param>
+    /// <param name="text">The text being edited.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>The problems found.</returns>
+    Task<IReadOnlyList<Diagnostic>> ValidateContentAsync(string file, string text, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Where a line of the engine log came from.</summary>

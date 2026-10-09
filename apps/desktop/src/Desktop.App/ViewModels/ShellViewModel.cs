@@ -19,6 +19,8 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly IProjectFiles _files;
     private readonly IUiDispatcher _dispatcher;
     private readonly Func<string, bool> _directoryExists;
+    private readonly IDialogService _dialogs;
+    private readonly IDelay _delay;
 
     /// <summary>Creates the main window's view model.</summary>
     /// <param name="engine">The engine.</param>
@@ -27,14 +29,20 @@ public sealed partial class ShellViewModel : ObservableObject
     /// <param name="files">Project files.</param>
     /// <param name="dispatcher">The UI thread.</param>
     /// <param name="directoryExists">Says whether a folder exists; <see cref="Directory.Exists"/> by default.</param>
+    /// <param name="dialogs">Asks about unsaved changes; by default every question is answered "cancel", so nothing is lost.</param>
+    /// <param name="delay">Waits before validating text while typing; real time by default.</param>
     public ShellViewModel(
         IEngineService engine,
         ISettingsStore settings,
         IFolderPicker folderPicker,
         IProjectFiles files,
         IUiDispatcher dispatcher,
-        Func<string, bool>? directoryExists = null)
+        Func<string, bool>? directoryExists = null,
+        IDialogService? dialogs = null,
+        IDelay? delay = null)
     {
+        _dialogs = dialogs ?? new CancellingDialogs();
+        _delay = delay ?? new RealDelay();
         _engine = engine;
         _settings = settings;
         _folderPicker = folderPicker;
@@ -160,9 +168,10 @@ public sealed partial class ShellViewModel : ObservableObject
             }
 
             var project = await _engine.OpenProjectAsync(root);
-            var workspace = new WorkspaceViewModel(project, _engine, _files, _dispatcher, Engine);
+            var workspace = new WorkspaceViewModel(project, _engine, _files, _dispatcher, Engine, _dialogs, _delay);
             workspace.ReopenRequested += (_, _) => _ = ReopenAsync();
             await workspace.LoadAsync();
+
             Workspace?.Dispose();
             Workspace = workspace;
             TrySave(_settings.Load().WithRecentProject(root));
@@ -234,6 +243,14 @@ public sealed partial class ShellViewModel : ObservableObject
         {
             ShowError($"The engine stopped. Restart it to go on working with the project. {_engine.Failure?.Message}");
         }
+    }
+
+    /// <summary>The dialogs used when none are given: every question is answered "cancel".</summary>
+    private sealed class CancellingDialogs : IDialogService
+    {
+        public Task<UnsavedChangesChoice> AskUnsavedChangesAsync(IReadOnlyList<string> files) => Task.FromResult(UnsavedChangesChoice.Cancel);
+
+        public Task<bool> AskOverwriteAsync(string file) => Task.FromResult(false);
     }
 
     private void ShowError(string message)

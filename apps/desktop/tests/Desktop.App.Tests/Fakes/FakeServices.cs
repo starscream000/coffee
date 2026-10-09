@@ -35,8 +35,27 @@ internal sealed class FakeProjectFiles : IProjectFiles
 
     public Action<IReadOnlyCollection<string>>? Changed { get; private set; }
 
+    /// <summary>Paths whose writing fails, with the error.</summary>
+    public Dictionary<string, Exception> WriteFailures { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>Every write, in order.</summary>
+    public List<(string File, string Text)> Writes { get; } = [];
+
     public string ReadText(string root, string relativePath) =>
         Files.TryGetValue(relativePath, out var text) ? text : throw new FileNotFoundException("not found", relativePath);
+
+    public string? TryReadText(string root, string relativePath) => Files.GetValueOrDefault(relativePath);
+
+    public void WriteText(string root, string relativePath, string text)
+    {
+        if (WriteFailures.TryGetValue(relativePath, out var failure))
+        {
+            throw failure;
+        }
+
+        Writes.Add((relativePath, text));
+        Files[relativePath] = text;
+    }
 
     public IReadOnlyList<string> FindTestFiles(string root) =>
         [.. Files.Keys.Where(f => f.EndsWith(".test.yaml", StringComparison.Ordinal)).Order(StringComparer.Ordinal)];
@@ -163,7 +182,68 @@ internal sealed class FakeEngineService : IEngineService
         return answer;
     }
 
+    /// <summary>Problems for a buffer being edited, by file and text.</summary>
+    public Func<string, string, IReadOnlyList<Diagnostic>> ValidateContent { get; set; } = (_, _) => [];
+
+    public async Task<IReadOnlyList<Diagnostic>> ValidateContentAsync(string file, string text, CancellationToken cancellationToken = default)
+    {
+        Calls.Add($"validateContent {file}");
+        var answer = ValidateContent(file, text);
+        await Before("validateContent");
+        return answer;
+    }
+
     private Task Before(string method) => BeforeAnswer?.Invoke(method) ?? Task.CompletedTask;
+}
+
+/// <summary>Dialogs answered by the test, recording each question.</summary>
+internal sealed class FakeDialogs : IDialogService
+{
+    public UnsavedChangesChoice UnsavedAnswer { get; set; } = UnsavedChangesChoice.Cancel;
+
+    public bool OverwriteAnswer { get; set; }
+
+    public List<string> Asked { get; } = [];
+
+    public Task<UnsavedChangesChoice> AskUnsavedChangesAsync(IReadOnlyList<string> files)
+    {
+        Asked.Add("unsaved " + string.Join(',', files));
+        return Task.FromResult(UnsavedAnswer);
+    }
+
+    public Task<bool> AskOverwriteAsync(string file)
+    {
+        Asked.Add("overwrite " + file);
+        return Task.FromResult(OverwriteAnswer);
+    }
+}
+
+/// <summary>A delay the test ends by hand: <see cref="Elapse"/> completes every wait so far.</summary>
+internal sealed class ManualDelay : IDelay
+{
+    private readonly List<(TaskCompletionSource Done, CancellationToken Token)> _waits = [];
+
+    /// <summary>Waits not yet ended or cancelled.</summary>
+    public int Pending => _waits.Count(w => !w.Done.Task.IsCompleted && !w.Token.IsCancellationRequested);
+
+    public Task WaitAsync(TimeSpan span, CancellationToken cancellationToken)
+    {
+        var done = new TaskCompletionSource();
+        cancellationToken.Register(() => done.TrySetCanceled(cancellationToken));
+        _waits.Add((done, cancellationToken));
+        return done.Task;
+    }
+
+    /// <summary>Ends every wait that was not cancelled.</summary>
+    public void Elapse()
+    {
+        foreach (var (done, _) in _waits.ToList())
+        {
+            done.TrySetResult();
+        }
+
+        _waits.Clear();
+    }
 }
 
 /// <summary>Builders of protocol values for tests.</summary>

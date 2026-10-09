@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Step files are editable (instruction D0002, tasks 9 to 13): an editor
+  (Avalonia.AvaloniaEdit 12.0.0, ADR D0006) with line numbers, undo and
+  redo and problem lines marked; Save (Ctrl+S, Cmd+S) and Revert, keeping the
+  file's line endings and replacing the file in one step; the engine's
+  problems for the text being typed, 300 ms after the last change, in the tab
+  and the problems panel; a bar to reload or keep when the file changes on
+  disk during editing; a question before saving over such a file; a notice
+  when the file was deleted on disk.
+
 ### Fixed
 
 - Review D0001, findings 3 to 7: starting and stopping the engine run one at
