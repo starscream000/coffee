@@ -16,15 +16,6 @@ environments:
       apiUrl: http://localhost:4310/api
       expectedLocale: en-US
       expectedTimezone: UTC
-  # S17: an environment that overrides locale and timezone.
-  europe:
-    baseUrl: http://localhost:4310
-    locale: de-DE
-    timezone: Europe/Berlin
-    values:
-      apiUrl: http://localhost:4310/api
-      expectedLocale: de-DE
-      expectedTimezone: Europe/Berlin
 
 secrets: [DEMO_PASSWORD]
 

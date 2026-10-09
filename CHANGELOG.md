@@ -79,8 +79,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   step fails with `ActionTimeout`, its page is closed (`StrayActionCode`), its
   `ctx` is sealed, and an `after` step on that page gets a new blank page
   (`PageReplaced`).
-- Demo pages `/tabs` and `/settings`, an environment `europe` that overrides
-  locale and timezone, and samples S7, S17 and F8.
+- Demo pages `/tabs` and `/settings`, and samples S7, S17 and F8. S17's test
+  also runs it in an environment that overrides locale and timezone, added to
+  its copy of the demo project.
 
 - Data rows: one test instance per row, from inline `data`, a CSV file (read
   as step-format.md defines it; quoted values are rejected with

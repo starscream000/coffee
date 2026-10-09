@@ -1,5 +1,6 @@
-# S17: the browser uses the environment's viewport, locale and timezone. Run it
-# in the environment "local" and in "europe", which overrides locale and timezone.
+# S17: the browser uses the environment's viewport, locale and timezone. The
+# expected values are environment values, so an environment that overrides
+# locale and timezone (its integration test adds one) runs the same file.
 version: 1
 name: The browser uses the environment's settings
 steps:
