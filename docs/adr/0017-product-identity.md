@@ -1,6 +1,8 @@
 # 0017. Define the product identity in one constant
 
-- Status: Superseded by [0019](0019-four-product-names.md)
+- Status: Accepted (owner, 2026-10-09). Amended by [0019](0019-four-product-names.md):
+  the display name "Coffee" is final; the command name, data folder name and
+  npm scope are separate values and still pending.
 - Date: 2026-10-09
 
 ## Context

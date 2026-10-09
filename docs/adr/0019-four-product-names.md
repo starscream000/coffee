@@ -2,7 +2,7 @@
 
 - Status: Accepted (owner, 2026-10-09); the final values are pending
 - Date: 2026-10-09
-- Supersedes: [0017](0017-product-identity.md)
+- Amends: [0017](0017-product-identity.md)
 
 ## Context
 
