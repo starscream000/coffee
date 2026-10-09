@@ -206,9 +206,10 @@ if an error crosses a module or bundling boundary that would break
 | `locate`  | `(t: TargetRef) => Promise<Locator>` | Resolves a target's candidates (approved addition)                        |
 | `signal`  | `AbortSignal`                        | Aborted on step timeout or run cancellation (approved addition)           |
 
-Until Playwright is added (plan branch 6), the SDK declares `Page`,
-`APIRequestContext` and `Locator` as placeholder types; that branch replaces
-them with Playwright's own types.
+`Page`, `APIRequestContext` and `Locator` are Playwright's own types, from the
+engine's copy of Playwright; the SDK re-exports them. Imports of `playwright` in
+a user action are redirected to that copy, like the SDK
+([ADR 0008](adr/0008-loading-user-actions.md)).
 
 `ctx.env` never contains the process environment. `ctx.secrets` is the only
 way to read an environment variable, and only one declared as a secret.

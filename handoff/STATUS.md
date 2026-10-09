@@ -1,20 +1,23 @@
 # Status
 
-Written only by the reviewer. The implementer reads this first.
+Written only by the reviewer. The engine implementer reads this first. The
+desktop implementer reads [apps/desktop/handoff/STATUS.md](../apps/desktop/handoff/STATUS.md)
+instead.
 
 - Updated: 2026-10-09
-- **Open instruction:** [0005: masking and loader fixes, locators, the demo app](instructions/0005-masking-loader-locators-demo-app.md)
+- **Open instruction:** [0006: review fixes and the runner](instructions/0006-review-fixes-and-the-runner.md)
 - Waiting on: implementer
 
 ## Instructions
 
-| No.  | Title                                             | State             | Report                                          | Review                                            | Pull requests                                        |
-| ---- | ------------------------------------------------- | ----------------- | ----------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------- |
-| 0001 | Finish the Milestone 0 documents                  | merged            | [0001](reports/0001-finish-milestone-0-docs.md) | [0001](reviews/0001-finish-milestone-0-docs.md)   | [#2](https://github.com/starscream000/coffee/pull/2) |
-| 0002 | Review fixes and the final names                  | merged            | [0002](reports/0002-review-fixes-and-names.md)  | [0002](reviews/0002-review-fixes-and-names.md)    | #3, #4                                               |
-| 0003 | Milestone 1 foundation                            | merged            | [0003](reports/0003-milestone-1-foundation.md)  | [0003](reviews/0003-milestone-1-foundation.md)    | #5, #6, #7, #8, #9                                   |
-| 0004 | Review fixes, user actions, variables and secrets | changes requested | on branch `feat/context-secrets`                | [0004](reviews/0004-fixes-actions-and-secrets.md) | #10, #11, #12 merged; #13 open                       |
-| 0005 | Masking and loader fixes, locators, the demo app  | open              | –                                               | –                                                 | continues #13                                        |
+| No.  | Title                                             | State  | Report                                                   | Review                                                   | Pull requests                                        |
+| ---- | ------------------------------------------------- | ------ | -------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------- |
+| 0001 | Finish the Milestone 0 documents                  | merged | [0001](reports/0001-finish-milestone-0-docs.md)          | [0001](reviews/0001-finish-milestone-0-docs.md)          | [#2](https://github.com/starscream000/coffee/pull/2) |
+| 0002 | Review fixes and the final names                  | merged | [0002](reports/0002-review-fixes-and-names.md)           | [0002](reviews/0002-review-fixes-and-names.md)           | #3, #4                                               |
+| 0003 | Milestone 1 foundation                            | merged | [0003](reports/0003-milestone-1-foundation.md)           | [0003](reviews/0003-milestone-1-foundation.md)           | #5, #6, #7, #8, #9                                   |
+| 0004 | Review fixes, user actions, variables and secrets | merged | [0004](reports/0004-fixes-actions-and-secrets.md)        | [0004](reviews/0004-fixes-actions-and-secrets.md)        | #10, #11, #12, #13                                   |
+| 0005 | Masking and loader fixes, locators, the demo app  | merged | [0005](reports/0005-masking-loader-locators-demo-app.md) | [0005](reviews/0005-masking-loader-locators-demo-app.md) | #14, #13, #15, #17                                   |
+| 0006 | Review fixes and the runner                       | open   | –                                                        | –                                                        | –                                                    |
 
 States: `open` (published, no review yet), `changes requested`, `approved`,
 `merged`, `replaced`.
@@ -22,18 +25,31 @@ States: `open` (published, no review yet), `changes requested`, `approved`,
 ## Where the plan stands
 
 Milestone 0 is finished. Of the 16 branches in
-[the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 4 are on `main`.
-Branch 5 (`feat/context-secrets`) waits for the masking fix in instruction
-0005, which also covers branches 6 and 7.
+[the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 7 are on `main`.
+Instruction 0006 covers branches 8 and 9, the runner: after it, a test file
+runs in a real browser.
+
+## The desktop track
+
+The Avalonia app is built by a second implementer under `apps/desktop/`, with
+its own instructions, reports and reviews in
+[apps/desktop/handoff/](../apps/desktop/handoff/). Its first delivery (pull
+request #16) is reviewed and waits for two test fixes. Pull request #18 adds
+the CI job that builds and tests it; it is the reviewer's own change and is
+merged after #16, on the owner's word.
 
 ## Owner decisions on record
 
 - 2026-10-09: the command name is `cfe`; the Milestone 1 plan is approved; ADR
   0018 is approved; merge first, then fix the findings of review 0003;
   `${row.…}` stays unavailable inside flows; no `cfe validate` command.
+- 2026-10-09: the desktop app is a separate track with its own implementer,
+  confined to `apps/desktop/`, following the same handoff process.
 
 ## Waiting on the owner
 
+- Hidden elements (review 0005): when `ctx.locate` looks for exactly one
+  element, should hidden ones count? Recommended and implemented: yes.
 - How to write a regular expression for a URL (review 0004): keep `/regex/`,
   or require the prefix `regex:`. The review recommends the prefix. Needed
   before plan branch 12, which is the first to use URL patterns.
@@ -42,3 +58,5 @@ Branch 5 (`feat/context-secrets`) waits for the masking fix in instruction
 - Repository visibility: it is public. Decide whether it should be private.
 - Node: upgrade the local install to the current 24 LTS patch, then say so, so
   the pin can be raised.
+- The desktop track's questions are in
+  [its status file](../apps/desktop/handoff/STATUS.md).

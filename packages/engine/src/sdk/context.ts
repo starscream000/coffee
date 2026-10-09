@@ -2,30 +2,13 @@
 // "The context (ctx)"). Only the type exists in this branch; the runner builds
 // the object in a later plan branch.
 //
-// `page`, `request` and `locate`'s result are Playwright's Page,
-// APIRequestContext and Locator. Playwright is not a dependency yet, so they
-// are opaque placeholders here; the branch that adds Playwright replaces them
-// with Playwright's own types.
+// `page`, `request` and `locate`'s result are Playwright's own `Page`,
+// `APIRequestContext` and `Locator`, from the engine's copy of Playwright.
 
+import type { APIRequestContext, Locator, Page } from 'playwright';
 import type { TargetValue } from '../schema/targets.js';
 
-/** Placeholder for Playwright's `Page` until Playwright is added. */
-export interface Page {
-  /** Marks the type as Playwright's Page; replaced when Playwright is added. */
-  readonly __playwright: 'Page';
-}
-
-/** Placeholder for Playwright's `APIRequestContext` until Playwright is added. */
-export interface APIRequestContext {
-  /** Marks the type as Playwright's APIRequestContext; replaced when Playwright is added. */
-  readonly __playwright: 'APIRequestContext';
-}
-
-/** Placeholder for Playwright's `Locator` until Playwright is added. */
-export interface Locator {
-  /** Marks the type as Playwright's Locator; replaced when Playwright is added. */
-  readonly __playwright: 'Locator';
-}
+export type { APIRequestContext, Locator, Page };
 
 /** A target as an action receives it: unresolved, to be passed to `ctx.locate`. */
 export type TargetRef = TargetValue;

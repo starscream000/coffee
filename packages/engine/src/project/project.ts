@@ -13,6 +13,8 @@ import {
 import type { ActionSpec } from '../actions/action-spec.js';
 import { checkSdkVersion, loadUserActions } from '../actions/loader.js';
 import { ActionRegistry } from '../actions/registry.js';
+import { SecretRegistry } from '../context/mask.js';
+import { SecretStore } from '../context/secrets.js';
 import { DEFAULT_GLOBS, fileKindOf, type ConfigFile } from '../schema/files.js';
 import { TargetSchema } from '../schema/targets.js';
 import { validateFile, type FileValidation } from '../stepfile/validate-file.js';
@@ -27,6 +29,14 @@ export interface ProjectFiles {
   readonly flows: readonly string[];
   /** Shared targets files. */
   readonly targets: readonly string[];
+}
+
+/** Options of {@link Project.open}. */
+export interface ProjectOptions {
+  /** Where loaded secrets are registered for masking; a private registry by default. */
+  readonly secrets?: SecretRegistry;
+  /** The process environment secrets are read from; `process.env` by default. */
+  readonly environment?: Readonly<Record<string, string | undefined>>;
 }
 
 /** Turns a native path into forward slashes. */
@@ -93,6 +103,10 @@ export class Project {
   /** Built-in and user actions. */
   readonly registry: ActionRegistry;
   private actionDiagnostics: readonly Diagnostic[] = [];
+  private readonly secretRegistry: SecretRegistry;
+  private readonly environment: Readonly<Record<string, string | undefined>>;
+  /** The declared secrets, re-read with the `.env` file on every `validate`. */
+  secrets: SecretStore | undefined;
   private sharedTargets = new Map<string, SharedTarget>();
   private sharedTargetFiles: FileValidation[] = [];
   private readonly flowCache = new Map<string, FileValidation | undefined>();
@@ -102,7 +116,10 @@ export class Project {
     configFile: string,
     text: string,
     builtins: readonly ActionSpec[],
+    options: ProjectOptions,
   ) {
+    this.secretRegistry = options.secrets ?? new SecretRegistry();
+    this.environment = options.environment ?? process.env;
     this.root = root;
     this.configFile = configFile;
     this.registry = new ActionRegistry(builtins);
@@ -131,6 +148,15 @@ export class Project {
       targets: findFiles(this.root, globs('targets')),
     };
     this.flowCache.clear();
+    this.secrets =
+      this.config === undefined
+        ? undefined
+        : SecretStore.load(
+            this.config.secrets ?? [],
+            this.root,
+            this.environment,
+            this.secretRegistry,
+          );
     this.sharedTargets = new Map();
     this.sharedTargetFiles = [];
     for (const file of this.files.targets) {
@@ -159,12 +185,17 @@ export class Project {
    * @param root - The project's root folder, absolute or relative to the
    *   engine's working directory.
    * @param builtins - The built-in action specs.
+   * @param options - The secret registry and the process environment.
    * @returns The open project; problems with the config or the user actions are
    *   in its summary's diagnostics.
    * @throws RpcError `ProjectInvalid` when the folder has no readable config
    *   file.
    */
-  static async open(root: string, builtins: readonly ActionSpec[]): Promise<Project> {
+  static async open(
+    root: string,
+    builtins: readonly ActionSpec[],
+    options: ProjectOptions = {},
+  ): Promise<Project> {
     const absoluteRoot = resolve(root);
     const configFile = join(absoluteRoot, PRODUCT.configFile);
     let text: string;
@@ -181,7 +212,7 @@ export class Project {
           : `The folder "${posix(absoluteRoot)}" does not exist.`,
       );
     }
-    const project = new Project(absoluteRoot, configFile, text, builtins);
+    const project = new Project(absoluteRoot, configFile, text, builtins, options);
     await project.loadActions();
     return project;
   }
@@ -327,6 +358,7 @@ export class Project {
         return this.flowCache.get(projectPath);
       },
       knownFlowFiles: () => this.files.flows,
+      secretProblem: (name) => this.secrets?.problem(name),
       exists: (file) => existsSync(join(this.root, file)),
     };
   }
