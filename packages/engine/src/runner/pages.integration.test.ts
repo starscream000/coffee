@@ -2,7 +2,7 @@
 // named and automatic pages (S7), the environment's settings (S17), a user
 // action that ignores ctx.signal (F8), and cancelRun, after which no browser
 // process may remain. Every message is checked against the JSON Schema files.
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startDemoApp, type DemoApp } from '../testing/demo-app.js';
@@ -87,12 +87,42 @@ describe('settings (S17)', () => {
   });
 
   it('uses the locale and timezone of an environment that overrides them', async () => {
-    const collected = await run({ files: ['tests/settings.test.yaml'], env: 'europe' });
-    expect(eventsOf(collected.events, 'runStarted')[0]).toMatchObject({
-      env: 'europe',
-      settings: { locale: 'de-DE', timezone: 'Europe/Berlin' },
-    });
-    expect(eventsOf(collected.events, 'runFinished')[0]).toMatchObject({ status: 'passed' });
+    // The demo config is shared with the desktop app's tests, which pin its one
+    // environment, so the second environment is added to this test's copy only.
+    const config = join(app.root, 'cfe.config.yaml');
+    const original = readFileSync(config, 'utf8');
+    writeFileSync(
+      config,
+      original.replace(
+        'environments:\n',
+        [
+          'environments:',
+          '  europe:',
+          `    baseUrl: ${app.url}`,
+          '    locale: de-DE',
+          '    timezone: Europe/Berlin',
+          '    values:',
+          `      apiUrl: ${app.url}/api`,
+          '      expectedLocale: de-DE',
+          '      expectedTimezone: Europe/Berlin',
+          '',
+        ].join('\n'),
+      ),
+    );
+    try {
+      expect(await app.engine.request(nextId++, 'openProject', { root: app.root })).toMatchObject({
+        result: { diagnostics: [] },
+      });
+      const collected = await run({ files: ['tests/settings.test.yaml'], env: 'europe' });
+      expect(eventsOf(collected.events, 'runStarted')[0]).toMatchObject({
+        env: 'europe',
+        settings: { locale: 'de-DE', timezone: 'Europe/Berlin' },
+      });
+      expect(eventsOf(collected.events, 'runFinished')[0]).toMatchObject({ status: 'passed' });
+    } finally {
+      writeFileSync(config, original);
+      await app.engine.request(nextId++, 'openProject', { root: app.root });
+    }
   });
 });
 

@@ -89,7 +89,7 @@ describe('startRun without a browser', () => {
     ).toMatchObject({
       error: {
         code: -32602,
-        message: 'There is no environment "nowhere". The config has: local, europe.',
+        message: 'There is no environment "nowhere". The config has: local.',
       },
     });
   });

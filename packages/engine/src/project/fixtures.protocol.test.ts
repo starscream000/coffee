@@ -43,7 +43,7 @@ async function openDemoApp(): Promise<EngineProcess> {
   const opened = await engine.request(1, 'openProject', { root: DEMO_APP });
   expect(opened).toMatchObject({
     id: 1,
-    result: { environments: ['local', 'europe'], diagnostics: [] },
+    result: { environments: ['local'], diagnostics: [] },
   });
   return engine;
 }
