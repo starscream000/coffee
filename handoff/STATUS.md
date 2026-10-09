@@ -62,7 +62,11 @@ tests start the real engine and read the protocol's schema files.
 - 2026-10-10: CSV data files are read as spreadsheets write them (RFC 4180).
 - 2026-10-10: the owner wants a build of the desktop app and the engine on his
   machine before other work; it is the first task of instruction 0007.
-- 2026-10-10: the desktop track is on hold.
+- 2026-10-10: the desktop track was on hold for a few hours and resumes with
+  its instruction D0003.
+- 2026-10-10: the demo project gets a committed, demo-only
+  `examples/demo-app/.env` with `DEMO_PASSWORD`, as the one exception to "never
+  commit `.env` files" (review 0007, question 1). It goes into instruction 0008.
 
 ## Owner's notes (ideas, not decisions)
 
@@ -82,15 +86,12 @@ tests start the real engine and read the protocol's schema files.
 
 ## Waiting on the owner
 
-- Say `next` to publish instruction 0008 (plan branches 11 to 13).
-- The demo password (review 0007): commit a demo-only
-  `examples/demo-app/.env`, so the demo project opens without errors?
-  Recommended: yes. Until then, opening the demo shows two `SecretNotSet`
-  errors unless `DEMO_PASSWORD` is set.
+- Say `next` to publish instruction 0008 (the demo `.env`, then plan branches
+  11 to 13).
 - npm: create the organisation `cfe` to hold the `@cfe` scope. A free name can
   be taken at any time.
 - Repository visibility: it is public. Decide whether it should be private.
 - Node: upgrade the local install to the current 24 LTS patch, then say so, so
   the pin can be raised.
-- The desktop track is on hold (owner, 2026-10-10). Its open questions are in
+- The desktop track's open questions are in
   [its status file](../apps/desktop/handoff/STATUS.md).

@@ -3,16 +3,16 @@
 Written only by the reviewer. The desktop implementer reads this first.
 
 - Updated: 2026-10-10
-- **Open instruction:** none. The next one (D0003) is published on the owner's
-  word `next`.
-- Waiting on: owner
+- **Open instruction:** [D0003: a complete app, from editing to running](instructions/D0003-a-complete-app-from-edit-to-run.md)
+- Waiting on: desktop implementer
 
 ## Instructions
 
-| No.   | Title                                 | State  | Report                                                          | Review                                                          | Pull requests      |
-| ----- | ------------------------------------- | ------ | --------------------------------------------------------------- | --------------------------------------------------------------- | ------------------ |
-| D0001 | Desktop foundation                    | merged | [D0001](reports/D0001-desktop-foundation.md)                    | [D0001](reviews/D0001-desktop-foundation.md)                    | #16                |
-| D0002 | Review fixes and the step file editor | merged | [D0002](reports/D0002-review-fixes-and-the-step-file-editor.md) | [D0002](reviews/D0002-review-fixes-and-the-step-file-editor.md) | #16, #20, #22, #24 |
+| No.   | Title                                   | State  | Report                                                          | Review                                                          | Pull requests      |
+| ----- | --------------------------------------- | ------ | --------------------------------------------------------------- | --------------------------------------------------------------- | ------------------ |
+| D0001 | Desktop foundation                      | merged | [D0001](reports/D0001-desktop-foundation.md)                    | [D0001](reviews/D0001-desktop-foundation.md)                    | #16                |
+| D0002 | Review fixes and the step file editor   | merged | [D0002](reports/D0002-review-fixes-and-the-step-file-editor.md) | [D0002](reviews/D0002-review-fixes-and-the-step-file-editor.md) | #16, #20, #22, #24 |
+| D0003 | A complete app, from editing to running | open   | –                                                               | –                                                               | –                  |
 
 States: `open` (published, no review yet), `changes requested`, `approved`,
 `merged`, `replaced`.
@@ -27,15 +27,10 @@ States: `open` (published, no review yet), `changes requested`, `approved`,
 
 ## Where the plan stands
 
-Desktop milestone D1 (foundation) is on `main`, and so is the first part of
-D4 (editing): step files can be edited, saved and reverted, with the engine's
-validation shown while typing. CI builds and tests the app on Linux, Windows
-and macOS for every pull request.
-
-Next, in instruction D0003: findings 1 to 5 and 7 of
-[review D0002](reviews/D0002-review-fixes-and-the-step-file-editor.md), then
-either the rest of D4 (completion, parameter forms, the targets editor) or
-runs (D2) once the engine's runner is on `main`.
+Desktop milestone D1 (foundation) and the first part of D4 (the text editor)
+are on `main`. Instruction D0003 makes the app complete from editing to
+running: runs (D2), run history (D3), building steps and targets without YAML
+(the rest of D4), and a placeholder for recording (D5).
 
 ## Owner decisions on record
 
@@ -45,25 +40,12 @@ runs (D2) once the engine's runner is on `main`.
 - 2026-10-10: editing step files comes first for the desktop.
 - 2026-10-10: the owner's `merge` for the desktop work covered pull request
   #18, the reviewer's CI job.
-
-## Notes for the next desktop instruction
-
-- The track is on hold on the owner's word (2026-10-10).
-- The engine on `main` now runs tests and answers `listTests`, so runs
-  (milestone D2) are possible and the explorer's fallback can be removed.
-- `RealEngineAppTests` pins the demo config's whole list of environments; it
-  should check only what it needs (review 0007 of the engine track, finding 2).
-- The owner's notes in the root status file: the app is meant to be low-code
-  or no-code, so parameter forms and the targets editor come before
-  text-editing extras.
+- 2026-10-10: the track resumes. The owner wants a workable end-to-end desktop
+  app now, with placeholders where the engine is not ready. The app is meant
+  to be low-code or no-code.
 
 ## Waiting on the owner
 
 - Accept ADR D0006 (AvaloniaEdit as the editor)? Recommended: yes.
 - A keyboard shortcut for "Save all" (Ctrl+Shift+S, Cmd+Shift+S on macOS)?
   Recommended: yes.
-- What the desktop builds after the fixes: the rest of editing, or runs once
-  the engine's runner is merged.
-- Run the app once on a real screen: after `pnpm build`, with the .NET 10 SDK,
-  `dotnet run --project apps/desktop/src/Desktop.App`, then open
-  `examples/demo-app`. Nobody has seen it outside headless rendering.
