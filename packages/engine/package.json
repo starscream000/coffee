@@ -14,13 +14,18 @@
       "default": "./dist/index.js"
     },
     "./main": "./dist/main.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./sdk": {
+      "types": "./dist/sdk/index.d.ts",
+      "default": "./dist/sdk/index.js"
+    }
   },
   "files": [
     "dist"
   ],
   "dependencies": {
     "@cfe/protocol": "workspace:*",
+    "esbuild": "0.28.2",
     "yaml": "2.9.1",
     "zod": "4.6.5"
   }

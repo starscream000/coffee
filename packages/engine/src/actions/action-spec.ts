@@ -3,7 +3,7 @@
 // described the same way; `run` is added separately.
 
 import { z } from 'zod';
-import { TargetSchema, type TargetValue } from '../schema/targets.js';
+import { TargetSchema, isTargetSchema, type TargetValue } from '../schema/targets.js';
 
 /**
  * The description of one action. A runnable action is an `ActionSpec` plus
@@ -78,7 +78,7 @@ export function targetParamKeys(spec: ActionSpec): readonly string[] {
       while (inner instanceof z.ZodOptional) {
         inner = inner.unwrap();
       }
-      return inner === TargetSchema;
+      return isTargetSchema(inner);
     })
     .map(([key]) => key);
 }
