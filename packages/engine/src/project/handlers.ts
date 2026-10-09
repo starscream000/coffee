@@ -1,6 +1,6 @@
 // Registers the project requests on a session: `openProject` opens (or
 // replaces) the one project of this engine process, `validate` checks files in
-// it, `listActions` describes every action, and `startRun` runs tests
+// it, `listTests` and `listActions` describe tests and actions, and `startRun` runs tests
 // (docs/protocol.md, "Requests").
 
 import type { ActionSummary } from '@cfe/protocol';
@@ -98,6 +98,15 @@ export function registerProjectHandlers(
       return runs.start(project, params);
     });
   }
+
+  session.register('listTests', (params) => {
+    if (project === undefined) {
+      return Promise.reject(
+        new RpcError('ProjectNotOpen', 'Open a project with "openProject" before listing tests.'),
+      );
+    }
+    return Promise.resolve({ tests: project.listTests(params.tags) });
+  });
 
   session.register('listActions', () => {
     // Without an open project there are no user actions yet: list the built-ins.

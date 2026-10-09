@@ -8,6 +8,7 @@ import {
   PRODUCT,
   type Diagnostic,
   type OpenProjectResult,
+  type TestSummary,
   type ValidateParams,
 } from '@cfe/protocol';
 import { checkSdkVersion, loadUserActions } from '../actions/loader.js';
@@ -16,6 +17,7 @@ import { SecretRegistry } from '../context/mask.js';
 import { SecretStore } from '../context/secrets.js';
 import { DEFAULT_GLOBS, fileKindOf, type ConfigFile } from '../schema/files.js';
 import { TargetSchema, type TargetValue } from '../schema/targets.js';
+import { readDataRows } from '../stepfile/data-rows.js';
 import { validateFile, type FileValidation } from '../stepfile/validate-file.js';
 import { RpcError } from '../rpc/rpc-error.js';
 import { crossCheck, type CheckContext, type SharedTarget } from './cross-checks.js';
@@ -340,6 +342,53 @@ export class Project {
   }
 
   /**
+   * The answer to `listTests`: every test file the config's `tests` globs find,
+   * with its name as written (`${row.…}` uninterpolated), its tags and how many
+   * test instances it makes. A file too broken to read still appears, named
+   * after its file, so a client can show it and its diagnostics.
+   *
+   * @param tags - Only tests with at least one of these tags; all when absent.
+   * @returns The tests, in file order.
+   */
+  listTests(tags?: readonly string[]): TestSummary[] {
+    this.refresh();
+    const tests: TestSummary[] = [];
+    for (const file of this.files.tests) {
+      const raw = this.readStepFile(file)?.source.data;
+      const data = isMapping(raw) ? raw : {};
+      const fileTags = Array.isArray(data.tags)
+        ? data.tags.filter((tag): tag is string => typeof tag === 'string')
+        : [];
+      if (tags !== undefined && !tags.some((tag) => fileTags.includes(tag))) continue;
+      const rows = readDataRows(
+        typeof data.data === 'string' || Array.isArray(data.data)
+          ? (data.data as string | Record<string, unknown>[])
+          : undefined,
+        file,
+        (path) => this.readText(path),
+      );
+      tests.push({
+        file,
+        name: typeof data.name === 'string' ? data.name : file,
+        tags: fileTags,
+        rows: Math.max(1, rows.rows?.length ?? 1),
+      });
+    }
+    return tests;
+  }
+
+  /**
+   * Reads a project file's text.
+   *
+   * @param file - Project-relative path.
+   * @returns The text, or `undefined` when the file is missing, a folder or
+   *   outside the project.
+   */
+  readText(file: string): string | undefined {
+    return isOutside(file) ? undefined : readFileIfFile(join(this.root, file));
+  }
+
+  /**
    * The shared targets by name, as read by the latest {@link validate}.
    *
    * @returns Every shared target whose definition is valid.
@@ -390,6 +439,7 @@ export class Project {
       knownFlowFiles: () => this.files.flows,
       secretProblem: (name) => this.secrets?.problem(name),
       exists: (file) => existsSync(join(this.root, file)),
+      readText: (file) => (isOutside(file) ? undefined : readFileIfFile(join(this.root, file))),
     };
   }
 }

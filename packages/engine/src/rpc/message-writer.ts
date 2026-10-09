@@ -86,7 +86,17 @@ export class MessageWriter {
    * @returns A promise that resolves once the line has been handed to the sink.
    */
   send(message: JsonObject): Promise<void> {
-    const line = this.render(message);
+    return this.sendRendered(this.render(message));
+  }
+
+  /**
+   * Writes a line that {@link MessageWriter.render} produced, so the caller can
+   * keep exactly what was sent (for example in a run's `events.ndjson`).
+   *
+   * @param line - A rendered message, without the final newline.
+   * @returns A promise that resolves once the line has been handed to the sink.
+   */
+  sendRendered(line: string): Promise<void> {
     return new Promise((resolve, reject) => {
       this.sink.write(`${line}\n`, (error) => {
         if (error) {

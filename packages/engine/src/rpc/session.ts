@@ -101,13 +101,16 @@ export class Session {
    *
    * @param method - The event's name, such as `stepStarted`.
    * @param params - The event's fields.
+   * @returns The line as sent: masked and within the size limit.
    */
-  notify(method: string, params: Record<string, unknown>): void {
-    this.writer.send({ jsonrpc: '2.0', method, params }).catch((error: unknown) => {
+  notify(method: string, params: Record<string, unknown>): string {
+    const line = this.writer.render({ jsonrpc: '2.0', method, params });
+    this.writer.sendRendered(line).catch((error: unknown) => {
       this.options.logError(
         `Could not send "${method}": ${error instanceof Error ? error.message : String(error)}`,
       );
     });
+    return line;
   }
 
   /**
