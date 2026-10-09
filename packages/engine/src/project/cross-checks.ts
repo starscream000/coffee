@@ -114,7 +114,7 @@ export function crossCheck(
   if (validation.kind === 'test') {
     checkPages(validation, raw, sink);
     checkLogins(raw, context, sink);
-    checkData(validation, raw, context, sink);
+    extra.push(...checkData(validation, raw, context, sink));
   }
   checkInterpolation(validation, raw, context, sink);
   return [...sink.items, ...extra];
@@ -388,14 +388,18 @@ function checkLogins(raw: Raw, context: CheckContext, sink: DiagnosticSink): voi
   }
 }
 
+/**
+ * Checks a test's data file. A problem with a known line is reported in the
+ * data file itself, at that line; others at the test's `data` key.
+ */
 function checkData(
   validation: FileValidation,
   raw: Raw,
   context: CheckContext,
   sink: DiagnosticSink,
-): void {
+): Diagnostic[] {
   const data = raw.data;
-  if (typeof data !== 'string') return;
+  if (typeof data !== 'string') return [];
   if (!/\.(csv|ya?ml)$/i.test(data)) {
     sink.error(
       ['data'],
@@ -403,7 +407,7 @@ function checkData(
       `"${data}" is not a CSV or YAML file.`,
       'Use a .csv file (first line is the header) or a .yaml file (a list of mappings).',
     );
-    return;
+    return [];
   }
   const resolved = dataFilePath(validation.file, data);
   if (!context.exists(resolved)) {
@@ -413,16 +417,25 @@ function checkData(
       `The data file "${data}" does not exist (looked for ${resolved}).`,
       'Data file paths are relative to the test file.',
     );
-    return;
+    return [];
   }
   const rows = readDataRows(data, validation.file, (file) => context.readText(file));
-  if (rows.error !== undefined) {
-    sink.error(
-      ['data'],
-      'DataFileInvalid',
-      `The data file "${data}" cannot be read: ${rows.error}`,
-    );
+  if (rows.error === undefined) return [];
+  if (rows.line !== undefined) {
+    return [
+      {
+        file: resolved,
+        line: rows.line,
+        column: 1,
+        severity: 'error',
+        code: 'DataFileInvalid',
+        message: rows.error,
+        hint: `Used by ${validation.file}.`,
+      },
+    ];
   }
+  sink.error(['data'], 'DataFileInvalid', `The data file "${data}" cannot be read: ${rows.error}`);
+  return [];
 }
 
 const ALLOWED: Record<FileValidation['kind'], readonly string[]> = {

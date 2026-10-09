@@ -21,7 +21,7 @@ Everything the engine writes lives in the git-ignored data folder
   logins/<key>.meta.json                createdAt, env and login name; no parameter values
   cache/actions/<hash>.mjs              compiled user actions (+ .map)
   runs/
-    <runId>/                            runId: 20261009-054902-1a2b (UTC time + 4 random hex)
+    <runId>/                            runId: 20261009-054902-123-1a2b (UTC time with ms + 4 random hex)
       run.json                          summary: versions, env, browser, times, totals,
                                         tests with status and their folder
       events.ndjson                     every protocol event of the run, in order, masked
@@ -51,7 +51,7 @@ Rules:
 - **Keep the last N runs.** The setting `keepRuns` in the config's `defaults`
   (default **20**; `0` keeps all runs) is applied **at the start of each run**,
   before the new run folder is created: the engine lists `runs/`, sorts by
-  `runId` (which sorts by time), and deletes the oldest folders until at most
+  `runId` (which sorts by start time, to the millisecond), and deletes the oldest folders until at most
   `keepRuns - 1` remain, so that the new run makes `keepRuns`. It deletes only
   folders whose name is a valid `runId`; anything else in `runs/` is left
   alone. A folder that cannot be deleted (for example because a file is open)

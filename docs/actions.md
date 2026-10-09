@@ -279,7 +279,9 @@ internal extension of the public one.
 
 Columns: **Short** is the shorthand parameter. Target parameters accept a
 target name or an inline candidate list. URLs may be relative to `env.baseUrl`.
-URL patterns are globs (`**/api/orders*`) unless written as `/regex/`.
+URL patterns are globs (`**/api/orders*`); a pattern that starts with `regex:`
+is a regular expression (`regex:^/orders/\d+$`). Without the prefix a pattern
+is always a glob, so `/orders/` is a path.
 
 Any step, whatever its action, may also use the common keys `name`, `page`,
 `timeout` and `opens` ([step-format.md](step-format.md#steps)).
@@ -330,7 +332,7 @@ the headers it reads.
 All `expect.*` actions retry until they pass or the step times out, then fail
 with `AssertionFailed` showing expected and actual values.
 
-`matches` values, `extract`'s `pattern` and URL patterns written as `/regex/` are
+`matches` values, `extract`'s `pattern` and URL patterns that start with `regex:` are
 compiled when the step file is validated (`InvalidRegex`), unless they contain
 `${…}`; then they are checked when the step runs. `extract`'s pattern must have
 exactly one capturing group: the part to extract.

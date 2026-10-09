@@ -7,8 +7,8 @@
 import { readdirSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-/** A run id: UTC date and time, then 4 random hex digits. */
-export const RUN_ID_PATTERN = /^\d{8}-\d{6}-[0-9a-f]{4}$/;
+/** A run id: UTC date, time and milliseconds, then 4 random hex digits. */
+export const RUN_ID_PATTERN = /^\d{8}-\d{6}-\d{3}-[0-9a-f]{4}$/;
 
 /** The default of `defaults.keepRuns`. */
 export const DEFAULT_KEEP_RUNS = 20;

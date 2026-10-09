@@ -237,8 +237,6 @@ describe('keepRuns (I9)', () => {
     });
     const runIds: string[] = [];
     for (let index = 0; index < 5; index++) {
-      // Run ids sort by time to the second; keep the runs a second apart.
-      await new Promise((resolve) => setTimeout(resolve, 1_050));
       const collected = await run({ files: ['tests/skipped.test.yaml'] });
       runIds.push((collected.response.result as { runId: string }).runId);
     }

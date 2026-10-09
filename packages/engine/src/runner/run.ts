@@ -38,12 +38,17 @@ export interface EventChannel {
 /** How long `after` steps may run once a run is cancelled (docs/architecture.md). */
 export const CANCEL_LIMIT_MS = 30_000;
 
-/** A run id such as `20261009-054902-1a2b`: UTC date and time, then 4 random hex digits. */
+/**
+ * A run id such as `20261009-054902-123-1a2b`: UTC date, time and
+ * milliseconds, then 4 random hex digits, so run ids sort by start time
+ * (ADR 0015).
+ */
 function newRunId(now: Date): string {
   const iso = now.toISOString(); // 2026-10-09T05:49:02.123Z
   const date = iso.slice(0, 10).replaceAll('-', '');
   const time = iso.slice(11, 19).replaceAll(':', '');
-  return `${date}-${time}-${randomBytes(2).toString('hex')}`;
+  const ms = iso.slice(20, 23);
+  return `${date}-${time}-${ms}-${randomBytes(2).toString('hex')}`;
 }
 
 function posix(path: string): string {

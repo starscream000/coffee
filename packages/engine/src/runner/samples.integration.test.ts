@@ -55,7 +55,7 @@ describe('the runner on the demo app', () => {
   it('answers startRun with the run id and folder before the first event', async () => {
     const collected = await run(['tests/slow-render.test.yaml']);
     const result = collected.response.result as { runId: string; resultsDir: string };
-    expect(result.runId).toMatch(/^\d{8}-\d{6}-[0-9a-f]{4}$/);
+    expect(result.runId).toMatch(/^\d{8}-\d{6}-\d{3}-[0-9a-f]{4}$/);
     expect(result.resultsDir).toBe(`${app.root.replaceAll('\\', '/')}/.cfe/runs/${result.runId}`);
     expect(collected.events.map((event) => event.method)).toEqual([
       'runStarted',
