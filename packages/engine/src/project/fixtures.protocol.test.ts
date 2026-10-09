@@ -36,7 +36,8 @@ afterEach(() => {
 });
 
 async function openDemoApp(): Promise<EngineProcess> {
-  const engine = new EngineProcess();
+  // The demo's saved logins use the secret DEMO_PASSWORD.
+  const engine = new EngineProcess(undefined, undefined, { DEMO_PASSWORD: 'demo-password-1234' });
   engines.push(engine);
   engine.initialize(0);
   await engine.next();

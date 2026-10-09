@@ -1,0 +1,9 @@
+# S18: freshLogin signs in from scratch; the saved state is neither read nor
+# changed.
+version: 1
+name: Sign in from scratch
+login: customer
+freshLogin: true
+steps:
+  - goto: /account
+  - expect.text: { target: account.user, equals: alice }

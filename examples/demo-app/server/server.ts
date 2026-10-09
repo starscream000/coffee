@@ -9,13 +9,16 @@
 // harness reads. State (the to-do list and the reset count) lives in memory.
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { randomBytes } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import {
+  accountPage,
   checkoutFramePage,
   fallbackPage,
   framesPage,
   helpPage,
   homePage,
+  loginPage,
   paymentFramePage,
   receiptPage,
   settingsPage,
@@ -39,6 +42,29 @@ interface State {
 
 const state: State = { todos: [], resets: 0 };
 
+/** The users who can sign in. Any password works unless DEMO_PASSWORD is set. */
+const USERS = new Set(['alice', 'ada']);
+
+/** Signed-in sessions by session id, and how many sign-ins succeeded. */
+const sessions = new Map<string, string>();
+let logins = 0;
+
+function sessionUser(request: IncomingMessage): string | undefined {
+  const cookie = request.headers.cookie ?? '';
+  const id = /(?:^|;\s*)session=([^;]+)/.exec(cookie)?.[1];
+  return id === undefined ? undefined : sessions.get(id);
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"']/g, (char) => `&#${String(char.charCodeAt(0))};`);
+}
+
+function isLoginInput(value: unknown): value is { username: string; password: string } {
+  if (typeof value !== 'object' || value === null) return false;
+  const { username, password } = value as Record<string, unknown>;
+  return typeof username === 'string' && typeof password === 'string';
+}
+
 const PAGES: Readonly<Record<string, string>> = {
   '/': homePage,
   '/todos': todosPage,
@@ -51,6 +77,7 @@ const PAGES: Readonly<Record<string, string>> = {
   '/receipt': receiptPage,
   '/help': helpPage,
   '/settings': settingsPage,
+  '/login': loginPage,
 };
 
 function send(response: ServerResponse, status: number, type: string, body: string): void {
@@ -102,6 +129,27 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     sendJson(response, 200, state);
   } else if (path === '/api/state' && method === 'GET') {
     sendJson(response, 200, state);
+  } else if (path === '/api/login' && method === 'POST') {
+    const input = await readJson(request);
+    const expected = process.env.DEMO_PASSWORD;
+    if (
+      !isLoginInput(input) ||
+      !USERS.has(input.username) ||
+      input.password === '' ||
+      (expected !== undefined && expected !== '' && input.password !== expected)
+    ) {
+      sendJson(response, 401, { error: 'Unknown user or wrong password.' });
+      return;
+    }
+    const id = randomBytes(16).toString('hex');
+    sessions.set(id, input.username);
+    logins += 1;
+    response.setHeader('set-cookie', `session=${id}; Path=/; HttpOnly; SameSite=Lax`);
+    sendJson(response, 200, { user: input.username });
+  } else if (path === '/api/logins' && method === 'GET') {
+    sendJson(response, 200, { logins });
+  } else if (path === '/account' && method === 'GET') {
+    send(response, 200, 'text/html', accountPage(escapeHtml(sessionUser(request) ?? '')));
   } else {
     send(response, 404, 'text/plain', `Nothing at ${method} ${path}.`);
   }

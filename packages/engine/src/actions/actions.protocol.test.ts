@@ -31,7 +31,7 @@ afterEach(() => {
 });
 
 async function open(root: string): Promise<{ engine: EngineProcess; diagnostics: Diagnostic[] }> {
-  const engine = new EngineProcess();
+  const engine = new EngineProcess(undefined, undefined, { DEMO_PASSWORD: 'demo-password-1234' });
   engines.push(engine);
   engine.initialize(0);
   await engine.next();
