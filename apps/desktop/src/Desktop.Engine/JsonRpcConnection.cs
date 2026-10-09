@@ -33,7 +33,7 @@ public sealed class JsonRpcConnection : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     private Task? _readLoop;
     private int _nextId;
-    private volatile EngineExitedException? _closedBecause;
+    private volatile EngineException? _closedBecause;
 
     /// <summary>Creates a connection; call <see cref="Start"/> to begin reading.</summary>
     /// <param name="transport">The engine's streams.</param>
@@ -52,12 +52,14 @@ public sealed class JsonRpcConnection : IAsyncDisposable
     public event EventHandler<ProtocolProblem>? ProblemReported;
 
     /// <summary>
-    /// Completes when the engine's output has ended, with the reason. Every
-    /// request still waiting has then failed with that exception.
+    /// Completes when the connection stopped reading, with the reason: an
+    /// <see cref="EngineExitedException"/> when the engine's output ended, an
+    /// <see cref="EngineConnectionFailedException"/> when reading failed for any
+    /// other reason. Every request still waiting has then failed with it.
     /// </summary>
-    public Task<EngineExitedException> Closed => _closed.Task;
+    public Task<EngineException> Closed => _closed.Task;
 
-    private readonly TaskCompletionSource<EngineExitedException> _closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource<EngineException> _closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     /// <summary>Starts reading the engine's output.</summary>
     /// <exception cref="InvalidOperationException">Already started.</exception>
@@ -81,7 +83,8 @@ public sealed class JsonRpcConnection : IAsyncDisposable
     /// <exception cref="EngineRequestException">The engine answered with an error.</exception>
     /// <exception cref="EngineExitedException">The engine's output ended before the answer.</exception>
     /// <exception cref="MessageTooLargeException">The request is over the protocol's size limit.</exception>
-    /// <exception cref="JsonException">The result does not fit <typeparamref name="TResult"/>.</exception>
+    /// <exception cref="ProtocolViolationException">The result does not fit <typeparamref name="TResult"/>.</exception>
+    /// <exception cref="EngineConnectionFailedException">The connection stopped reading for a reason other than the engine exiting.</exception>
     public async Task<TResult> SendAsync<TParams, TResult>(string method, TParams parameters, CancellationToken cancellationToken = default)
     {
         var id = Interlocked.Increment(ref _nextId);
@@ -92,7 +95,7 @@ public sealed class JsonRpcConnection : IAsyncDisposable
             // Checked after registering, so a close that happens in between still fails this request.
             if (_closedBecause is { } closed)
             {
-                throw new EngineExitedException(closed.ExitCode, closed.StderrTail);
+                throw Copy(closed);
             }
 
             var request = new JsonRpcRequest
@@ -108,8 +111,7 @@ public sealed class JsonRpcConnection : IAsyncDisposable
             catch (IOException) when (_closedBecause is not null || _transport.Exited.IsCompleted)
             {
                 // The pipe broke because the engine exited; report that instead.
-                var reason = await Closed.ConfigureAwait(false);
-                throw new EngineExitedException(reason.ExitCode, reason.StderrTail);
+                throw Copy(await Closed.ConfigureAwait(false));
             }
 
             var answer = await waiter.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -117,7 +119,7 @@ public sealed class JsonRpcConnection : IAsyncDisposable
             {
                 IncomingErrorResponse error => throw new EngineRequestException(method, error.Response.Error),
                 IncomingSuccessResponse success when typeof(TResult) == typeof(NullResult) => (TResult)(object)NullResult.Instance,
-                IncomingSuccessResponse success => ProtocolJson.Read<TResult>(success.Response.Result),
+                IncomingSuccessResponse success => ReadResult<TResult>(method, success.Response.Result),
                 _ => throw new InvalidOperationException($"Unexpected answer {answer.GetType().Name}."),
             };
         }
@@ -150,6 +152,7 @@ public sealed class JsonRpcConnection : IAsyncDisposable
 
     private async Task ReadLoopAsync()
     {
+        Exception? failure = null;
         try
         {
             while (await _reader.ReadAsync(_stop.Token).ConfigureAwait(false) is { } line)
@@ -165,23 +168,58 @@ public sealed class JsonRpcConnection : IAsyncDisposable
         {
             // Disposed.
         }
-
-        // Output ends just before the process exits; wait briefly for the exit code, unless disposing.
-        int? exitCode = null;
-        var exitWait = _stop.IsCancellationRequested ? TimeSpan.Zero : TimeSpan.FromSeconds(5);
-        if (await Task.WhenAny(_transport.Exited, Task.Delay(exitWait)).ConfigureAwait(false) == _transport.Exited)
+        catch (Exception ex)
         {
-            exitCode = await _transport.Exited.ConfigureAwait(false);
+            // Anything else would leave requests waiting for ever; fail them instead.
+            failure = ex;
         }
 
-        var reason = new EngineExitedException(exitCode, _transport.StderrTail);
+        EngineException reason;
+        if (failure is not null)
+        {
+            reason = new EngineConnectionFailedException(failure);
+        }
+        else
+        {
+            // Output ends just before the process exits; wait briefly for the exit code, unless disposing.
+            int? exitCode = null;
+            var exitWait = _stop.IsCancellationRequested ? TimeSpan.Zero : TimeSpan.FromSeconds(5);
+            if (await Task.WhenAny(_transport.Exited, Task.Delay(exitWait)).ConfigureAwait(false) == _transport.Exited)
+            {
+                exitCode = await _transport.Exited.ConfigureAwait(false);
+            }
+
+            reason = new EngineExitedException(exitCode, _transport.StderrTail);
+        }
+
         _closedBecause = reason;
         foreach (var waiter in _pending.Values)
         {
-            waiter.TrySetException(reason);
+            waiter.TrySetException(Copy(reason));
         }
 
         _closed.TrySetResult(reason);
+    }
+
+    private static EngineException Copy(EngineException reason) => reason switch
+    {
+        EngineExitedException exited => new EngineExitedException(exited.ExitCode, exited.StderrTail),
+        EngineConnectionFailedException failed when failed.InnerException is { } inner => new EngineConnectionFailedException(inner),
+        _ => reason,
+    };
+
+    private static TResult ReadResult<TResult>(string method, JsonElement result)
+    {
+        try
+        {
+            return ProtocolJson.Read<TResult>(result);
+        }
+        catch (JsonException ex)
+        {
+            throw new ProtocolViolationException(
+                $"The engine's answer to \"{method}\" does not fit this app's protocol ({ex.Message}). The engine and the app may be of different versions; the engine log has the details.",
+                ex);
+        }
     }
 
     private void Handle(FramedLine line)
@@ -234,7 +272,15 @@ public sealed class JsonRpcConnection : IAsyncDisposable
             return;
         }
 
-        EventReceived?.Invoke(this, engineEvent);
+        try
+        {
+            EventReceived?.Invoke(this, engineEvent);
+        }
+        catch (Exception ex)
+        {
+            // A subscriber's bug must not stop the connection from reading.
+            Report($"A handler of the \"{notification.Method}\" event failed: {ex.GetType().Name}: {ex.Message}");
+        }
     }
 
     private void Complete(JsonElement id, IncomingMessage message, byte[] bytes)
@@ -257,6 +303,14 @@ public sealed class JsonRpcConnection : IAsyncDisposable
             excerpt = text.Length > ExcerptLength ? text[..ExcerptLength] + "…" : text;
         }
 
-        ProblemReported?.Invoke(this, new ProtocolProblem(message, excerpt));
+        try
+        {
+            ProblemReported?.Invoke(this, new ProtocolProblem(message, excerpt));
+        }
+        catch (Exception ex)
+        {
+            // The problem cannot be reported anywhere else; keep reading.
+            System.Diagnostics.Trace.TraceError($"A protocol problem handler failed: {ex}");
+        }
     }
 }
