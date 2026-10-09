@@ -1,0 +1,9 @@
+# S15: a skipped test with 2 data rows: one testSkipped per row with the reason.
+version: 1
+name: Pay with ${row.method}
+skip: 'The payment page is not part of the demo app yet'
+steps:
+  - goto: /payment
+data:
+  - { method: card }
+  - { method: invoice }

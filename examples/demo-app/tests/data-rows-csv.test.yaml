@@ -1,0 +1,12 @@
+# S6: data from a CSV file with 3 rows, relative to this file.
+version: 1
+name: Add ${row.sku}
+steps:
+  - goto: /todos
+  - fill: { target: todos.new, value: '${row.title} (${row.price} €)' }
+  - click: todos.add
+  - expect.text: { target: todos.count, equals: 1 }
+after:
+  - goto: /todos
+  - click: todos.clearAll
+data: ./data/products.csv

@@ -36,6 +36,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Data rows: one test instance per row, from inline `data`, a CSV file (read
+  as step-format.md defines it; quoted values are rejected with
+  `DataFileInvalid`) or a YAML file, with `${row.…}` in steps, targets and the
+  test's name. A test with `skip` sends one `testSkipped` per row.
+- The run folder of ADR 0015: `run.json`, `events.ndjson` (the events exactly
+  as sent) and `tests/<nn>-<slug>/test.json`, built from the masked events.
+  `keepRuns` deletes the oldest run folders at the start of a run and reports a
+  folder it cannot delete as `RunCleanupFailed`.
+- `listTests`, with the `tags` filter and each test's number of rows.
+- Samples S6 (`tests/data-rows*.test.yaml`), S13 (`demo.addTodo` now adds the
+  item) and S15 (`tests/skipped.test.yaml`).
+
 - The built-in actions `goto`, `click`, `fill` and `expect.text` run, defined
   with `defineAction` like user actions; each honours `ctx.signal` and gives
   Playwright at most the step's remaining time. `expect.text` retries until the

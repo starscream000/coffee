@@ -1,0 +1,14 @@
+# S6: inline data with 2 rows; each row is its own test instance.
+version: 1
+name: Add ${row.title}
+steps:
+  - goto: /todos
+  - fill: { target: todos.new, value: '${row.title}' }
+  - click: todos.add
+  - expect.text: { target: todos.count, equals: 1 }
+after:
+  - goto: /todos
+  - click: todos.clearAll
+data:
+  - { title: Buy milk }
+  - { title: Walk the dog }
