@@ -57,11 +57,22 @@ tests start the real engine and read the protocol's schema files.
   Instruction 0006 was already open and leaves the old `/regex/` rule in
   place; the next engine instruction changes the documents, the schemas and
   the validator, before plan branch 12.
-
 - 2026-10-10: CSV data files are read as spreadsheets write them (RFC 4180).
 - 2026-10-10: the owner wants a build of the desktop app and the engine on his
   machine before other work; it is the first task of instruction 0007.
 - 2026-10-10: the desktop track is on hold.
+
+## Owner's notes (ideas, not decisions)
+
+- 2026-10-10, a rough idea the owner asked to have noted. What he expects of
+  the whole system, desktop app and engine together: the user records a flow,
+  and the recording is runnable. A flow is a series of actions, and the engine
+  must always recognise each thing the user did and map it to the right
+  action. The YAML step files matter because they make it easy to create
+  different versions of the same flow; that is where generative AI could help
+  with test coverage later, perhaps through a plugin. This does not change the
+  rule "No AI features" in `CLAUDE.md`: nothing is to be built from this note
+  until the owner decides so.
 
 ## Waiting on the owner
 
