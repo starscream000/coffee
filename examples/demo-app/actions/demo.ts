@@ -1,8 +1,9 @@
-// A user action of the demo app: adds an item on the to-do page. Used by
-// sample S13 (tests/user-action.test.yaml).
+// User actions of the demo app: demo.addTodo adds an item on the to-do page
+// (sample S13, tests/user-action.test.yaml); demo.ignoreSignal keeps running
+// after its step has ended (fixture F8, fixtures/failing/stray-action.test.yaml).
 import { defineAction, z } from '@cfe/engine/sdk';
 
-export default defineAction({
+const addTodo = defineAction({
   name: 'demo.addTodo',
   description: "Adds an item on the demo app's to-do page.",
   shorthand: 'title',
@@ -28,6 +29,22 @@ export default defineAction({
       .waitFor();
   },
 });
+
+/**
+ * Waits 5 seconds without looking at ctx.signal, then logs: a user action that
+ * does not stop when its step ends. Do not write actions like this one.
+ */
+const ignoreSignal = defineAction({
+  name: 'demo.ignoreSignal',
+  description: 'Waits 5 seconds and ignores ctx.signal (for fixture F8).',
+  params: z.strictObject({}),
+  async run(ctx) {
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
+    ctx.log.info('This line never reaches the client: the step has ended.');
+  },
+});
+
+export default [addTodo, ignoreSignal];
 
 /** Escapes text for use inside a regular expression. */
 function escapeRegExp(text: string): string {

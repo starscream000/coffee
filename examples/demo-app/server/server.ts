@@ -14,9 +14,13 @@ import {
   checkoutFramePage,
   fallbackPage,
   framesPage,
+  helpPage,
   homePage,
   paymentFramePage,
+  receiptPage,
+  settingsPage,
   slowRenderPage,
+  tabsPage,
   todosPage,
 } from './pages.ts';
 
@@ -43,6 +47,10 @@ const PAGES: Readonly<Record<string, string>> = {
   '/frames': framesPage,
   '/frames/checkout': checkoutFramePage,
   '/frames/payment': paymentFramePage,
+  '/tabs': tabsPage,
+  '/receipt': receiptPage,
+  '/help': helpPage,
+  '/settings': settingsPage,
 };
 
 function send(response: ServerResponse, status: number, type: string, body: string): void {

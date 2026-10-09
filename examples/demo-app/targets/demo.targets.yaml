@@ -46,3 +46,23 @@ targets:
     frame: paymentFrame
     candidates:
       - testId: payment-status
+  # S7: a named tab and an unnamed one.
+  tabs.heading:
+    - role: heading
+      name: Tabs
+  tabs.openReceipt:
+    - role: link
+      name: Open receipt
+  tabs.openHelp:
+    - role: button
+      name: Open help
+  receipt.heading:
+    - role: heading
+      name: Receipt
+  # S17: what the browser reports about its settings.
+  settings.viewport:
+    - testId: viewport
+  settings.locale:
+    - testId: locale
+  settings.timezone:
+    - testId: timezone

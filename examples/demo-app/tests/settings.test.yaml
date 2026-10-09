@@ -1,0 +1,9 @@
+# S17: the browser uses the environment's viewport, locale and timezone. Run it
+# in the environment "local" and in "europe", which overrides locale and timezone.
+version: 1
+name: The browser uses the environment's settings
+steps:
+  - goto: /settings
+  - expect.text: { target: settings.viewport, equals: 1280×720 }
+  - expect.text: { target: settings.locale, equals: '${env.expectedLocale}' }
+  - expect.text: { target: settings.timezone, equals: '${env.expectedTimezone}' }

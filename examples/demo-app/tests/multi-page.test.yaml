@@ -1,0 +1,12 @@
+# S7: a step opens a tab it names with "opens"; another opens a tab without a
+# name, which gets an automatic name and an UnnamedPage warning.
+version: 1
+name: Open a named tab and an unnamed one
+steps:
+  - goto: /tabs
+  - click: tabs.openReceipt
+    opens: receipt
+  - expect.text: { target: receipt.heading, equals: Receipt }
+    page: receipt
+  - click: tabs.openHelp
+  - expect.text: { target: tabs.heading, equals: Tabs }

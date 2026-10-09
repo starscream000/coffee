@@ -180,7 +180,7 @@ describe('user actions through the protocol', () => {
     const { engine } = await open(copyProject(join(EXAMPLES, 'demo-app')));
     const response = await engine.request(2, 'listActions');
     const actions = (response.result as { actions: Record<string, unknown>[] }).actions;
-    expect(actions).toHaveLength(26);
+    expect(actions).toHaveLength(27);
     expect(actions.find((a) => a.name === 'fill')).toMatchObject({
       shorthand: null,
       source: { kind: 'builtin' },

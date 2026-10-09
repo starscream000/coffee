@@ -1,0 +1,12 @@
+# F8: a user action that ignores ctx.signal times out. Its step fails with
+# ActionTimeout, its page is closed with a StrayActionCode warning, and the
+# after step on that page runs on a replacement page (PageReplaced).
+version: 1
+name: A user action that does not stop
+steps:
+  - goto: /todos
+  - demo.ignoreSignal:
+    timeout: 500ms
+after:
+  - goto: /todos
+  - expect.text: { target: todos.count, equals: 0 }

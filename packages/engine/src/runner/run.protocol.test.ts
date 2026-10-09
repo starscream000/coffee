@@ -87,7 +87,10 @@ describe('startRun without a browser', () => {
     expect(
       await startRun({ files: ['tests/user-action.test.yaml'], env: 'nowhere' }),
     ).toMatchObject({
-      error: { code: -32602, message: 'There is no environment "nowhere". The config has: local.' },
+      error: {
+        code: -32602,
+        message: 'There is no environment "nowhere". The config has: local, europe.',
+      },
     });
   });
 
