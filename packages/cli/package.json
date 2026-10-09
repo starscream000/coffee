@@ -1,0 +1,20 @@
+{
+  "name": "@test-tool/cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Command-line client that starts the engine as a separate process and runs step files.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=24.11.0 <25"
+  },
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "testtool": "./dist/main.js"
+  },
+  "dependencies": {
+    "@test-tool/protocol": "workspace:*"
+  }
+}

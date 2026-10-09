@@ -133,5 +133,6 @@ pnpm lint             ESLint
 pnpm format:check     Prettier check (pnpm format to fix)
 pnpm typecheck        type check all packages
 pnpm test             Vitest, all packages
-pnpm verify           everything above; must pass before any merge
+pnpm verify           type check, lint, format check, tests; must pass before any merge
+                      (lint needs a build, so a fresh clone runs typecheck first)
 ```
