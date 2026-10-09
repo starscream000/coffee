@@ -97,6 +97,10 @@ export function registerProjectHandlers(
       }
       return runs.start(project, params);
     });
+    session.register('cancelRun', (params) => {
+      runs.cancel(params.runId);
+      return Promise.resolve(null);
+    });
   }
 
   session.register('listTests', (params) => {

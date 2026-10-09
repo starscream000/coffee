@@ -55,6 +55,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Named pages: `main` and the declared pages open on first use, pages with
+  the same login share a browser context, a step's `opens` names the tab it
+  opens (`PageNotOpened` when none does), and an unnamed tab gets an automatic
+  name with an `UnnamedPage` warning; both send `pageOpened`. New tabs are
+  attributed to the step that created them, as Chromium reports it.
+- `cancelRun`: the current step fails with `Cancelled`, the rest are skipped,
+  `after` steps run within 30 seconds in all, tests not started are cancelled.
+- A user action that ignores `ctx.signal` gets 2 seconds to return; then its
+  step fails with `ActionTimeout`, its page is closed (`StrayActionCode`), its
+  `ctx` is sealed, and an `after` step on that page gets a new blank page
+  (`PageReplaced`).
+- Demo pages `/tabs` and `/settings`, an environment `europe` that overrides
+  locale and timezone, and samples S7, S17 and F8.
+
 - Data rows: one test instance per row, from inline `data`, a CSV file (read
   as step-format.md defines it; quoted values are rejected with
   `DataFileInvalid`) or a YAML file, with `${row.…}` in steps, targets and the
