@@ -10,6 +10,9 @@
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Desktop.Protocol.Tests\RepoPaths.cs" Link="RepoPaths.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Desktop.Engine\Desktop.Engine.csproj" />
   </ItemGroup>
 </Project>

@@ -8,10 +8,12 @@ public sealed class DependencyRuleTests
     [Fact]
     public void Engine_references_only_the_protocol_and_the_base_library()
     {
-        var references = EngineAssembly.Assembly.GetReferencedAssemblies()
-            .Select(a => a.Name ?? string.Empty)
-            .Where(n => !n.StartsWith("System", StringComparison.Ordinal) && n != "netstandard")
+        // The base library is every assembly of the shared framework, the folder that holds System.Object's assembly.
+        var framework = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
+        var others = typeof(EngineSession).Assembly.GetReferencedAssemblies()
+            .Where(a => !File.Exists(Path.Combine(framework, a.Name + ".dll")))
+            .Select(a => a.Name)
             .ToList();
-        Assert.All(references, n => Assert.Equal("Desktop.Protocol", n));
+        Assert.Equal(["Desktop.Protocol"], others);
     }
 }
