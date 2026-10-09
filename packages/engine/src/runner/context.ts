@@ -43,6 +43,12 @@ export interface StepContextOptions {
   readonly reporter: LocatorReporter;
   /** Sends a `log` event for the step. */
   readonly log: (level: LogLevel, message: string) => void;
+  /**
+   * True once the step has ended while its action kept running: from then on
+   * `ctx.vars.set`, `ctx.log` and `ctx.locate` are ignored (docs/actions.md,
+   * "A user action that ignores the signal").
+   */
+  readonly sealed?: () => boolean;
 }
 
 const deadlines = new WeakMap<ActionContext, number>();
@@ -73,38 +79,50 @@ function paramOf(target: TargetRef, params: Readonly<Record<string, unknown>>): 
  * @returns The context to pass to the action's `run`.
  */
 export function createStepContext(options: StepContextOptions): ActionContext {
+  const sealed = options.sealed ?? ((): boolean => false);
+  const log = (level: LogLevel, message: string): void => {
+    if (!sealed()) options.log(level, message);
+  };
   const ctx: ActionContext = {
     page: options.page,
     request: options.request,
-    vars: options.vars,
+    vars: {
+      get: (name) => options.vars.get(name),
+      has: (name) => options.vars.has(name),
+      set: (name, value) => {
+        if (!sealed()) options.vars.set(name, value);
+      },
+    },
     env: options.env,
     secrets: options.secrets,
     signal: options.signal,
     log: {
       debug: (message) => {
-        options.log('debug', message);
+        log('debug', message);
       },
       info: (message) => {
-        options.log('info', message);
+        log('info', message);
       },
       warn: (message) => {
-        options.log('warn', message);
+        log('warn', message);
       },
     },
     locate: (target: TargetRef): Promise<Locator> =>
-      locate(target, {
-        page: options.page,
-        targets: options.targets,
-        scope: options.interpolation,
-        testIdAttribute: options.testIdAttribute,
-        fallbackGraceMs: options.fallbackGraceMs,
-        // Stop a little before the step's deadline, so the step reports
-        // TargetNotFound with its candidates rather than ActionTimeout.
-        timeoutMs: Math.max(0, options.deadline - performance.now() - LOCATE_MARGIN_MS),
-        signal: options.signal,
-        reporter: options.reporter,
-        param: paramOf(target, options.params),
-      }),
+      sealed()
+        ? Promise.reject(new Error('The step this action belongs to has ended.'))
+        : locate(target, {
+            page: options.page,
+            targets: options.targets,
+            scope: options.interpolation,
+            testIdAttribute: options.testIdAttribute,
+            fallbackGraceMs: options.fallbackGraceMs,
+            // Stop a little before the step's deadline, so the step reports
+            // TargetNotFound with its candidates rather than ActionTimeout.
+            timeoutMs: Math.max(0, options.deadline - performance.now() - LOCATE_MARGIN_MS),
+            signal: options.signal,
+            reporter: options.reporter,
+            param: paramOf(target, options.params),
+          }),
   };
   deadlines.set(ctx, options.deadline);
   return ctx;

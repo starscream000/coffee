@@ -41,7 +41,10 @@ async function openDemoApp(): Promise<EngineProcess> {
   engine.initialize(0);
   await engine.next();
   const opened = await engine.request(1, 'openProject', { root: DEMO_APP });
-  expect(opened).toMatchObject({ id: 1, result: { environments: ['local'], diagnostics: [] } });
+  expect(opened).toMatchObject({
+    id: 1,
+    result: { environments: ['local'], diagnostics: [] },
+  });
   return engine;
 }
 

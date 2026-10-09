@@ -14,5 +14,7 @@ environments:
     baseUrl: http://localhost:4310
     values:
       apiUrl: http://localhost:4310/api
+      expectedLocale: en-US
+      expectedTimezone: UTC
 
 secrets: [DEMO_PASSWORD]

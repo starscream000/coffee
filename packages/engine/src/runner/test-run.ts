@@ -1,15 +1,14 @@
 // Runs one test instance (docs/step-format.md, "Execution rules";
-// docs/architecture.md, "Lifecycle of a run"): a fresh browser context with
-// the environment's settings, `before` then `steps` until the first failure,
-// the rest skipped, and `after` steps always, each on its own. Every step has a
-// timeout; when it passes, the step's signal is aborted and the step fails with
-// ActionTimeout.
+// docs/architecture.md, "Lifecycle of a run"): its pages and browser contexts
+// with the environment's settings, `before` then `steps` until the first
+// failure, the rest skipped, and `after` steps always, each on its own. When
+// the run is cancelled, the current step fails with `Cancelled`, the rest are
+// skipped, and the `after` steps still run within 30 seconds in all.
 
-import type { LocatorUse } from '@cfe/protocol';
-import type { Browser, BrowserContext } from 'playwright';
+import type { Browser } from 'playwright';
 import type { ActionRegistry } from '../actions/registry.js';
 import type { EnvironmentProfile } from '../context/environment.js';
-import { interpolate, unsetVariables } from '../context/interpolate.js';
+import { unsetVariables } from '../context/interpolate.js';
 import { VariableStore } from '../context/variables.js';
 import { targetLookup } from '../locate/locate.js';
 import { durationToMs } from '../schema/common.js';
@@ -20,11 +19,14 @@ import type { DataRow } from '../stepfile/data-rows.js';
 import type { SourceFile } from '../stepfile/source.js';
 import type { NormalizedStep } from '../stepfile/steps.js';
 import type { TestSteps } from '../stepfile/validate-file.js';
-import { createStepContext, type LogLevel } from './context.js';
-import { StepError, toErrorInfo, type StepStop } from './errors.js';
+import { PageSet, type LoginStates } from './pages.js';
+import { executeStep } from './step.js';
 
 /** Sends one event of the run; the run adds `runId` and `seq`. */
 export type EmitEvent = (method: string, params: Record<string, unknown>) => void;
+
+/** How long `after` steps may run in all once a run is cancelled (docs/architecture.md). */
+export const AFTER_LIMIT_MS = 30_000;
 
 /** One test instance to run. */
 export interface TestInstance {
@@ -58,6 +60,8 @@ export interface TestRunOptions {
   readonly sharedTargets: ReadonlyMap<string, TargetValue>;
   /** The attribute `testId` candidates match. */
   readonly testIdAttribute: string;
+  /** Gives the storage state of a saved login for this test. */
+  readonly logins: (fresh: boolean) => LoginStates;
   /** Aborted when the run is cancelled. */
   readonly cancel: AbortSignal;
   /** Sends events. */
@@ -68,19 +72,6 @@ export interface TestRunOptions {
 export type TestStatus = 'passed' | 'failed' | 'cancelled';
 
 type Section = 'before' | 'steps' | 'after';
-
-type StepOutcome = 'passed' | 'failed' | 'cancelled' | 'skipped';
-
-/** Thrown into a step's signal when the runner ends the step. */
-class StepStopped extends Error {
-  readonly stop: StepStop;
-
-  constructor(stop: StepStop) {
-    super(stop === 'timeout' ? 'The step timed out.' : 'The run was cancelled.');
-    this.name = 'StepStopped';
-    this.stop = stop;
-  }
-}
 
 /**
  * The label of a step in results: its `name`, or the action and its main
@@ -97,24 +88,12 @@ export function stepTitle(step: NormalizedStep): string {
     : step.action;
 }
 
-/** The names of the built-in actions that have a `run`, for messages. */
-function runnableBuiltins(registry: ActionRegistry): string {
-  const names = registry
-    .list()
-    .filter((action) => action.source.kind === 'builtin' && action.run !== undefined)
-    .map((action) => action.spec.name);
-  return names.length > 0 ? names.join(', ') : 'none yet';
-}
-
-/** Resolves when the signal is aborted. */
-function whenAborted(signal: AbortSignal): Promise<never> {
-  return new Promise((_resolve, reject) => {
-    const fail = (): void => {
-      reject(signal.reason instanceof Error ? signal.reason : new StepStopped('cancelled'));
-    };
-    if (signal.aborted) fail();
-    else signal.addEventListener('abort', fail, { once: true });
-  });
+/** The login of each declared page; `login:` is the shorthand for `pages.main.login`. */
+function pageLogins(data: TestFile): Map<string, string | undefined> {
+  const logins = new Map<string, string | undefined>();
+  for (const [name, page] of Object.entries(data.pages ?? {})) logins.set(name, page.login);
+  if (data.login !== undefined) logins.set('main', data.login);
+  return logins;
 }
 
 /**
@@ -130,169 +109,102 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
   const started = performance.now();
   emit('testStarted', { testId: test.testId, startedAt: new Date().toISOString() });
 
-  let context: BrowserContext | undefined;
+  const pages = new PageSet({
+    browser: options.browser,
+    profile,
+    pageLogins: pageLogins(test.data),
+    logins: options.logins(test.data.freshLogin === true),
+    testId: test.testId,
+    emit,
+  });
+  const vars = new VariableStore(test.data.vars ?? {});
+  const targets = targetLookup(test.data.targets, options.sharedTargets);
   let status: TestStatus = 'passed';
-  try {
-    context = await options.browser.newContext({
-      viewport: profile.settings.viewport,
-      locale: profile.settings.locale,
-      timezoneId: profile.settings.timezone,
-      baseURL: profile.baseUrl,
-    });
-    const page = await context.newPage();
-    const vars = new VariableStore(test.data.vars ?? {});
-    const targets = targetLookup(test.data.targets, options.sharedTargets);
+  let cancelledAt: number | undefined;
 
-    const runStep = async (
-      step: NormalizedStep,
-      section: Section,
-      index: number,
-    ): Promise<StepOutcome> => {
-      const stepId = `${section}.${String(index)}`;
-      const at = test.source.positionOf(step.path);
-      const location = { file: test.file, line: at.line, column: at.column };
-      if (section === 'after') {
-        const [unset] = unsetVariables(step.params, vars);
-        if (unset !== undefined) {
-          emit('stepSkipped', {
-            testId: test.testId,
-            stepId,
-            reason: 'variableNotSet',
-            message: `skipped: ${unset} was never set`,
-            variable: unset,
-          });
-          return 'skipped';
-        }
+  const runStep = async (
+    step: NormalizedStep,
+    section: Section,
+    index: number,
+  ): Promise<'passed' | 'failed' | 'cancelled' | 'skipped'> => {
+    const stepId = `${section}.${String(index)}`;
+    const at = test.source.positionOf(step.path);
+    const location = { file: test.file, line: at.line, column: at.column };
+    if (section === 'after') {
+      const [unset] = unsetVariables(step.params, vars);
+      if (unset !== undefined) {
+        emit('stepSkipped', {
+          testId: test.testId,
+          stepId,
+          reason: 'variableNotSet',
+          message: `skipped: ${unset} was never set`,
+          variable: unset,
+        });
+        return 'skipped';
       }
-      emit('stepStarted', {
+    }
+    emit('stepStarted', {
+      testId: test.testId,
+      stepId,
+      section,
+      action: step.action,
+      params: step.params,
+      page: step.page ?? 'main',
+      title: stepTitle(step),
+      location,
+    });
+    let timeoutMs = durationToMs(step.timeout ?? profile.settings.timeout);
+    if (section === 'after' && cancelledAt !== undefined) {
+      // After a cancellation, the after steps share 30 seconds.
+      timeoutMs = Math.max(
+        1,
+        Math.min(timeoutMs, cancelledAt + AFTER_LIMIT_MS - performance.now()),
+      );
+    }
+    const result = await executeStep(step, {
+      registry: options.registry,
+      profile,
+      secrets: options.secrets,
+      testIdAttribute: options.testIdAttribute,
+      vars,
+      targets,
+      row: test.row,
+      pages,
+      section,
+      testId: test.testId,
+      stepId,
+      location,
+      timeoutMs,
+      // after steps run even when the run is cancelled.
+      cancel: section === 'after' ? undefined : options.cancel,
+      emit,
+    });
+    if (result.outcome === 'passed') {
+      emit('stepPassed', {
         testId: test.testId,
         stepId,
-        section,
-        action: step.action,
-        params: step.params,
-        page: step.page ?? 'main',
-        title: stepTitle(step),
-        location,
+        durationMs: result.durationMs,
+        locators: result.locators,
+        snapshot: { state: 'skipped' },
       });
+    } else {
+      emit('stepFailed', {
+        testId: test.testId,
+        stepId,
+        durationMs: result.durationMs,
+        error: result.error,
+        locators: result.locators,
+        snapshot: { state: 'skipped' },
+      });
+    }
+    return result.outcome;
+  };
 
-      const stepStart = performance.now();
-      const timeoutMs = durationToMs(step.timeout ?? profile.settings.timeout);
-      const controller = new AbortController();
-      const timer = setTimeout(() => {
-        controller.abort(new StepStopped('timeout'));
-      }, timeoutMs);
-      // `after` steps run even when the run is cancelled.
-      const onCancel = (): void => {
-        controller.abort(new StepStopped('cancelled'));
-      };
-      if (section !== 'after') {
-        if (options.cancel.aborted) onCancel();
-        options.cancel.addEventListener('abort', onCancel, { once: true });
-      }
-      const locators: LocatorUse[] = [];
-      try {
-        const action = options.registry.get(step.action);
-        if (step.page !== undefined && step.page !== 'main') {
-          throw new StepError(
-            'NotImplemented',
-            `Steps on named pages ("${step.page}") cannot run yet in this engine version.`,
-          );
-        }
-        if (step.opens !== undefined) {
-          throw new StepError('NotImplemented', `"opens" cannot run yet in this engine version.`);
-        }
-        if (action?.run === undefined) {
-          throw new StepError(
-            'NotImplemented',
-            `The built-in action "${step.action}" cannot run yet in this engine version.`,
-            `The built-in actions this engine can run: ${runnableBuiltins(options.registry)}.`,
-          );
-        }
-        const interpolation = {
-          vars,
-          env: profile,
-          secrets: options.secrets,
-          row: test.row,
-          step: `${stepId} (${step.action})`,
-        };
-        const params = interpolate(step.params, interpolation) as Record<string, unknown>;
-        const checked = action.spec.params.safeParse(params);
-        if (!checked.success) {
-          throw new StepError(
-            'InvalidParameters',
-            `After its \${…} values were filled in, the parameters of "${step.action}" are invalid: ${checked.error.issues
-              .map((issue) => `${issue.path.join('.') || 'parameters'}: ${issue.message}`)
-              .join('; ')}.`,
-          );
-        }
-        const log = (level: LogLevel, message: string): void => {
-          emit('log', { level, message, testId: test.testId, stepId, location });
-        };
-        const ctx = createStepContext({
-          page,
-          request: page.request,
-          vars,
-          env: profile,
-          secrets: options.secrets,
-          interpolation,
-          targets,
-          testIdAttribute: options.testIdAttribute,
-          fallbackGraceMs: durationToMs(profile.settings.fallbackGrace),
-          deadline: stepStart + timeoutMs,
-          signal: controller.signal,
-          params: checked.data,
-          reporter: {
-            locatorUsed: (use) => locators.push(use),
-            locatorFallback: (warning) => {
-              emit('log', {
-                level: 'warn',
-                code: warning.code,
-                message: warning.message,
-                testId: test.testId,
-                stepId,
-                location,
-                data: warning.data,
-              });
-            },
-          },
-          log,
-        });
-        await Promise.race([action.run(ctx, checked.data), whenAborted(controller.signal)]);
-        // An action that returns once its signal is aborted did not pass: the
-        // step was ended by its timeout or by cancellation.
-        controller.signal.throwIfAborted();
-        emit('stepPassed', {
-          testId: test.testId,
-          stepId,
-          durationMs: Math.round(performance.now() - stepStart),
-          locators,
-          snapshot: { state: 'skipped' },
-        });
-        return 'passed';
-      } catch (error) {
-        const reason: unknown = controller.signal.reason;
-        const stop =
-          controller.signal.aborted && reason instanceof StepStopped ? reason.stop : undefined;
-        emit('stepFailed', {
-          testId: test.testId,
-          stepId,
-          durationMs: Math.round(performance.now() - stepStart),
-          error: toErrorInfo(error, location, stop, timeoutMs),
-          locators,
-          snapshot: { state: 'skipped' },
-        });
-        return stop === 'cancelled' ? 'cancelled' : 'failed';
-      } finally {
-        clearTimeout(timer);
-        options.cancel.removeEventListener('abort', onCancel);
-      }
-    };
-
+  try {
     // before, then steps: the first failure stops the rest.
     let stopped: { outcome: 'failed' | 'cancelled'; stepId: string; section: Section } | undefined;
     for (const section of ['before', 'steps'] as const) {
-      const steps = test.steps[section];
-      for (const [index, step] of steps.entries()) {
+      for (const [index, step] of test.steps[section].entries()) {
         const stepId = `${section}.${String(index)}`;
         if (stopped === undefined && options.cancel.aborted) {
           stopped = { outcome: 'cancelled', stepId, section };
@@ -318,6 +230,10 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
       }
     }
     if (stopped !== undefined) status = stopped.outcome;
+    if (options.cancel.aborted) {
+      status = 'cancelled';
+      cancelledAt = performance.now();
+    }
 
     // after steps always run, each on its own.
     for (const [index, step] of test.steps.after.entries()) {
@@ -325,7 +241,7 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
       if (outcome === 'failed' && status === 'passed') status = 'failed';
     }
   } catch (error) {
-    // The browser context could not be created, or the browser went away.
+    // The browser went away, or another unexpected engine failure.
     status = 'failed';
     emit('log', {
       level: 'error',
@@ -334,7 +250,7 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
       testId: test.testId,
     });
   } finally {
-    await context?.close().catch(() => undefined);
+    await pages.close();
   }
   emit('testFinished', {
     testId: test.testId,

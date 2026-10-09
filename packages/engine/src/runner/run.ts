@@ -19,6 +19,7 @@ import { interpolate } from '../context/interpolate.js';
 import { VariableStore } from '../context/variables.js';
 import { readDataRows } from '../stepfile/data-rows.js';
 import { availableBrowsers, INSTALL_COMMAND, launchBrowser } from './browser.js';
+import { StepError } from './errors.js';
 import { DEFAULT_KEEP_RUNS, pruneRuns, type PruneResult } from './keep-runs.js';
 import { RunFolder, type RunFolderInfo } from './run-folder.js';
 import { runTest, type EmitEvent, type TestInstance, type TestStatus } from './test-run.js';
@@ -79,7 +80,7 @@ interface PlannedTest {
 export class RunManager {
   private readonly channel: EventChannel;
   private readonly info: RunFolderInfo;
-  private current: { cancel: AbortController; done: Promise<void> } | undefined;
+  private current: { runId: string; cancel: AbortController; done: Promise<void> } | undefined;
 
   /**
    * @param channel - Renders and sends events to the client.
@@ -204,8 +205,29 @@ export class RunManager {
         });
       });
     });
-    this.current = { cancel, done };
+    this.current = { runId, cancel, done };
     return Promise.resolve({ runId, resultsDir: posix(resultsDir) });
+  }
+
+  /**
+   * Starts cancelling a run (`cancelRun`) and returns at once: the current
+   * step fails with `Cancelled`, the remaining steps are skipped, `after` steps
+   * still run within 30 seconds, tests not started are reported as cancelled,
+   * and `runFinished` says `cancelled`.
+   *
+   * @param runId - The run to cancel.
+   * @throws RpcError `InvalidParams` when no run with that id is in progress.
+   */
+  cancel(runId: string): void {
+    if (this.current?.runId !== runId) {
+      throw new RpcError(
+        'InvalidParams',
+        this.current === undefined
+          ? `No run is in progress, so "${runId}" cannot be cancelled.`
+          : `The run in progress is "${this.current.runId}", not "${runId}".`,
+      );
+    }
+    this.current.cancel.abort();
   }
 
   /**
@@ -369,6 +391,13 @@ export class RunManager {
             secrets: run.secrets,
             sharedTargets: project.sharedTargetValues(),
             testIdAttribute: project.config?.defaults?.testIdAttribute ?? 'data-testid',
+            logins: () => (login) =>
+              Promise.reject(
+                new StepError(
+                  'NotImplemented',
+                  `Saved logins ("${login}") cannot run yet in this engine version.`,
+                ),
+              ),
             cancel: run.cancel,
             emit,
           });

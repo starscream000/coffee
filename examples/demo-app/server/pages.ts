@@ -27,6 +27,8 @@ export const homePage = document(
     <li><a href="/fallback">Locator fallback</a></li>
     <li><a href="/slow-render">Slow render</a></li>
     <li><a href="/frames">Frames</a></li>
+    <li><a href="/tabs">Tabs</a></li>
+    <li><a href="/settings">Browser settings</a></li>
   </ul>
 </nav>`,
 );
@@ -153,5 +155,46 @@ export const paymentFramePage = document(
     document.querySelector('[data-testid="payment-status"]').textContent =
       'Paid with card ending ' + digits.slice(-4);
   });
+</script>`,
+);
+
+/** `/tabs`: a link that opens a receipt in a new tab, and a button that opens help (S7). */
+export const tabsPage = document(
+  'Tabs',
+  `<h1>Tabs</h1>
+<p><a href="/receipt" target="_blank">Open receipt</a></p>
+<button type="button" id="open-help">Open help</button>
+<script>
+  document.getElementById('open-help').addEventListener('click', () => {
+    window.open('/help', '_blank');
+  });
+</script>`,
+);
+
+/** `/receipt`: the page S7 opens as a named tab. */
+export const receiptPage = document(
+  'Receipt',
+  `<h1>Receipt</h1>
+<p>Total: <span data-testid="receipt-total">€20.00</span></p>`,
+);
+
+/** `/help`: the page S7 opens without naming it. */
+export const helpPage = document('Help', '<h1>Help</h1>');
+
+/** `/settings`: shows the browser's viewport, locale and timezone (S17). */
+export const settingsPage = document(
+  'Browser settings',
+  `<h1>Browser settings</h1>
+<dl>
+  <dt>Viewport</dt><dd data-testid="viewport"></dd>
+  <dt>Locale</dt><dd data-testid="locale"></dd>
+  <dt>Timezone</dt><dd data-testid="timezone"></dd>
+</dl>
+<script>
+  document.querySelector('[data-testid="viewport"]').textContent =
+    window.innerWidth + '×' + window.innerHeight;
+  document.querySelector('[data-testid="locale"]').textContent = navigator.language;
+  document.querySelector('[data-testid="timezone"]').textContent =
+    Intl.DateTimeFormat().resolvedOptions().timeZone;
 </script>`,
 );
