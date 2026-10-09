@@ -82,6 +82,9 @@ async function exitDuringRun(
           `${error instanceof Error ? error.message : String(error)} Received so far: ${methods.join(', ') || 'nothing'}; not JSON: ${JSON.stringify(app.engine.notJson)}`,
         );
       });
+      if (message.id === 11 && 'error' in message) {
+        throw new Error(`startRun was refused: ${JSON.stringify(message.error)}`);
+      }
       if (typeof message.method === 'string') methods.push(message.method);
       if (message.method === 'stepStarted') break;
     }
