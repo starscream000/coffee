@@ -36,6 +36,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The runner core: `startRun` validates the selected files (by `files` or
+  `tags`), checks the environment and the browser, creates the run folder,
+  answers with `{ runId, resultsDir }`, then runs each test in a fresh browser
+  context with the environment's viewport, locale and timezone, and sends
+  `runStarted` … `runFinished` with `seq` rising by one. `before` then `steps`
+  until the first failure, the rest skipped; `after` steps always, an unset
+  variable skipping them; step timeouts abort `ctx.signal` and fail with
+  `ActionTimeout`. Step failures carry a stable code, the step's location and,
+  for assertions, expected and actual values. `ctx` is built for every step,
+  `ctx.log` becomes `log` events and `LocatorFallback` warnings carry the
+  step's location.
+- `initialize` reports `chromium` in `capabilities.browsers` when it is
+  installed; without it, `startRun` gives the install command. One browser per
+  run; shutdown, a closed stdin or an internal error cancel the run and close
+  the browser first.
+- The engine owns stdout and stderr: only protocol messages reach stdout, and
+  every write to stderr is masked, including `process.stderr.write` from user
+  actions.
+
 - The demo web server (`examples/demo-app/server/`): Node only, no
   dependency, with the pages that samples S10, S11, S12, S14, F1, F2, F3 and
   F7 of the runner will need (to-dos, locator fallback, slow render, nested

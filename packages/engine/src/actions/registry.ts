@@ -25,6 +25,9 @@ export interface ActionLocation {
   readonly column: number;
 }
 
+/** A built-in action: runnable, or a spec only until its `run` exists. */
+export type BuiltinAction = ActionSpec | RunnableAction;
+
 /** An action in the registry. */
 export interface RegisteredAction {
   /** What the validator needs. */
@@ -83,12 +86,30 @@ export class ActionRegistry implements NotLoaded {
   readonly failedFiles: string[] = [];
 
   /**
-   * @param builtins - The built-in specs.
+   * @param builtins - The built-in actions: runnable ones with their `run`,
+   *   the others as specs only.
    */
-  constructor(builtins: readonly ActionSpec[]) {
-    for (const spec of builtins) {
-      this.actions.set(spec.name, { spec, run: undefined, source: { kind: 'builtin' } });
+  constructor(builtins: readonly BuiltinAction[]) {
+    for (const builtin of builtins) {
+      const spec: ActionSpec = {
+        name: builtin.name,
+        description: builtin.description,
+        params: builtin.params,
+        ...(builtin.shorthand === undefined ? {} : { shorthand: builtin.shorthand }),
+      };
+      const run = 'run' in builtin ? builtin.run.bind(builtin) : undefined;
+      this.actions.set(spec.name, { spec, run, source: { kind: 'builtin' } });
     }
+  }
+
+  /**
+   * Finds an action by name.
+   *
+   * @param name - The action's name.
+   * @returns The registered action, or `undefined`.
+   */
+  get(name: string): RegisteredAction | undefined {
+    return this.actions.get(name);
   }
 
   /** Every action's spec by name, for the validator. */

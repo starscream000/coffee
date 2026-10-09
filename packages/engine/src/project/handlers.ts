@@ -1,13 +1,14 @@
 // Registers the project requests on a session: `openProject` opens (or
 // replaces) the one project of this engine process, `validate` checks files in
-// it, and `listActions` describes every action (docs/protocol.md, "Requests").
+// it, `listActions` describes every action, and `startRun` runs tests
+// (docs/protocol.md, "Requests").
 
 import type { ActionSummary } from '@cfe/protocol';
 import { z } from 'zod';
-import type { ActionSpec } from '../actions/action-spec.js';
 import type { SecretRegistry } from '../context/mask.js';
-import type { RegisteredAction } from '../actions/registry.js';
+import { ActionRegistry, type BuiltinAction, type RegisteredAction } from '../actions/registry.js';
 import { RpcError } from '../rpc/rpc-error.js';
+import type { RunManager } from '../runner/run.js';
 import type { Session } from '../rpc/session.js';
 import { Project } from './project.js';
 
@@ -44,6 +45,7 @@ export function summariseAction(action: RegisteredAction): ActionSummary {
  * @param session - The protocol session.
  * @param builtins - The built-in action specs.
  * @param secrets - The engine-wide secret registry the message writer masks with.
+ * @param runs - Starts runs; with it, `startRun` is handled too.
  *
  * @example
  * ```ts
@@ -52,12 +54,19 @@ export function summariseAction(action: RegisteredAction): ActionSummary {
  */
 export function registerProjectHandlers(
   session: Session,
-  builtins: readonly ActionSpec[],
+  builtins: readonly BuiltinAction[],
   secrets: SecretRegistry,
+  runs?: RunManager,
 ): void {
   let project: Project | undefined;
 
   session.register('openProject', async (params) => {
+    if (runs?.running === true) {
+      throw new RpcError(
+        'RunInProgress',
+        'A run is in progress; open another project once it has finished.',
+      );
+    }
     // A newly opened project brings its own secrets; forget the previous ones.
     secrets.clear();
     project = await Project.open(params.root, builtins, { secrets });
@@ -76,11 +85,23 @@ export function registerProjectHandlers(
     return Promise.resolve({ diagnostics: project.validate(params) });
   });
 
+  if (runs !== undefined) {
+    session.register('startRun', (params) => {
+      if (project === undefined) {
+        return Promise.reject(
+          new RpcError(
+            'ProjectNotOpen',
+            'Open a project with "openProject" before starting a run.',
+          ),
+        );
+      }
+      return runs.start(project, params);
+    });
+  }
+
   session.register('listActions', () => {
     // Without an open project there are no user actions yet: list the built-ins.
-    const actions: RegisteredAction[] =
-      project?.registry.list().slice() ??
-      builtins.map((spec) => ({ spec, run: undefined, source: { kind: 'builtin' } as const }));
+    const actions = (project?.registry ?? new ActionRegistry(builtins)).list();
     return Promise.resolve({ actions: actions.map(summariseAction) });
   });
 }
