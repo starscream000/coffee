@@ -204,6 +204,7 @@ describe('the run folder (I8)', () => {
       'steps.4 skipped',
       'after.0 passed',
       'after.1 passed',
+      'after.2 passed',
     ]);
     expect(testJson.steps[3]?.error?.code).toBe('AssertionFailed');
 

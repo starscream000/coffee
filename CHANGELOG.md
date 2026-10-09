@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Review 0006 findings: every event is written to the run folder before it
+  is sent, so a client that reads the folder on any event (including
+  `runFinished`) finds it complete; `demo.addTodo` returns only once its item
+  is on the page, so sample S13 no longer fails now and then; and every
+  sample's `after` section that resets the demo app now ends with a check that
+  the reset reached the server.
 - Review 0005 findings: masking never changes an action's `paramsSchema`; a
   `log` event's `data` is walked, so `target` and `candidateIndex` stay
   readable while other fields are masked; `ctx.locate` tries every candidate

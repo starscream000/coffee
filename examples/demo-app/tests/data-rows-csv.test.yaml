@@ -9,4 +9,5 @@ steps:
 after:
   - goto: /todos
   - click: todos.clearAll
+  - expect.text: { target: todos.count, equals: 0 }
 data: ./data/products.csv
