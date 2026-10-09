@@ -1,0 +1,7 @@
+<!-- The engine protocol in C#: message types, JSON settings, framing and the
+     version rule. Depends on nothing but the .NET base library. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Desktop.Protocol</RootNamespace>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,69 @@
+<!-- The main window: top bar, notice bar, and either the start page or the open project. -->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Desktop.App.ViewModels"
+        xmlns:views="using:Desktop.App.Views"
+        x:Class="Desktop.App.Views.MainWindow"
+        x:DataType="vm:ShellViewModel"
+        Title="{Binding Title}"
+        Width="1280" Height="820" MinWidth="900" MinHeight="560">
+  <Grid RowDefinitions="Auto,Auto,*">
+    <!-- Top bar -->
+    <Border Grid.Row="0" Padding="12,8" BorderThickness="0,0,0,1"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+          <Border Classes="badge" Padding="8,3" ToolTip.Tip="{Binding Engine.Detail}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Classes="status"
+                       Classes.ready="{Binding Engine.IsReady}"
+                       Classes.busy="{Binding Engine.IsBusy}"
+                       Classes.failed="{Binding Engine.IsFailed}" />
+              <TextBlock x:Name="EngineStateText" Classes="small" Text="{Binding Engine.StateText}" />
+            </StackPanel>
+          </Border>
+          <Button Content="Restart engine" Command="{Binding RestartEngineCommand}"
+                  ToolTip.Tip="Stop the engine and start it again with the current settings." />
+          <Button Content="Settings" Command="{Binding ToggleSettingsCommand}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <TextBlock Text="{Binding ProductName}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsProjectOpen}" VerticalAlignment="Center">
+            <TextBlock Text="›" Classes="muted" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Workspace.Name, FallbackValue=''}" FontWeight="SemiBold" VerticalAlignment="Center"
+                       ToolTip.Tip="{Binding Workspace.Root, FallbackValue=''}" />
+            <ComboBox ItemsSource="{Binding Workspace.Environments, FallbackValue={x:Null}}"
+                      SelectedItem="{Binding Workspace.SelectedEnvironment, FallbackValue={x:Null}}"
+                      IsVisible="{Binding Workspace.HasEnvironments, FallbackValue=False}"
+                      MinWidth="120" ToolTip.Tip="Environment for runs" />
+            <Button Content="Validate" Command="{Binding Workspace.ValidateCommand, FallbackValue={x:Null}}"
+                    ToolTip.Tip="Check every test file again." />
+            <Button Content="Close project" Command="{Binding CloseProjectCommand}" />
+          </StackPanel>
+          <Button Content="Open folder…" Command="{Binding OpenFolderCommand}" />
+          <ProgressBar IsIndeterminate="True" Width="80" IsVisible="{Binding IsOpening}" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Notice bar -->
+    <Border Grid.Row="1" Padding="12,8" IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}"
+            Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissNoticeCommand}" />
+        <TextBlock x:Name="NoticeText" Text="{Binding Notice}" TextWrapping="Wrap" VerticalAlignment="Center"
+                   Foreground="{StaticResource ErrorBrush}" IsVisible="{Binding NoticeIsError}" />
+        <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" VerticalAlignment="Center" IsVisible="{Binding !NoticeIsError}" />
+      </DockPanel>
+    </Border>
+
+    <!-- Content -->
+    <Panel Grid.Row="2">
+      <views:StartPageView x:Name="StartPage" IsVisible="{Binding !IsProjectOpen}" />
+      <views:WorkspaceView x:Name="WorkspacePanel" DataContext="{Binding Workspace}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsProjectOpen, FallbackValue=False}" />
+      <Border IsVisible="{Binding IsSettingsOpen}" Background="#80000000">
+        <views:SettingsView DataContext="{Binding Settings}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+    </Panel>
+  </Grid>
+</Window>

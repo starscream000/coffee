@@ -1,0 +1,59 @@
+<!-- The action catalogue: a searchable list on the left, the selected action's details on the right. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Desktop.App.ViewModels"
+             x:Class="Desktop.App.Views.ActionCatalogView"
+             x:DataType="vm:ActionCatalogViewModel">
+  <Grid ColumnDefinitions="300,4,*">
+    <DockPanel Grid.Column="0">
+      <StackPanel DockPanel.Dock="Top" Margin="8" Spacing="4">
+        <TextBox Text="{Binding SearchText}" PlaceholderText="Search actions" />
+        <TextBlock Text="{Binding Summary}" Classes="muted small" />
+      </StackPanel>
+      <ListBox x:Name="ActionList" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:ActionItemViewModel">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding Name}" Classes="code" FontWeight="SemiBold" />
+                <Border Classes="badge" IsVisible="{Binding IsUserAction}">
+                  <TextBlock Classes="small" Text="user" />
+                </Border>
+              </StackPanel>
+              <TextBlock Text="{Binding Description}" Classes="muted small" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
+    <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+    <ScrollViewer Grid.Column="2">
+      <StackPanel Margin="16" Spacing="10" DataContext="{Binding Selected}" x:DataType="vm:ActionItemViewModel"
+                  IsVisible="{Binding $parent[UserControl].((vm:ActionCatalogViewModel)DataContext).Selected, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}">
+        <TextBlock Text="{Binding Name}" Classes="code" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding SourceText, StringFormat='Defined: {0}'}" Classes="muted small" />
+        <TextBlock Text="{Binding ShorthandText}" Classes="small" TextWrapping="Wrap" />
+        <TextBlock Classes="heading" Text="Parameters" />
+        <TextBlock Text="This action takes no parameters, or its schema does not list them." Classes="muted small" IsVisible="{Binding !HasParameters}" />
+        <ItemsControl ItemsSource="{Binding Parameters}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ActionParameterViewModel">
+              <Grid ColumnDefinitions="180,160,*" Margin="0,2">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="{Binding Name}" Classes="code" />
+                  <TextBlock Text="required" Classes="small" Foreground="{StaticResource ErrorBrush}" IsVisible="{Binding IsRequired}" />
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding Type}" Classes="code muted small" TextWrapping="Wrap" />
+                <TextBlock Grid.Column="2" Text="{Binding Description}" Classes="small" TextWrapping="Wrap" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Expander Header="Parameter schema (JSON)" HorizontalAlignment="Stretch">
+          <SelectableTextBlock Text="{Binding SchemaText}" Classes="code small" />
+        </Expander>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>
