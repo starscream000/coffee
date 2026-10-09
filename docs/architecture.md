@@ -1,15 +1,22 @@
 # Architecture
 
-> Status: **Proposal** (Milestone 0). Nothing here is implemented yet. Open
-> questions are marked **(Open)** and collected at the end.
+> Status: **Proposal, revised after the first review** (2026-10-09). Nothing
+> here is implemented yet. Decisions from the review are listed in
+> [Review decisions](#review-decisions); questions still open are in
+> [Open questions](#open-questions).
+
+"Coffee" is a placeholder product name. In code it comes only from
+`PRODUCT` in `packages/protocol/src/product.ts` ([ADR 0017](adr/0017-product-identity.md));
+this document uses the names derived from it: the `coffee` command,
+`coffee.config.yaml` and the `.coffee/` data folder.
 
 ## Goals
 
 - Tests are YAML step files in the user's Git repository. The files are the
   source of truth; the tools only read and write them.
 - One headless engine does all the work (validate, run, later record). Every
-  user interface is a separate client that talks to it over one documented
-  protocol.
+  user interface is a separate client that talks to it over one documented,
+  versioned protocol.
 - Clear, actionable failures: every error names the file, the line and what to
   do next.
 
@@ -28,158 +35,200 @@ Non-goals: AI features, conditional logic in step files, a hosted service
  │ Engine process (Node.js)                                             │
  │  rpc ── project ── stepfile ── runner ── actions ── locators         │
  │                        │          │         │                        │
- │                     schema     context   artifacts ── browser        │
- │                                                       (Playwright)   │
+ │                     schema     context   pagestate ── browser        │
+ │                                 secrets  results     (Playwright)    │
  └──────────────────────────────────────────────────────────────────────┘
                      reads/writes ▼
-        user's Git repository: *.test.yaml, *.flow.yaml, actions/*.ts,
-        testtool.config.yaml; run output in .testtool/ (git-ignored)
+        user's Git repository: *.test.yaml, *.flow.yaml, actions/**/*.ts,
+        coffee.config.yaml; run output in .coffee/ (git-ignored)
 ```
 
 | Package / app       | Depends on | Responsibility                                                       |
 | ------------------- | ---------- | -------------------------------------------------------------------- |
 | `packages/protocol` | nothing    | TypeScript types and JSON Schemas for every request, response, event |
 | `packages/engine`   | protocol   | Everything that understands step files or touches a browser          |
-| `packages/cli`      | protocol   | Starts the engine, sends requests, prints events, sets exit code     |
-| `apps/desktop`      | protocol\* | Avalonia UI (v0.3.0)                                                 |
+| `packages/cli`      | protocol\* | Starts the engine, sends requests, prints events, sets exit code     |
+| `apps/desktop`      | protocol†  | Avalonia UI (v0.3.0)                                                 |
 
-\* The C# app consumes the protocol through the published JSON Schemas, not the
-TypeScript package.
-
-Clients never import engine code. A client finds the engine entry point and
-runs it with Node (see [ADR 0009](adr/0009-clients-locate-engine.md)).
+\* The CLI also lists the engine package as an install-time dependency, only to
+find its executable; ESLint blocks any code import ([ADR 0009](adr/0009-clients-locate-engine.md)).
+† The C# app consumes the protocol through the published JSON Schemas.
 
 ## Engine modules
 
 Each module is a folder under `packages/engine/src/` with one job.
 
-| Module      | Job                                                                                                    |
-| ----------- | ------------------------------------------------------------------------------------------------------ |
-| `rpc`       | Reads and writes newline-delimited JSON-RPC on stdio, dispatches requests, emits events                |
-| `project`   | Finds `testtool.config.yaml`, environments, saved logins, test and flow files                          |
-| `stepfile`  | Parses YAML with source positions; validates against the schema; resolves flow and target references   |
-| `schema`    | Zod schemas for step files and config; maps validation issues to file, line and column                 |
-| `actions`   | `defineAction`, the action registry, the built-in actions, loading user actions from the repository    |
-| `locators`  | Turns a target's ordered candidates into a Playwright locator; reports which candidate matched         |
-| `context`   | Builds `ctx` per test: pages, request, vars, env, secrets, log; variable interpolation; secret masking |
-| `runner`    | Runs tests: before → steps → after, data rows, flow calls, timeouts, cancellation, result events       |
-| `artifacts` | Saves the screenshot and page snapshot per step; opens a snapshot in the test browser on request       |
-| `browser`   | Launches the browser, creates a fresh context per test, applies saved logins                           |
-| `errors`    | Typed error classes with a stable `code`, a tester-readable message and the source location            |
+| Module      | Job                                                                                                      |
+| ----------- | -------------------------------------------------------------------------------------------------------- |
+| `rpc`       | Newline-delimited JSON-RPC on stdio, version handshake, dispatch, event emission; masks every message    |
+| `project`   | Finds `coffee.config.yaml`, environments, saved logins, test, flow and target files                      |
+| `stepfile`  | Parses YAML with source positions, validates, normalises shorthand to the long form, resolves references |
+| `schema`    | Zod schemas for step files and config; maps validation issues to file, line and column                   |
+| `actions`   | `defineAction`, registry, built-in actions, loading and name-checking user actions                       |
+| `locators`  | `ctx.locate`: tries a target's candidates in order and records which one matched                         |
+| `context`   | Builds `ctx` per test: pages, request, vars, env, secrets, log, locate, signal; interpolation            |
+| `secrets`   | Loads declared secrets, keeps the registry of values to mask, masks text and artifacts                   |
+| `runner`    | Runs tests: data rows, before → steps → after, flow calls, timeouts, cancellation, `opens`, events       |
+| `pagestate` | Internal `PageStateRecorder` interface: screenshot and snapshot per step, open a snapshot on request     |
+| `results`   | Writes the run folder (`run.json`, `events.ndjson`, per-step artifacts)                                  |
+| `browser`   | Launches the configured browser, fresh context per test, applies saved logins                            |
+| `errors`    | Typed error classes with a stable `code`, a tester-readable message, the location and a hint             |
 
 The engine has no knowledge of any UI. Everything a client needs to show is in
 protocol events; everything a client can ask for is a protocol request.
 
+### Our own runner, not Playwright Test
+
+The engine drives the Playwright **library** with its own runner
+([ADR 0012](adr/0012-own-runner.md)). Playwright Test is built to run
+`.spec.ts` files from its own command line in short-lived worker processes; we
+need step-level control (per-step screenshots and snapshots, `after` steps that
+always run, cancellation between and within steps, locator-fallback reporting)
+and a long-lived engine process that streams events to the desktop app.
+
+### Browsers
+
+v0.1.0 supports Chromium only. The browser is still a configuration value
+(`defaults.browser` in the config, `options.browser` in `startRun`), validated
+against the engine's `capabilities.browsers`. Neither the protocol nor the
+public engine API names a browser type; Chromium-specific code (if any) stays
+behind the `browser` and `pagestate` modules.
+
+### Page states
+
+After each step the runner calls the internal `PageStateRecorder`, which saves
+a screenshot and a snapshot and can open a snapshot later. The snapshot format
+is hidden behind this interface, and clients only ever receive a screenshot
+path and a `snapshotReady` notice; they open a snapshot through the
+`openSnapshot` request. The recommended implementation is Playwright tracing
+with one trace chunk per step ([ADR 0007](adr/0007-page-snapshot-format.md)).
+
 ## Lifecycle of a run
 
-1. The client spawns `node <engine>/dist/main.js --stdio` and sends `initialize`
-   with the protocol version it speaks. The engine replies with its own version
-   and capabilities, or an error if the major versions differ.
-2. `openProject` points the engine at a repository root. The engine reads
-   `testtool.config.yaml` and loads the user's action files (a broken action
-   file is reported as a diagnostic, not a crash).
-3. `startRun` with a list of test files, an environment name and options.
-   The engine validates every file first. If any file has errors, the run does
-   not start and the response lists the diagnostics.
-4. For each test (and each data row, if the test has data):
-   1. New browser context (fresh cookies, storage, cache). Saved logins named by
-      the test's pages are applied from the login cache, refreshing it by
-      running the login flow when missing or expired.
+1. **Handshake.** The client spawns `node <engine>/dist/main.js --stdio`. Its
+   first message must be `initialize` with the protocol version it speaks. If
+   the versions are incompatible, the engine answers `IncompatibleProtocol`
+   with both versions and what to update, then exits with code 3
+   ([protocol.md](protocol.md#handshake)).
+2. **Project.** `openProject` points the engine at a repository root. The engine
+   reads `coffee.config.yaml` and loads user actions. A broken action file, or
+   one whose action name has no namespace, is reported as a diagnostic, not a
+   crash.
+3. **Validation.** `startRun` validates every selected file first. If any file
+   has errors, nothing runs and the response lists the diagnostics.
+4. **Tests.** For each test, and for each of its data rows as a separate test
+   instance:
+   1. New browser context per login (fresh cookies, storage, cache). Saved
+      logins are applied from the login cache, which is refreshed by running
+      the login flow when missing or out of date.
    2. `before` steps, then `steps`. The first failing step stops the test.
    3. `after` steps **always** run, even after a failure or cancellation. A
       failing `after` step is reported but does not stop the other `after`
       steps.
-   4. After each step: a screenshot and a page snapshot are saved and announced
-      with `screenshotReady` / `snapshotReady`.
-   5. The context is closed.
+   4. After each step: page state recorded, `screenshotReady` and
+      `snapshotReady` sent, then `stepPassed` / `stepFailed`, which name the
+      locator candidate each target used.
+   5. Contexts are closed.
 5. `runFinished` carries the totals. The client may then send `shutdown`.
 
 Tests run one at a time in v0.1.0. Parallel workers can be added later without
 changing the protocol, because every event carries its `testId`.
 
+### Cancellation and timeouts
+
+`cancelRun` is a protocol request. It aborts `ctx.signal` for the current step.
+Every built-in action honours the signal: waits inside the engine (locating,
+`expect.*` retries, `wait.*`) check it on every poll, and Playwright calls are
+given at most the step's remaining time. The step is reported as cancelled,
+the remaining steps as skipped, and `after` steps still run (with a 30-second
+limit).
+
 ## Where things are stored
 
-| What                     | Where                                                    | In Git?   |
-| ------------------------ | -------------------------------------------------------- | --------- |
-| Tests, flows, targets    | anywhere in the repo, `*.test.yaml`, `*.flow.yaml`       | yes       |
-| User actions             | `actions/**/*.ts` (configurable)                         | yes       |
-| Project config           | `testtool.config.yaml` at the repo root                  | yes       |
-| Secrets                  | process environment variables, optionally a local `.env` | **never** |
-| Saved login state        | `.testtool/logins/<env>/<login>.json`                    | **never** |
-| Run results, screenshots | `.testtool/runs/<runId>/…`                               | **never** |
+| What                   | Where                                          | In Git?   |
+| ---------------------- | ---------------------------------------------- | --------- |
+| Tests, flows, targets  | anywhere in the repo, per the config's globs   | yes       |
+| User actions           | `actions/**/*.ts` (configurable)               | yes       |
+| Project config         | `coffee.config.yaml` at the repo root          | yes       |
+| Secrets                | process environment, optionally a local `.env` | **never** |
+| Saved login state      | `.coffee/logins/<env>/<login>.json`            | **never** |
+| Compiled user actions  | `.coffee/cache/actions/`                       | **never** |
+| Run results, artifacts | `.coffee/runs/<runId>/…`                       | **never** |
+
+The run folder layout is defined in [ADR 0015](adr/0015-results-layout.md).
 
 ## Secrets
 
-Secrets are read only from the process environment (and a local `.env` file
-that is git-ignored), declared by name in the config. The engine collects every
-secret value it has read and replaces it with `•••` in every log line, event,
-error message, variable dump and saved snapshot. Screenshots cannot be masked
-pixel by pixel; password fields are already masked by the browser, but a secret
-typed into a plain text field is visible in its screenshot. This is documented
-as a known limitation.
+Secrets are declared by name in the config and read from the process
+environment (or a git-ignored `.env`). The raw process environment is never
+exposed to step files: `${env.…}` is the environment profile, and the only way
+to reach an environment variable is a declared secret through `ctx.secrets` or
+`${secrets.…}`.
+
+Masking ([ADR 0014](adr/0014-secret-masking.md)) happens at the points where
+data leaves the engine: every protocol message, every file in the run folder,
+and every snapshot (rewritten before `snapshotReady`). Screenshots are taken by
+the engine with Playwright's `mask` option over elements that show a secret.
 
 ## Errors
 
-Every error the engine raises extends `TestToolError` with:
+Every error the engine raises extends `CoffeeError` (named from `PRODUCT` in
+code) with:
 
 - `code`: stable, machine-readable (`StepFileInvalid`, `TargetNotFound`,
-  `AssertionFailed`, `ActionTimeout`, `UnknownAction`, `FlowNotFound`, …),
-- `message`: one or two sentences a tester can act on,
+  `AssertionFailed`, `ActionTimeout`, `UnknownAction`, `FlowNotFound`,
+  `ActionNameNotNamespaced`, …),
+- `message`: one or two sentences a tester can act on, secrets masked,
 - `location`: file, line, column of the step that caused it (when known),
-- `hint`: optional next step (for example "Run the recorder to refresh this
-  target" or "Did you mean `expect.text`?").
+- `hint`: optional next step (for example "Did you mean `expect.text`?").
 
 The protocol carries the same fields, so clients show identical messages.
 
 ## Testing strategy
 
 - **Unit tests** (Vitest) for every module that has logic: parsing, schema
-  issues to line numbers, interpolation, masking, locator ordering, registry,
-  runner state machine (with a fake browser), protocol framing.
-- **Integration tests** (Vitest) start `examples/demo-app` on a free port, run
-  real step files through the engine in a real Chromium, and assert on the
-  event stream. Every built-in action has at least one integration test.
+  issues to line numbers, shorthand normalisation, interpolation, masking,
+  locator ordering, registry and name rules, runner state machine (with a fake
+  browser), protocol framing and handshake.
+- **Integration tests** (Vitest) start `examples/demo-app`, run real step files
+  through the engine in a real Chromium, and assert on the event stream and the
+  run folder. Every built-in action has at least one integration test.
 - **Protocol tests** spawn the engine as a process, exactly as a client does.
+- The exact v0.1.0 acceptance criteria are in
+  [milestones/v0.1.0-definition-of-done.md](milestones/v0.1.0-definition-of-done.md).
+
+## Review decisions
+
+Answers from the owner's review of 2026-10-09, folded into the documents:
+
+| #   | Topic                   | Decision                                                                                                           |
+| --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 1   | Product name            | Placeholder "Coffee", defined once ([ADR 0017](adr/0017-product-identity.md))                                      |
+| 2   | `ctx.env`               | The selected environment profile; raw process environment never exposed; secrets only via `ctx.secrets`            |
+| 3   | Data rows               | Whole test only in v0.1.0, each row its own test instance; no `forEach` ([ADR 0013](adr/0013-data-rows.md))        |
+| 4   | Browsers                | Chromium only in v0.1.0; browser stays a config field; no Chromium assumption in protocol or public API            |
+| 5   | Snapshot format         | Investigated Playwright tracing; recommendation in [ADR 0007](adr/0007-page-snapshot-format.md), awaiting approval |
+| 6   | New tabs                | `opens` is a step-level field for any action; unnamed new pages get an automatic name and a warning                |
+| 7   | Protocol versioning     | Approved, with a handshake that refuses incompatible clients ([ADR 0011](adr/0011-protocol-versioning.md))         |
+| 8   | Action names            | User actions must be namespaced; un-namespaced names are reserved ([ADR 0016](adr/0016-action-names.md))           |
+| 9   | Additions               | `description`, `shorthand`, `ctx.locate`, `ctx.signal` approved with conditions (see actions.md)                   |
+| 10  | CLI → engine dependency | Accepted for locating the executable only ([ADR 0009](adr/0009-clients-locate-engine.md))                          |
+| 11  | Node pin                | Raise to the current 24 LTS patch after the owner confirms the local upgrade; CI uses `.nvmrc`                     |
+| 12  | Copyright holder        | starscream000                                                                                                      |
 
 ## Open questions
 
-Collected from all proposal documents; numbered for easy reference.
-
-1. **Product name.** "Test Tool" is used as a working name. The npm scope
-   (`@test-tool/*`), the CLI command (`testtool`), the config file name and the
-   `.testtool/` folder all derive from it. What is the real name?
-2. **Meaning of `ctx.env`.** Proposed: the selected _environment profile_ from
-   the config (base URL and non-secret values for `local`, `staging`, …), not
-   the raw process environment. See [step-format.md](step-format.md#environments).
-3. **Scope of "repeat for each data row".** Proposed: a test may declare `data`
-   and runs once per row, each row a separate test result with a fresh browser
-   context; and a `call` step may also repeat a flow per row (`forEach`).
-   Do you want both, or only one?
-4. **Browsers in v0.1.0.** Proposed: Chromium only (Playwright's bundled
-   build, plus optionally installed Chrome or Edge). Firefox and WebKit later.
-5. **Page snapshot format.** Proposed: MHTML captured with the Chrome DevTools
-   Protocol, which Chromium opens natively ([ADR 0007](adr/0007-page-snapshot-format.md)).
-   Depends on question 4.
-6. **New tabs and pop-ups.** A click that opens a new tab needs a way to name
-   that tab. Proposed: an optional `opens: <pageName>` parameter on `click`
-   (and `press`). This is a small addition to the built-in action list.
-7. **Protocol version before v1.** Proposed: the protocol stays at `0.x` (breaking
-   changes allowed with a minor bump) until the desktop app ships in v0.3.0,
-   then becomes `1.0.0` with strict rules.
-8. **Naming of user actions.** Proposed: user actions may not reuse a built-in
-   name; we recommend (but do not require) a project prefix such as `shop.login`.
-9. **Additions to `defineAction` and `ctx`.** The brief lists
-   `{ name, params, run }` and `ctx` with `page, request, vars, env, secrets,
-log`. Proposed additions: `description` and `shorthand` on actions;
-   `ctx.locate(target)` (needed so built-in and user actions resolve targets the
-   same way, and so `expect.visible: false` can work) and `ctx.signal` (for
-   timeouts and cancellation). See [actions.md](actions.md).
-10. **CLI package dependency on the engine.** To find and start the engine, the
-    CLI would list `@test-tool/engine` as a package dependency without importing
-    any of its code ([ADR 0009](adr/0009-clients-locate-engine.md)). Is that
-    acceptable under the dependency rule?
-11. **Node patch version.** `.nvmrc` pins 24.11.0 because it is installed here.
-    The current Node 24 LTS is 24.21.0 (security fixes). May I raise the pin
-    once you have upgraded locally?
-12. **Copyright holder.** The README says "Copyright © 2026. All rights
-    reserved." with no name. Whose name should it carry?
+13. **Built-in names with a dot.** Rule 8 reserves un-namespaced names for
+    built-ins, but `expect.text` and `wait.url` contain a dot. Proposed: also
+    reserve the `expect` and `wait` namespaces for built-ins. Alternative:
+    rename them to `expectText`, `waitForUrl` and so on. See
+    [ADR 0016](adr/0016-action-names.md).
+14. **npm scope.** User actions import `@test-tool/engine/sdk`, so the npm scope
+    is user-visible but cannot come from the `PRODUCT` constant. Rename it
+    together with the product (one scripted change), or keep the neutral
+    `@test-tool` scope permanently?
+15. **Snapshot format.** Approve Playwright tracing per step
+    ([ADR 0007](adr/0007-page-snapshot-format.md)), or keep MHTML?
+16. **Run retention.** Page states take disk space on every run. Should v0.1.0
+    keep all runs (users delete `.coffee/runs` themselves) or add a
+    `keepRuns` setting?

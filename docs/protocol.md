@@ -1,8 +1,9 @@
 # Engine protocol
 
-> Status: **Proposal** (Milestone 0). Protocol version `0.1.0` once
-> implemented. This document is a **public contract**: every client (CLI,
-> desktop app, a future VS Code extension, the server) relies on it.
+> Status: **Proposal, revised after the first review** (2026-10-09). Protocol
+> version `0.1.0` once implemented. This document is a **public contract**:
+> every client (CLI, desktop app, a future VS Code extension, the server)
+> relies on it.
 
 ## Transport
 
@@ -16,33 +17,68 @@
   diagnostic logging for developers; clients may show or ignore it.
 - Client → engine: requests (with `id`). Engine → client: responses and
   notifications (events, without `id`). The engine sends no requests in `0.x`.
+- Every message the engine writes passes through secret masking first
+  ([ADR 0014](adr/0014-secret-masking.md)).
 - When stdin closes, the engine cancels any run (still running `after` steps,
   with a 30-second limit), closes browsers and exits.
 
 ## Versioning
 
+([ADR 0011](adr/0011-protocol-versioning.md), approved)
+
 - The protocol has its own semantic version, separate from package versions,
   exported as `PROTOCOL_VERSION` from `@test-tool/protocol`.
-- **Compatible changes** (minor version): new optional fields, new methods, new
-  events, new error codes, new enum values in fields documented as open.
-- **Breaking changes** (major version): removing or renaming anything, changing a
-  type, making an optional field required.
+- **Compatible changes**: new optional fields, new methods, new events, new error
+  codes, new values in enums documented as open.
+- **Breaking changes**: removing or renaming anything, changing a type, making
+  an optional field required.
 - Clients **must ignore** unknown fields and unknown events. The engine ignores
   unknown fields in request parameters.
-- `initialize` fails with `IncompatibleProtocol` if the major versions differ.
-- **(Open 7)** While the version is `0.x`, a minor bump may break, and client and
-  engine must match on major _and_ minor. Version `1.0.0` is proposed for the
-  desktop app release (v0.3.0). See [ADR 0011](adr/0011-protocol-versioning.md).
+- **Compatibility rule.** From `1.0.0`: client and engine are compatible when
+  their major versions are equal. While the version is `0.x`: major **and**
+  minor must be equal, because a `0.x` minor bump may break.
+- `1.0.0` is planned for the desktop app release (v0.3.0).
 
 Machine-readable definitions: `@test-tool/protocol` exports the TypeScript types
 and generates a JSON Schema per message under `packages/protocol/schema/`, which
 the C# client uses for code generation and contract tests.
 
+## Handshake
+
+The version handshake happens at connect, before anything else:
+
+1. The engine writes nothing to stdout until it receives a message.
+2. The client's first request must be `initialize`. Any other request gets
+   `NotInitialized`.
+3. If the client's `protocolVersion` is compatible, the engine answers with its
+   own version and capabilities. The session is open.
+4. If it is not compatible, the engine answers with `IncompatibleProtocol`,
+   then exits with code 3. The error says which side to update:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32002,
+    "message": "This client speaks protocol 0.2.0 but the engine speaks 0.1.0. Update the engine to a version that supports protocol 0.2.",
+    "data": {
+      "name": "IncompatibleProtocol",
+      "clientProtocolVersion": "0.2.0",
+      "engineProtocolVersion": "0.1.0",
+      "engineVersion": "0.1.0"
+    }
+  }
+}
+```
+
+5. A second `initialize` in the same session fails with `-32600` invalid request.
+
 ## Session
 
 ```
 client                                   engine
-  │ initialize ───────────────────────────▶ │
+  │ initialize ───────────────────────────▶ │  (handshake)
   │ ◀─────────────────── result (versions)  │
   │ openProject ──────────────────────────▶ │
   │ ◀──────────────── result (diagnostics)  │
@@ -50,27 +86,28 @@ client                                   engine
   │ ◀──────────────────── result { runId }  │
   │ ◀── runStarted, testStarted, stepStarted, screenshotReady,
   │     snapshotReady, stepPassed / stepFailed, …, testFinished, runFinished
+  │ cancelRun (optional) ─────────────────▶ │
   │ shutdown ─────────────────────────────▶ │
-  │ ◀──────────────────────── result null   │  (process exits)
+  │ ◀──────────────────────── result null   │  (process exits with 0)
 ```
 
 ## Requests
-
-All requests except `initialize` fail with `NotInitialized` before
-`initialize` succeeds.
 
 ### `initialize`
 
 ```jsonc
 // params
-{ "protocolVersion": "0.1.0", "client": { "name": "testtool-cli", "version": "0.1.0" } }
+{ "protocolVersion": "0.1.0", "client": { "name": "coffee-cli", "version": "0.1.0" } }
 // result
 {
   "protocolVersion": "0.1.0",
   "engine": { "name": "@test-tool/engine", "version": "0.1.0" },
-  "capabilities": { "browsers": ["chromium"], "snapshots": true }
+  "capabilities": { "browsers": ["chromium"] }
 }
 ```
+
+`capabilities.browsers` lists the browser names this engine can run. Clients
+must not assume any particular browser; they offer what is listed.
 
 ### `shutdown`
 
@@ -84,16 +121,17 @@ No params. Cancels any run, closes browsers, responds `null`, then exits.
 // result
 {
   "root": "C:/work/shop-tests",
-  "configFile": "C:/work/shop-tests/testtool.config.yaml",
+  "configFile": "C:/work/shop-tests/coffee.config.yaml",
   "environments": ["local", "staging"],
+  "defaultEnvironment": "local",
   "logins": ["customer", "admin"],
   "diagnostics": [ /* Diagnostic[]: config and user-action problems */ ]
 }
 ```
 
-Opening a project loads user actions. Only one project is open per engine
-process; opening another replaces it. Fails with `ProjectInvalid` if no
-config file is found.
+Opening a project loads user actions; naming and loading problems arrive as
+diagnostics. Only one project is open per engine process; opening another
+replaces it. Fails with `ProjectInvalid` if no config file is found.
 
 ### `listTests`
 
@@ -115,7 +153,7 @@ config file is found.
       "name": "fill",
       "description": "Clears a field and types a value.",
       "shorthand": null,
-      "paramsSchema": {/* JSON Schema */},
+      "paramsSchema": {/* JSON Schema of the canonical long form */},
       "source": { "kind": "builtin" }, // or { "kind": "file", "file": "actions/shop/add-to-cart.ts" }
     },
   ],
@@ -142,27 +180,32 @@ Validates files on disk, or an unsaved editor buffer passed as `content`.
 {
   "files": ["tests/checkout/guest-checkout.test.yaml"],   // or omit to use "tags"
   "tags": ["smoke"],
-  "env": "local",
+  "env": "local",                                         // optional: config default
   "options": { "headed": false, "browser": "chromium", "refreshLogins": false }
 }
 // result (returned before the run starts; progress arrives as events)
-{ "runId": "2026-10-09T05-49-02-1a2b" }
+{ "runId": "20261009-054902-1a2b", "resultsDir": "C:/work/shop-tests/.coffee/runs/20261009-054902-1a2b" }
 ```
 
 All selected files are validated first. If any has an error, the request fails
 with `StepFilesInvalid` and `error.data.diagnostics`; nothing runs. One run at a
-time per engine; a second `startRun` fails with `RunInProgress`.
+time per engine; a second `startRun` fails with `RunInProgress`. An
+`options.browser` not in `capabilities.browsers` fails with `-32602` invalid
+params.
 
 ### `cancelRun`
 
-`{ "runId": "…" }` → `null`. The current step is aborted, remaining steps are
-skipped, `after` steps still run, then `testFinished` (status `cancelled`) and
-`runFinished` follow.
+`{ "runId": "…" }` → `null`, returned as soon as cancellation has started. The
+current step's `ctx.signal` is aborted, and that step is reported as
+`stepFailed` with error code `Cancelled`. Remaining steps are skipped, `after`
+steps still run, then `testFinished` (status `cancelled`) and `runFinished`
+follow. Tests not yet started are reported as cancelled.
 
 ### `openSnapshot`
 
 `{ "runId": "…", "testId": "…", "stepId": "…" }` → `null`. Opens the saved page
-snapshot of that step in a test-browser window. Fails with `SnapshotNotFound`.
+state of that step in a test-browser window. Fails with `SnapshotNotFound`. The
+snapshot format is an engine detail and not part of the protocol.
 
 ## Events
 
@@ -170,76 +213,80 @@ Events are JSON-RPC notifications. Every event's params include `runId` and
 `seq`, a number that increases by one per event within a run, so a client can
 detect gaps. Times are ISO 8601 UTC strings; durations are milliseconds.
 
-| Event             | Extra fields                                                                                               |
-| ----------------- | ---------------------------------------------------------------------------------------------------------- |
-| `runStarted`      | `env`, `startedAt`, `tests`: `{ testId, file, name, row? }[]`                                              |
-| `testStarted`     | `testId`, `startedAt`                                                                                      |
-| `stepStarted`     | `testId`, `stepId`, `parentStepId?`, `section` (`before`, `steps`, `after`), `action`, `title`, `location` |
-| `stepPassed`      | `testId`, `stepId`, `durationMs`, `locator?`: `{ target, candidateIndex }`                                 |
-| `stepFailed`      | `testId`, `stepId`, `durationMs`, `error`: `ErrorInfo`                                                     |
-| `stepSkipped`     | `testId`, `stepId`, `reason` (`previousFailure`, `cancelled`)                                              |
-| `screenshotReady` | `testId`, `stepId`, `path`, `width`, `height`                                                              |
-| `snapshotReady`   | `testId`, `stepId`, `path`                                                                                 |
-| `log`             | `level` (`debug`, `info`, `warn`, `error`), `message`, `testId?`, `stepId?`                                |
-| `testFinished`    | `testId`, `status` (`passed`, `failed`, `cancelled`), `durationMs`                                         |
-| `runFinished`     | `status`, `durationMs`, `totals`: `{ passed, failed, cancelled }`                                          |
+| Event             | Extra fields                                                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `runStarted`      | `env`, `browser`, `startedAt`, `tests`: `{ testId, file, name, row? }[]`                                                     |
+| `testStarted`     | `testId`, `startedAt`                                                                                                        |
+| `stepStarted`     | `testId`, `stepId`, `parentStepId?`, `section` (`before`, `steps`, `after`), `action`, `params`, `page`, `title`, `location` |
+| `stepPassed`      | `testId`, `stepId`, `durationMs`, `locators`: `LocatorUse[]`                                                                 |
+| `stepFailed`      | `testId`, `stepId`, `durationMs`, `error`: `ErrorInfo`, `locators`: `LocatorUse[]`                                           |
+| `stepSkipped`     | `testId`, `stepId`, `reason` (`previousFailure`, `cancelled`)                                                                |
+| `screenshotReady` | `testId`, `stepId`, `page`, `path`, `width`, `height`                                                                        |
+| `snapshotReady`   | `testId`, `stepId`, `page`                                                                                                   |
+| `pageOpened`      | `testId`, `stepId`, `page`, `automatic` (`true` when no step named it)                                                       |
+| `log`             | `level` (`debug`, `info`, `warn`, `error`), `message`, `code?`, `testId?`, `stepId?`, `location?`                            |
+| `testFinished`    | `testId`, `status` (`passed`, `failed`, `cancelled`), `durationMs`                                                           |
+| `runFinished`     | `status`, `durationMs`, `totals`: `{ passed, failed, cancelled }`                                                            |
 
-Example line on stdout:
+- `stepStarted.params` is the step's **canonical long form** with variables
+  still uninterpolated (`${secrets.…}` is never resolved in events).
+- `locators` lists every target the step resolved, in order (empty when the
+  step used none). A `candidateIndex` greater than 0 means the preferred
+  candidates no longer match; clients can show this as a target to refresh.
+- An unnamed new page produces `pageOpened` with `automatic: true` and a `log`
+  event with level `warn`, code `UnnamedPage` and the step's `location`.
 
+Example line on stdout (shown wrapped):
+
+<!-- prettier-ignore -->
 ```json
-{
-  "jsonrpc": "2.0",
-  "method": "stepFailed",
-  "params": {
-    "runId": "2026-10-09T05-49-02-1a2b",
-    "seq": 17,
-    "testId": "tests/checkout/guest-checkout.test.yaml#1",
-    "stepId": "steps.3",
-    "durationMs": 10012,
-    "error": {
-      "code": "AssertionFailed",
-      "message": "Text of \"cart.count\" is \"0\", expected \"1\".",
-      "expected": "1",
-      "actual": "0",
-      "location": { "file": "tests/checkout/guest-checkout.test.yaml", "line": 31, "column": 5 }
-    }
-  }
-}
+{"jsonrpc":"2.0","method":"stepFailed","params":{"runId":"20261009-054902-1a2b","seq":17,
+"testId":"tests/checkout/guest-checkout.test.yaml#1","stepId":"steps.3","durationMs":10012,
+"error":{"code":"AssertionFailed","message":"Text of \"cart.count\" is \"0\", expected \"1\".",
+"expected":"1","actual":"0","location":{"file":"tests/checkout/guest-checkout.test.yaml","line":31,"column":5}},
+"locators":[{"param":"target","target":"cart.count","candidateIndex":0,"candidate":{"testId":"cart-count"}}]}}
 ```
-
-`locator.candidateIndex` greater than 0 means the preferred candidates no longer
-match; clients can show this as a warning that the target needs refreshing.
 
 ### Identifiers
 
 - `testId`: the test file path plus `#` and the data-row index
-  (`tests/a.test.yaml#0`). Clients should treat it as opaque.
+  (`tests/a.test.yaml#0`; tests without data use `#0`). Clients should treat it
+  as opaque.
 - `stepId`: a path of `section.index` segments joined by `/`, for example
   `steps.3`, `after.0`, or `steps.4/steps.1` for the second step of the flow
   called by the fifth step. Stable across runs of the same file content.
-- Paths in events are absolute file-system paths for artifacts and paths
-  relative to the project root for step files.
+- `page`: the page name (`main`, a declared name, an `opens` name, or an
+  automatic name such as `tab-2`).
+- Artifact paths in events are absolute file-system paths; step-file paths are
+  relative to the project root.
 
 ## Shared types
 
 ```ts
 interface Location {
   file: string;
-  line: number;
-  column: number;
-} // 1-based
+  line: number; // 1-based
+  column: number; // 1-based
+}
 
 interface Diagnostic extends Location {
   endLine?: number;
   endColumn?: number;
   severity: 'error' | 'warning';
-  code: string; // e.g. "UnknownAction", "MissingParameter"
+  code: string; // e.g. "UnknownAction", "MissingParameter", "ActionNameNotNamespaced"
   message: string;
   hint?: string;
 }
 
+interface LocatorUse {
+  param: string; // parameter name, e.g. "target", "from", "to"
+  target?: string; // target name; absent for inline targets
+  candidateIndex: number | null; // null when no candidate matched
+  candidate: Record<string, unknown> | null;
+}
+
 interface ErrorInfo {
-  code: string; // e.g. "TargetNotFound", "AssertionFailed", "ActionTimeout"
+  code: string; // e.g. "TargetNotFound", "AssertionFailed", "ActionTimeout", "Cancelled"
   message: string; // secrets already masked
   hint?: string;
   location?: Location;
@@ -257,8 +304,8 @@ plus:
 
 | Code     | Name                   | When                                                   |
 | -------- | ---------------------- | ------------------------------------------------------ |
-| `-32001` | `NotInitialized`       | Any request before `initialize`                        |
-| `-32002` | `IncompatibleProtocol` | `initialize` with a different major version            |
+| `-32001` | `NotInitialized`       | Any request before a successful `initialize`           |
+| `-32002` | `IncompatibleProtocol` | `initialize` with an incompatible version (then exit)  |
 | `-32003` | `ProjectNotOpen`       | A project request before `openProject`                 |
 | `-32004` | `ProjectInvalid`       | No or unreadable config file                           |
 | `-32005` | `StepFilesInvalid`     | `startRun` with validation errors (`data.diagnostics`) |
@@ -270,3 +317,11 @@ Error responses carry `error.data.name` (the name above) so clients can switch o
 names instead of numbers.
 
 A failing **test** is not a protocol error: it is reported through events.
+
+## Engine exit codes
+
+| Code | Meaning                                       |
+| ---- | --------------------------------------------- |
+| 0    | Normal exit after `shutdown` or stdin closed  |
+| 1    | Unexpected internal error (details on stderr) |
+| 3    | Refused the client during the handshake       |

@@ -1,7 +1,8 @@
 # Step file format
 
-> Status: **Proposal** (Milestone 0). Open questions are marked **(Open)** and
-> numbered as in [architecture.md](architecture.md#open-questions).
+> Status: **Proposal, revised after the first review** (2026-10-09). File and
+> folder names use the placeholder product name "Coffee"
+> ([ADR 0017](adr/0017-product-identity.md)).
 
 Step files are YAML documents in the user's Git repository. They are the source
 of truth: the engine, the CLI and the desktop app only read and write them. The
@@ -12,12 +13,12 @@ re-recording.
 
 The file name decides the kind:
 
-| Pattern                | Kind    | Contains                                              |
-| ---------------------- | ------- | ----------------------------------------------------- |
-| `*.test.yaml`          | test    | One test: pages, data, before, steps, after           |
-| `*.flow.yaml`          | flow    | A reusable sequence of steps with parameters          |
-| `*.targets.yaml`       | targets | Shared, named targets (element locators)              |
-| `testtool.config.yaml` | config  | Project settings, environments, logins (one per repo) |
+| Pattern              | Kind    | Contains                                              |
+| -------------------- | ------- | ----------------------------------------------------- |
+| `*.test.yaml`        | test    | One test: pages, data, before, steps, after           |
+| `*.flow.yaml`        | flow    | A reusable sequence of steps with parameters          |
+| `*.targets.yaml`     | targets | Shared, named targets (element locators)              |
+| `coffee.config.yaml` | config  | Project settings, environments, logins (one per repo) |
 
 Every file starts with `version: 1`. The engine refuses unknown versions with a
 message naming the supported ones, so the format can evolve safely.
@@ -61,6 +62,10 @@ steps:
         email: guest+${row.product}@example.com
   - expect.text: { target: order.total, equals: '${row.price}' }
   - extract: { target: order.number, as: orderNumber }
+  - click: order.printReceipt
+    opens: receipt
+  - expect.text: { target: receipt.total, equals: '${row.price}' }
+    page: receipt
 
 after:
   - api:
@@ -88,23 +93,30 @@ after:
 
 ## Steps
 
-Every step calls exactly one action. A step is one of:
+Every step calls exactly one action. A step is written in one of three forms:
 
 ```yaml
 - back # action without parameters
-- goto: /products # action with its shorthand parameter
-- fill: # action with named parameters
+- goto: /products # shorthand: the action's shorthand parameter
+- fill: # long form: named parameters
     target: checkout.email
     value: ${vars.email}
 ```
 
+**Every action has exactly one canonical long form.** The validator normalises
+the bare and shorthand forms to it, so the runner, the protocol and every
+client only ever see the long form (`- goto: /products` becomes
+`{ action: goto, params: { url: /products } }`). Shorthand is a writing
+convenience, never a second meaning.
+
 Besides the action key, a step may have these common keys:
 
-| Key       | Meaning                                                           |
-| --------- | ----------------------------------------------------------------- |
-| `name`    | Label shown in results instead of the generated one               |
-| `page`    | Named page the action runs on (default `main`)                    |
-| `timeout` | Overrides the default timeout for this step: `500ms`, `10s`, `2m` |
+| Key       | Meaning                                                                       |
+| --------- | ----------------------------------------------------------------------------- |
+| `name`    | Label shown in results instead of the generated one                           |
+| `page`    | Named page the action runs on (default `main`)                                |
+| `timeout` | Overrides the default timeout for this step: `500ms`, `10s`, `2m`             |
+| `opens`   | Name for a new page (tab or pop-up) that this step opens, see [Pages](#pages) |
 
 ```yaml
 - click: approveOrder
@@ -114,20 +126,21 @@ Besides the action key, a step may have these common keys:
 ```
 
 A mapping with zero or two action keys is a validation error. Unknown keys are
-errors, with a "did you mean" hint where one is close (`exepct.text` → `expect.text`).
+errors, with a "did you mean" hint where one is close (`exepct.text` →
+`expect.text`).
 
-Action names are listed in [actions.md](actions.md). Names with a dot
-(`expect.text`, `wait.url`) are ordinary names; the dot only groups related
-actions.
+Action names are listed in [actions.md](actions.md). User actions are always
+namespaced (`auth.fillOtp`); see [ADR 0016](adr/0016-action-names.md).
 
 There is deliberately **no `if`, `else`, `while` or free loop**. The only ways to
-reuse or repeat steps are calling a flow and repeating for each data row.
+reuse or repeat steps are calling a flow and repeating a whole test for each
+data row.
 
 ## Targets
 
 A target describes one element. It stores several **locator candidates in order
-of reliability**; the engine tries them in that order (see
-[ADR 0010](adr/0010-locator-candidates.md)).
+of reliability**; the engine tries them in that order and reports which one it
+used ([ADR 0010](adr/0010-locator-candidates.md)).
 
 ```yaml
 checkoutButton:
@@ -167,13 +180,13 @@ Names may contain dots as a naming convention (`cart.count`, `order.total`).
 
 Values may contain `${namespace.path}`:
 
-| Namespace | Contents                                                            | Writable |
-| --------- | ------------------------------------------------------------------- | -------- |
-| `vars`    | Test variables: from `vars:`, `set`, `extract`, `api`, flow outputs | yes      |
-| `env`     | The selected environment profile: `name`, `baseUrl` and its values  | no       |
-| `secrets` | Secrets declared in the config, read from the process environment   | no       |
-| `row`     | The current data row                                                | no       |
-| `params`  | Parameters of the current flow (inside flow files only)             | no       |
+| Namespace | Contents                                                             | Writable |
+| --------- | -------------------------------------------------------------------- | -------- |
+| `vars`    | Test variables: from `vars:`, `set`, `extract`, `api`, flow outputs  | yes      |
+| `env`     | The selected environment profile: `name`, `baseUrl` and its `values` | no       |
+| `secrets` | Secrets declared in the config                                       | no       |
+| `row`     | The current data row (tests with `data` only)                        | no       |
+| `params`  | Parameters of the current flow (inside flow files only)              | no       |
 
 Rules:
 
@@ -183,10 +196,14 @@ Rules:
 - `$${` writes a literal `${`.
 - There are no expressions, operators or functions. Anything computed belongs in
   a user action.
-- An unknown namespace is a validation error. An unknown `env` or `secrets`
-  name is a validation error when the config is known. An unknown `vars` name is
-  a runtime error naming the step and listing the variables that do exist.
-- Secret values are masked as `•••` everywhere the engine writes text.
+- An unknown namespace is a validation error. An unknown `env` value or
+  `secrets` name is a validation error. An unknown `vars` name is a runtime
+  error naming the step and listing the variables that do exist.
+- **There is no access to the process environment.** `${env.…}` is the
+  environment profile from the config. Environment variables reach a test only
+  as declared secrets.
+- Secret values are masked as `•••` everywhere the engine writes data
+  ([ADR 0014](adr/0014-secret-masking.md)).
 
 ## Pages
 
@@ -202,8 +219,30 @@ pages:
   this for multi-tab flows.
 - Pages with **different logins** get separate browser contexts: use this for
   multi-user flows.
-- A page is opened on first use.
-- **(Open 6)** A click that opens a new tab names it with `opens: <pageName>`.
+- A declared page is opened on first use.
+
+### New tabs and pop-ups: `opens`
+
+Any step may name a page it opens:
+
+```yaml
+- click: order.printReceipt
+  opens: receipt
+- expect.visible: receipt.heading
+  page: receipt
+```
+
+- During a step with `opens`, the engine watches the step page's browser
+  context for a new page. When the action finishes it waits (within the step
+  timeout) for that page and registers it under the given name; if none
+  appears, the step fails with `PageNotOpened`.
+- An `opens` name must be new in the test and may then be used by later steps'
+  `page`. Using it before the step that opens it is a validation error.
+- A new page that **no step names** still gets recorded under an automatic name
+  (`tab-2`, `tab-3`, … in order of opening within the test) and the engine
+  emits a warning with the step's location and the hint "Add `opens: <name>`
+  to this step to use the new page". Automatic names appear in results only;
+  step files cannot refer to them.
 
 ## Data rows
 
@@ -215,13 +254,16 @@ data:
 data: ./data/users.csv
 ```
 
-The test runs once per row. Each row is a separate result with its own fresh
-browser context; `before` and `after` run for every row. Supported files: CSV
-(first line is the header) and YAML (a list of mappings). Values are strings in
-CSV and keep their YAML types otherwise.
+- The **whole test** runs once per row. Each row is its own test instance with
+  its own `testId`, its own fresh browser contexts, its own `before` and
+  `after`, and its own result.
+- Supported files: CSV (first line is the header) and YAML (a list of
+  mappings). Values are strings in CSV and keep their YAML types otherwise.
+- `data` is allowed in tests only, not in flows.
 
-**(Open 3)** A `call` step may also repeat a flow once per row with `forEach`
-(see [actions.md](actions.md#call)).
+Repeating a flow per row inside a test (`forEach` on `call`) is **not** part of
+v0.1.0. The format keeps room for it: `call` takes a mapping, so a later
+`forEach` key would be a compatible addition ([ADR 0013](adr/0013-data-rows.md)).
 
 ## Flows
 
@@ -247,12 +289,12 @@ steps:
 - Flows can call flows. A cycle (A calls B calls A) is a validation error that
   prints the chain.
 - Flows may declare `targets`; they resolve like a test's.
-- A flow has only `steps`: `before` and `after` belong to tests.
+- A flow has only `steps`: `before`, `after` and `data` belong to tests.
 
 ## Project configuration
 
 ```yaml
-# testtool.config.yaml
+# coffee.config.yaml
 version: 1
 tests: ['tests/**/*.test.yaml']
 flows: ['flows/**/*.flow.yaml']
@@ -260,6 +302,8 @@ targets: ['targets/**/*.targets.yaml']
 actions: ['actions/**/*.ts']
 
 defaults:
+  environment: local
+  browser: chromium
   timeout: 10s
   testIdAttribute: data-testid
 
@@ -284,31 +328,43 @@ logins:
     with: { user: admin@example.com, password: '${secrets.SHOP_ADMIN_PASSWORD}' }
 ```
 
+`defaults.browser` is validated against the browsers the engine reports in
+`capabilities.browsers` (only `chromium` in v0.1.0); an unsupported value is a
+config error listing the supported ones.
+
 ### Environments
 
-**(Open 2)** `ctx.env` and `${env.…}` are the selected environment profile
-(`--env staging`), not the raw process environment. Relative URLs in `goto`
-and `api` resolve against `env.baseUrl`. Environment values are not secret and
-are committed; secrets are only ever named here and read from the process
-environment (or a git-ignored `.env`).
+`ctx.env` and `${env.…}` are the selected environment profile
+(`--env staging`, or `defaults.environment`). Relative URLs in `goto` and `api`
+resolve against `env.baseUrl`. Environment values are not secret and are
+committed; they cannot read process environment variables.
+
+### Secrets
+
+Secrets are only named in the config. Their values come from the process
+environment variable of the same name, or a git-ignored `.env` file at the
+project root. A secret that is declared but has no value fails validation of
+the tests that use it, naming the variable to set. Secrets shorter than 4
+characters are rejected, because masking them would damage ordinary output
+([ADR 0014](adr/0014-secret-masking.md)).
 
 ### Saved logins
 
 A saved login is a named flow that signs in. The engine runs it once, saves the
-browser storage state to `.testtool/logins/<env>/<login>.json` (git-ignored) and
+browser storage state to `.coffee/logins/<env>/<login>.json` (git-ignored) and
 reuses it for every page that names the login. It is refreshed when it is
-missing, when the flow file changes, or on `--refresh-logins`.
+missing, when the flow file or its parameters change, or on `--refresh-logins`.
 
 ## Execution rules
 
-1. Each test (and each data row) gets a fresh browser context per login.
+1. Each test instance (one per data row) gets a fresh browser context per login.
 2. `before` steps run, then `steps`. The first failure stops the remaining
    steps; they are reported as skipped.
 3. `after` steps always run: after success, failure or cancellation. Each `after`
    step runs even if a previous one failed; all failures are reported.
 4. A failure in `before` is reported as a setup failure.
-5. Actions auto-wait up to the step timeout (Playwright semantics); `expect.*`
-   actions retry until they pass or time out.
+5. Actions auto-wait up to the step timeout; `expect.*` actions retry until they
+   pass or time out. Every wait stops promptly when the run is cancelled.
 
 ## Validation errors
 
@@ -334,4 +390,5 @@ errors.
 
 The recorder and the desktop app edit step files through the `yaml` library's
 document model, which keeps comments, key order and formatting. A file edited in
-the desktop app should produce a minimal Git diff.
+the desktop app should produce a minimal Git diff. Tools write the form the user
+wrote (shorthand stays shorthand); normalisation happens only in memory.
