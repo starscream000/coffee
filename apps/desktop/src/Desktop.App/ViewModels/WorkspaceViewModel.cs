@@ -19,6 +19,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     private readonly IDialogService _dialogs;
     private readonly IDelay _delay;
     private readonly HashSet<string> _pendingChanges = new(StringComparer.Ordinal);
+    private readonly Dictionary<StepFileViewModel, Action> _detach = [];
     private IDisposable? _watch;
     private Task _refresh = Task.CompletedTask;
     private bool _refreshing;
@@ -149,21 +150,8 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         if (tab is null)
         {
             tab = new StepFileViewModel(file, new StepFileServices(Root, _files, _engine, _dialogs, _delay, EngineStatus.Report));
-            var opened = tab;
-            opened.CloseRequested += (_, _) => _ = CloseTabAsync(opened);
-            opened.ContentDiagnosticsChanged += (_, diagnostics) => Problems.SetFileOverride(opened.File, diagnostics);
-            opened.Saved += (_, _) => _ = ValidateAsync();
-            opened.PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName == nameof(StepFileViewModel.IsDirty))
-                {
-                    OnPropertyChanged(nameof(HasUnsavedChanges));
-                    SaveAllCommand.NotifyCanExecuteChanged();
-                }
-            };
-            opened.LoadFromDisk();
-            opened.ApplyDiagnostics(Problems.All);
-            Tabs.Add(opened);
+            tab.LoadFromDisk();
+            Attach(tab);
         }
 
         SelectedTab = tab;
@@ -235,32 +223,43 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         };
     }
 
-    /// <summary>The open step file tabs, with the text of those that have unsaved changes, to restore after opening the project again.</summary>
-    /// <returns>The tabs, in order, and which one is selected.</returns>
-    public (IReadOnlyList<(string File, string? EditedText)> Tabs, string? Selected) CaptureTabs() =>
-        ([.. Tabs.OfType<StepFileViewModel>().Select(t => (t.File, t.IsDirty ? t.Document.Text : null))],
-         (SelectedTab as StepFileViewModel)?.File);
-
-    /// <summary>Opens tabs captured from the workspace this one replaces, putting back unsaved text.</summary>
-    /// <param name="captured">What <see cref="CaptureTabs"/> returned.</param>
-    public void RestoreTabs((IReadOnlyList<(string File, string? EditedText)> Tabs, string? Selected) captured)
+    /// <summary>
+    /// Hands this workspace's step file tabs over to the workspace that replaces
+    /// it for the same project: the tab objects themselves move, with their
+    /// text, undo history, caret, scroll position and "changed on disk" state,
+    /// and stop reporting to this workspace.
+    /// </summary>
+    /// <returns>The tabs in order, and the selected one, if a step file tab was selected.</returns>
+    public (IReadOnlyList<StepFileViewModel> Tabs, StepFileViewModel? Selected) ReleaseTabs()
     {
-        foreach (var (file, edited) in captured.Tabs)
+        var tabs = Tabs.OfType<StepFileViewModel>().ToList();
+        var selected = SelectedTab as StepFileViewModel;
+        foreach (var tab in tabs)
         {
-            OpenFile(file);
-            if (edited is not null && Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == file) is { } tab)
+            if (_detach.Remove(tab, out var detach))
             {
-                tab.RestoreEdits(edited);
+                detach();
             }
+
+            Tabs.Remove(tab);
         }
 
-        if (captured.Selected is { } selected)
+        SelectedTab = Actions;
+        return (tabs, selected);
+    }
+
+    /// <summary>Takes over the tabs another workspace of the same project released.</summary>
+    /// <param name="released">What <see cref="ReleaseTabs"/> returned.</param>
+    public void AdoptTabs((IReadOnlyList<StepFileViewModel> Tabs, StepFileViewModel? Selected) released)
+    {
+        foreach (var tab in released.Tabs)
         {
-            OpenFile(selected);
+            Attach(tab);
         }
-        else if (captured.Tabs.Count > 0)
+
+        if (released.Selected is { } selected)
         {
-            SelectedTab = Actions;
+            SelectedTab = selected;
         }
     }
 
@@ -362,14 +361,43 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (tests is null)
+        Explorer.Load(tests);
+    }
+
+    private void Attach(StepFileViewModel tab)
+    {
+        void OnClose(object? sender, EventArgs e) => _ = CloseTabAsync(tab);
+        void OnContent(object? sender, IReadOnlyList<Diagnostic>? diagnostics) => Problems.SetFileOverride(tab.File, diagnostics);
+        void OnSaved(object? sender, EventArgs e) => _ = ValidateAsync();
+        void OnChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            Explorer.LoadFallback(_files.FindTestFiles(Root));
+            if (e.PropertyName == nameof(StepFileViewModel.IsDirty))
+            {
+                OnPropertyChanged(nameof(HasUnsavedChanges));
+                SaveAllCommand.NotifyCanExecuteChanged();
+            }
         }
-        else
+
+        tab.CloseRequested += OnClose;
+        tab.ContentDiagnosticsChanged += OnContent;
+        tab.Saved += OnSaved;
+        tab.PropertyChanged += OnChanged;
+        _detach[tab] = () =>
         {
-            Explorer.Load(tests);
+            tab.CloseRequested -= OnClose;
+            tab.ContentDiagnosticsChanged -= OnContent;
+            tab.Saved -= OnSaved;
+            tab.PropertyChanged -= OnChanged;
+        };
+        if (tab.IsDirty && tab.ContentDiagnostics is { } content)
+        {
+            Problems.SetFileOverride(tab.File, content);
         }
+
+        tab.ApplyDiagnostics(Problems.All);
+        Tabs.Add(tab);
+        OnPropertyChanged(nameof(HasUnsavedChanges));
+        SaveAllCommand.NotifyCanExecuteChanged();
     }
 
     private async Task CloseTabAsync(StepFileViewModel tab)
@@ -394,6 +422,11 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         }
 
         Tabs.Remove(tab);
+        if (_detach.Remove(tab, out var detach))
+        {
+            detach();
+        }
+
         Problems.SetFileOverride(tab.File, null);
         tab.Dispose();
         if (SelectedTab is null || SelectedTab == tab)

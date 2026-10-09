@@ -1,6 +1,5 @@
-// The test explorer: the project's test files as a folder tree, filtered by a
-// search text and a tag. Its source is the engine's listTests, or, for engines
-// that cannot list tests yet, the files named *.test.yaml (request R0003).
+// The test explorer: the project's tests, as the engine's listTests reports
+// them, as a folder tree filtered by a search text and a tag.
 
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -41,10 +40,6 @@ public sealed partial class TestExplorerViewModel : ObservableObject
     [ObservableProperty]
     private ExplorerNodeViewModel? _selectedNode;
 
-    /// <summary>A note above the tree, such as why names and tags are missing.</summary>
-    [ObservableProperty]
-    private string? _notice;
-
     /// <summary>"12 tests" or "4 of 12 tests".</summary>
     [ObservableProperty]
     private string _summary = string.Empty;
@@ -54,17 +49,7 @@ public sealed partial class TestExplorerViewModel : ObservableObject
     public void Load(IReadOnlyList<TestInfo> tests)
     {
         ArgumentNullException.ThrowIfNull(tests);
-        Notice = null;
         Set([.. tests.OrderBy(t => t.File, StringComparer.Ordinal).Select(t => (t.File, (TestInfo?)t))]);
-    }
-
-    /// <summary>Shows test files found on disk, for an engine that cannot list tests.</summary>
-    /// <param name="files">Relative paths.</param>
-    public void LoadFallback(IReadOnlyList<string> files)
-    {
-        ArgumentNullException.ThrowIfNull(files);
-        Notice = "This engine cannot list tests yet, so files named *.test.yaml are shown by path, without names or tags. Files outside the config's \"tests\" patterns may be listed too.";
-        Set([.. files.Order(StringComparer.Ordinal).Select(f => (f, (TestInfo?)null))]);
     }
 
     /// <summary>Shows problem counts per file on the tree.</summary>

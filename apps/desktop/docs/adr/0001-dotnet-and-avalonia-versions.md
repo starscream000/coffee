@@ -1,6 +1,6 @@
 # D0001. Build on .NET 10 LTS and Avalonia 12
 
-- Status: Proposed
+- Status: Accepted (owner, 2026-10-10)
 - Date: 2026-10-09
 
 ## Context

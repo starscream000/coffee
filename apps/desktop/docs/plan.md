@@ -1,8 +1,12 @@
 # Desktop plan
 
-> Status: **Proposed** (2026-10-09). Needs the owner's go-ahead before work
-> beyond milestone D1 starts. Milestone D1 is the owner's brief of 2026-10-09
-> ([instruction D0001](../handoff/instructions/D0001-desktop-foundation.md)).
+> Status: **Accepted (owner, 2026-10-10)**. Milestone D1 and the text editor
+> of D4 are on `main`. [Instruction D0003](../handoff/instructions/D0003-a-complete-app-from-edit-to-run.md)
+> makes the app complete from editing to running, in this order: runs (D2),
+> run history (D3), the rest of D4 (building steps and targets without YAML),
+> and the place of recording (D5). The owner wants the app low-code, even
+> no-code: a tester creates, edits and runs tests without writing YAML, which
+> stays the source of truth underneath.
 
 The desktop app is a test-suite management client for the engine. It never
 runs tests itself: everything it knows about a project, a test or a run comes
@@ -23,10 +27,11 @@ for.
 | D6  | Packaging      | One installer per system with a Node runtime and the engine build inside (ADR 0009 of the repository); first-run checks; updates.                                                                                                                                                  | A distributable engine build.                                             |
 | D7  | Release v0.3.0 | Protocol `1.0.0` together with the engine; docs status lines; release notes.                                                                                                                                                                                                       | Protocol 1.0.0.                                                           |
 
-The repository's plan puts the desktop app at product version v0.3.0. D1, D3
-(reading finished run folders) and D4 can be built before that; D2 follows the
-engine's runner branch by branch, so the live run view is tried against real
-events as soon as they exist.
+The repository's plan puts the desktop app at product version v0.3.0. The
+engine's runner is on `main`, so D2 is built against real events. Where the
+engine is not ready (screenshots and page states, most built-in actions, the
+recorder), the app shows an honest placeholder in the place the feature will
+take, so the layout does not move when the engine catches up.
 
 ## How each milestone is cut
 
@@ -43,8 +48,6 @@ events as soon as they exist.
   client. The contract tests read the committed JSON Schemas, so a protocol
   change fails the desktop tests in the same pull request that makes it, once
   CI runs them ([request R0001](../handoff/requests/R0001-ci-job-for-the-desktop-app.md)).
-- **No CI for C# yet.** Until R0001 is done, Windows and macOS are not checked.
-- **Test explorer before `listTests`.** The engine answers `listTests` with
-  "method not found" until its plan branch 9. D1 shows test files found on
-  disk in the meantime, without names or tags
-  ([request R0003](../handoff/requests/R0003-list-tests-before-the-runner.md)).
+- **The engine is still growing.** Screenshots and page states, most
+  built-in actions and the recorder are not in the engine yet; the app shows
+  placeholders for them where they will go.

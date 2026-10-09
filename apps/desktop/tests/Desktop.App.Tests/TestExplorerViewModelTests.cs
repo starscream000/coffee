@@ -30,7 +30,6 @@ public sealed class TestExplorerViewModelTests
             ["tests/", "tests/checkout/", "tests/checkout/guest.test.yaml", "tests/checkout/member.test.yaml", "tests/login.test.yaml", "root.test.yaml"],
             Flatten(explorer.Roots));
         Assert.Equal("4 tests", explorer.Summary);
-        Assert.Null(explorer.Notice);
     }
 
     [Fact]
@@ -40,6 +39,11 @@ public sealed class TestExplorerViewModelTests
         Assert.Equal("Guest checks out", guest.DisplayName);
         Assert.Equal(["smoke", "checkout"], guest.Tags);
         Assert.True(guest.IsTest);
+        Assert.Equal(string.Empty, guest.RowsText);
+
+        var explorer = new TestExplorerViewModel();
+        explorer.Load([Make.Test("tests/rows.test.yaml", "Rows") with { Rows = 3 }]);
+        Assert.Equal("3 rows", explorer.Roots[0].Children[0].RowsText);
     }
 
     [Fact]
@@ -60,17 +64,6 @@ public sealed class TestExplorerViewModelTests
         Assert.Equal([TestExplorerViewModel.AllTags, "checkout", "smoke"], explorer.Tags);
         explorer.SelectedTag = "smoke";
         Assert.Equal(["tests/", "tests/checkout/", "tests/checkout/guest.test.yaml", "tests/login.test.yaml"], Flatten(explorer.Roots));
-    }
-
-    [Fact]
-    public void Falls_back_to_file_paths_with_a_notice()
-    {
-        var explorer = new TestExplorerViewModel();
-        explorer.LoadFallback(["b.test.yaml", "a/x.test.yaml"]);
-        Assert.Equal(["a/", "a/x.test.yaml", "b.test.yaml"], Flatten(explorer.Roots));
-        Assert.Equal("x.test.yaml", explorer.Roots[0].Children[0].DisplayName);
-        Assert.Contains("cannot list tests", explorer.Notice, StringComparison.Ordinal);
-        Assert.Equal([TestExplorerViewModel.AllTags], explorer.Tags);
     }
 
     [Fact]

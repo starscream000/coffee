@@ -93,6 +93,15 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
     /// <inheritdoc />
     public override string ToolTip => IsDirty ? $"{File} (unsaved changes)" : File;
 
+    /// <summary>The engine's problems for the text being edited, as last reported; null when the tab has no unsaved changes.</summary>
+    public IReadOnlyList<Diagnostic>? ContentDiagnostics { get; private set; }
+
+    /// <summary>Where the caret is, as a character offset; kept here so a new view of the tab puts it back.</summary>
+    public int CaretOffset { get; set; }
+
+    /// <summary>How far the editor is scrolled, in pixels from the top; kept here so a new view of the tab puts it back.</summary>
+    public double VerticalScroll { get; set; }
+
     /// <summary>The problems of this file shown in the tab: of the text being edited while it has unsaved changes, else of the file on disk.</summary>
     public IReadOnlyList<Diagnostic> Diagnostics => _diagnostics;
 
@@ -348,12 +357,16 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
     [RelayCommand]
     private void KeepMine()
     {
+        // The file on disk becomes the baseline for both "changed on disk" and
+        // "unsaved", so the tab stays unsaved while its text differs from the disk
+        // (review D0002, finding 3).
         if (_changedDiskText is not null)
         {
-            _diskText = _changedDiskText;
+            SetBaseline(_changedDiskText);
         }
 
         HasExternalChange = false;
+        UpdateDirty();
     }
 
     /// <summary>Stops a validation that is waiting to run.</summary>
@@ -414,6 +427,7 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
         }
         else
         {
+            ContentDiagnostics = null;
             ContentDiagnosticsChanged?.Invoke(this, null);
         }
     }
@@ -426,7 +440,8 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
             var diagnostics = await _services.Engine.ValidateContentAsync(File, text, cancellationToken);
             if (version == _textVersion && IsDirty)
             {
-                ContentDiagnosticsChanged?.Invoke(this, [.. diagnostics.Where(d => d.File == File)]);
+                ContentDiagnostics = [.. diagnostics.Where(d => d.File == File)];
+                ContentDiagnosticsChanged?.Invoke(this, ContentDiagnostics);
             }
         }
         catch (OperationCanceledException)

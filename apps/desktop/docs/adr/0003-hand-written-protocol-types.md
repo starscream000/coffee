@@ -1,6 +1,6 @@
 # D0003. Write the protocol types by hand, checked by the schemas
 
-- Status: Proposed
+- Status: Accepted (owner, 2026-10-10)
 - Date: 2026-10-09
 
 ## Context

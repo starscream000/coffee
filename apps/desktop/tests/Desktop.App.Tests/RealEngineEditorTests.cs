@@ -59,6 +59,7 @@ public sealed class RealEngineEditorTests
         var shell = new ShellViewModel(engine, settings, new FakeFolderPicker(null), new DiskProjectFiles(), new AvaloniaDispatcher(), dialogs: new FakeDialogs(), delay: new RealDelay());
         try
         {
+            DemoEnvironment.Ensure();
             await shell.InitializeAsync();
             if (engine.State != EngineState.Ready)
             {

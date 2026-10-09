@@ -48,8 +48,8 @@ public interface IEngineService
 
     /// <summary>Sends <c>listTests</c>.</summary>
     /// <param name="cancellationToken">Stops waiting.</param>
-    /// <returns>The tests, or null when the engine cannot list tests yet (method not found).</returns>
-    Task<IReadOnlyList<TestInfo>?> ListTestsAsync(CancellationToken cancellationToken = default);
+    /// <returns>The tests.</returns>
+    Task<IReadOnlyList<TestInfo>> ListTestsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Sends <c>listActions</c>.</summary>
     /// <param name="cancellationToken">Stops waiting.</param>
