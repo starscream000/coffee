@@ -50,18 +50,26 @@ branches add the pages their own samples need.
 | `/form`         | S2                       | An order form: fields "Name" and "Search", selects "Country" (Germany `de`, France `fr`) and "Toppings" (multiple: `cheese`, `olives`, `ham`), checkbox "Subscribe to the newsletter", file input "Attachment", button "Send order". Enter in "Search" writes "Searching for <text>" (`search-result`); sending writes a summary of every value (`form-summary`) |
 | `/interactions` | S3                       | Button "Help" whose tooltip (`tooltip`) gets its text and shows on hover; a list "Fruit" (`fruit-apple`, `fruit-banana`, `fruit-cherry`) sorted by dragging an item onto another, with the order in `fruit-order`                                                                                                                                                |
 | `/products`     | S16                      | A table "Products" with rows "Desk lamp", "Office chair" and "Notebook", each with a "Delete" button that removes the row; the number left is in `product-count`                                                                                                                                                                                                 |
+| `/orders`       | S4                       | A button "Load orders" that fetches `GET /api/orders` and lists each order's item in the list "Orders"; the summary (`order-summary`) says "<n> orders loaded"                                                                                                                                                                                                   |
+| `/notes`        | S9                       | A field "Note" and a button "Show note" that writes the note into `note-shown`                                                                                                                                                                                                                                                                                   |
+| `/token`        | S19                      | A button "Get token" that calls `POST /api/token` and then says "Token received" (`token-status`)                                                                                                                                                                                                                                                                |
 
 Test IDs use the attribute `data-testid`.
 
 ## API
 
-| Request           | Answer                                                                                                    |
-| ----------------- | --------------------------------------------------------------------------------------------------------- |
-| `GET /api/todos`  | The to-do items, `[{ "title": "…", "done": false }]`                                                      |
-| `POST /api/todos` | Adds `{ "title": "…", "done": true }` (`done` optional) and answers with all items; 400 for a bad body    |
-| `POST /api/reset` | Empties the list and counts one reset; answers `{ "todos": [], "resets": <n> }`. `after` steps call it    |
-| `GET /api/state`  | `{ "todos": […], "resets": <n> }`, so a test can prove its `after` steps ran                              |
-| `POST /api/login` | Signs in `{ "username": "…", "password": "…" }` and sets the session cookie; 401 when the user is unknown |
-| `GET /api/logins` | `{ "logins": <n> }`: how many sign-ins succeeded, so a test can see whether a login flow ran              |
+| Request               | Answer                                                                                                                                                                      |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/todos`      | The to-do items, `[{ "title": "…", "done": false }]`                                                                                                                        |
+| `POST /api/todos`     | Adds `{ "title": "…", "done": true }` (`done` optional) and answers with all items; 400 for a bad body                                                                      |
+| `POST /api/reset`     | Empties the list and counts one reset; answers `{ "todos": [], "resets": <n> }`. `after` steps call it                                                                      |
+| `GET /api/state`      | `{ "todos": […], "resets": <n> }`, so a test can prove its `after` steps ran                                                                                                |
+| `POST /api/login`     | Signs in `{ "username": "…", "password": "…" }` and sets the session cookie; 401 when the user is unknown                                                                   |
+| `GET /api/logins`     | `{ "logins": <n> }`: how many sign-ins succeeded, so a test can see whether a login flow ran                                                                                |
+| `GET /api/orders`     | Two orders, `[{ "id": 1, "item": "Desk lamp" }, { "id": 2, "item": "Notebook" }]`                                                                                           |
+| `GET /api/whoami`     | `{ "user": "…" }` for a signed-in session whose request carries `X-Demo-Password` (the value of `DEMO_PASSWORD` when the server has one, otherwise anything); 401 otherwise |
+| `POST /api/token`     | Issues a token in the response header `Authorization: Bearer <token>`; answers `{ "issued": true }`                                                                         |
+| `GET /api/protected`  | `{ "ok": true }` with `Authorization: Bearer <a token POST /api/token issued>`; 401 otherwise                                                                               |
+| `GET /api/token/last` | `{ "token": "…" }`: the last token issued, so a test can check that it appears nowhere in the output                                                                        |
 
 Anything else is a 404 in plain text.

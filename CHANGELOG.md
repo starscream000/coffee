@@ -60,6 +60,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The built-in actions `set`, `extract`, `api`, `mock`, `wait.response` and
+  `expect.response`. `api` sends requests with `ctx.request`, so they carry
+  the page's cookies; `mock` answers matching requests of the step's browser
+  context until the test ends. A response log per test lets `wait.response`
+  and `expect.response` see responses that arrived since the previous step
+  started, so "click, then wait for the response" has no race. When a step
+  stores or reads a `Cookie`, `Set-Cookie` or `Authorization` response header,
+  its values are registered as secrets for the rest of the run (ADR 0014).
+- Demo pages `/orders`, `/notes` and `/token` with their API endpoints, and
+  samples S4, S9 and S19.
+
 - The built-in actions `back`, `reload`, `wait.element`, `wait.url`,
   `expect.visible`, `expect.value`, `expect.url` and `expect.count`. Every
   wait polls and checks the step's signal on each round. URL patterns follow
