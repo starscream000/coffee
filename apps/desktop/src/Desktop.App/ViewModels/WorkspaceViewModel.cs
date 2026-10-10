@@ -185,7 +185,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         var tab = Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == file);
         if (tab is null)
         {
-            tab = new StepFileViewModel(file, new StepFileServices(Root, _files, _engine, _dialogs, _delay, EngineStatus.Report, RunFileAsync, ActionChoices, SharedTargets));
+            tab = new StepFileViewModel(file, new StepFileServices(Root, _files, _engine, _dialogs, _delay, EngineStatus.Report, RunFileAsync, ActionChoices, SharedTargets, RenameFileAsync, DeleteFileAsync));
             tab.LoadFromDisk();
             Attach(tab);
         }
@@ -299,10 +299,158 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>What happened to the last attempt to create, rename or delete a file, when it did not work; null otherwise.</summary>
+    [ObservableProperty]
+    private string? _fileNotice;
+
     /// <summary>Runs every test of the project.</summary>
     /// <returns>A task that completes when the run has started or was refused.</returns>
     [RelayCommand]
     private Task RunAllAsync() => Runs.RunAllAsync();
+
+    /// <summary>Creates a test in the folder selected in the explorer (else <c>tests</c>) and opens it.</summary>
+    /// <returns>A task that completes when the file is open or was not created.</returns>
+    [RelayCommand]
+    private Task NewTestAsync() => NewFileAsync(NewFileKind.Test);
+
+    /// <summary>Creates a flow (in <c>flows</c>) and opens it.</summary>
+    /// <returns>A task that completes when the file is open or was not created.</returns>
+    [RelayCommand]
+    private Task NewFlowAsync() => NewFileAsync(NewFileKind.Flow);
+
+    /// <summary>Creates a shared targets file (in <c>targets</c>) and opens it.</summary>
+    /// <returns>A task that completes when the file is open or was not created.</returns>
+    [RelayCommand]
+    private Task NewTargetsAsync() => NewFileAsync(NewFileKind.Targets);
+
+    /// <summary>Hides the file notice.</summary>
+    [RelayCommand]
+    private void DismissFileNotice() => FileNotice = null;
+
+    /// <summary>
+    /// Asks for a folder and name, writes a minimal file of the kind that the
+    /// engine reads without problems, and opens it. An existing file is never
+    /// overwritten.
+    /// </summary>
+    /// <param name="kind">What to create.</param>
+    /// <returns>A task that completes when the file is open or was not created.</returns>
+    public async Task NewFileAsync(NewFileKind kind)
+    {
+        FileNotice = null;
+        var what = NewFiles.Words(kind);
+        var folder = kind == NewFileKind.Test && Explorer.SelectedNode is { } node
+            ? node.IsFolder ? node.Path : node.Path[..Math.Max(node.Path.LastIndexOf('/'), 0)]
+            : NewFiles.DefaultFolder(kind);
+        try
+        {
+            if (await _dialogs.AskNewFileAsync(what, folder, NewFiles.Ending(kind)) is not { } answer)
+            {
+                return;
+            }
+
+            var path = NewFiles.PathFor(answer.Folder, answer.Name, kind);
+            if (_files.Exists(Root, path))
+            {
+                FileNotice = $"{path} already exists. Choose another name.";
+                return;
+            }
+
+            _files.WriteText(Root, path, NewFiles.Template(kind, path));
+            OpenFile(path);
+            await OnFilesChangedAsync([path]);
+        }
+        catch (ArgumentException ex)
+        {
+            FileNotice = $"The {what} was not created: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            FileNotice = $"The {what} was not created: {ex.Message}";
+            EngineStatus.Report($"Creating a {what} failed: {ex}");
+        }
+    }
+
+    /// <summary>Renames a tab's file in its folder and opens it under the new name. A tab with unsaved changes is saved or reverted first.</summary>
+    /// <param name="tab">The tab.</param>
+    /// <returns>A task that completes when the file is renamed or was not.</returns>
+    public async Task RenameFileAsync(StepFileViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(tab);
+        FileNotice = null;
+        if (tab.IsDirty)
+        {
+            FileNotice = $"Save or revert {tab.File} before renaming it.";
+            return;
+        }
+
+        if (NewFiles.KindOf(tab.File) is not { } kind)
+        {
+            FileNotice = "Only test, flow and targets files can be renamed here.";
+            return;
+        }
+
+        try
+        {
+            if (await _dialogs.AskRenameAsync(tab.File) is not { } name)
+            {
+                return;
+            }
+
+            // The name keeps the file's kind: "checkout" becomes "checkout.test.yaml" for a test.
+            var folder = tab.File[..Math.Max(tab.File.LastIndexOf('/'), 0)];
+            var path = NewFiles.PathFor(folder, name, kind);
+            if (path == tab.File)
+            {
+                return;
+            }
+
+            if (_files.Exists(Root, path))
+            {
+                FileNotice = $"{path} already exists. Choose another name.";
+                return;
+            }
+
+            _files.Move(Root, tab.File, path);
+            var old = tab.File;
+            RemoveTab(tab);
+            OpenFile(path);
+            await OnFilesChangedAsync([old, path]);
+        }
+        catch (ArgumentException ex)
+        {
+            FileNotice = $"{tab.File} was not renamed: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            FileNotice = $"{tab.File} was not renamed: {ex.Message}";
+            EngineStatus.Report($"Renaming {tab.File} failed: {ex}");
+        }
+    }
+
+    /// <summary>Deletes a tab's file after asking, and closes the tab.</summary>
+    /// <param name="tab">The tab.</param>
+    /// <returns>A task that completes when the file is deleted or was not.</returns>
+    public async Task DeleteFileAsync(StepFileViewModel tab)
+    {
+        ArgumentNullException.ThrowIfNull(tab);
+        FileNotice = null;
+        try
+        {
+            if (!await _dialogs.AskDeleteAsync(tab.File))
+            {
+                return;
+            }
+
+            _files.Delete(Root, tab.File);
+            RemoveTab(tab);
+            await OnFilesChangedAsync([tab.File]);
+        }
+        catch (Exception ex)
+        {
+            FileNotice = $"{tab.File} was not deleted: {ex.Message}";
+            EngineStatus.Report($"Deleting {tab.File} failed: {ex}");
+        }
+    }
 
     /// <summary>
     /// Runs what is selected in the explorer: a test file, or every test in a
@@ -493,6 +641,12 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
             return;
         }
 
+        RemoveTab(tab);
+    }
+
+    /// <summary>Closes a tab without asking.</summary>
+    private void RemoveTab(StepFileViewModel tab)
+    {
         var index = Tabs.IndexOf(tab);
         if (index < 0)
         {

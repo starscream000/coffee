@@ -40,6 +40,12 @@
           <CheckBox Content="Show browser" IsChecked="{Binding Runs.Headed}" Margin="0,0,4,4"
                     ToolTip.Tip="Show the browser window while the tests run." />
         </WrapPanel>
+        <WrapPanel>
+          <Button x:Name="NewTestButton" Content="New test" Command="{Binding NewTestCommand}" Margin="0,0,4,4"
+                  ToolTip.Tip="Create a test in the selected folder." />
+          <Button Content="New flow" Command="{Binding NewFlowCommand}" Margin="0,0,4,4" />
+          <Button Content="New targets file" Command="{Binding NewTargetsCommand}" Margin="0,0,4,4" />
+        </WrapPanel>
         <SelectableTextBlock x:Name="RunUnavailable" Text="{Binding Runs.UnavailableReason}" TextWrapping="Wrap" Classes="small"
                              IsVisible="{Binding Runs.UnavailableReason, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
@@ -91,6 +97,13 @@
         <DockPanel>
           <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding Runs.DismissNoticeCommand}" />
           <SelectableTextBlock x:Name="RunNotice" Text="{Binding Runs.Notice}" TextWrapping="Wrap" VerticalAlignment="Center" />
+        </DockPanel>
+      </Border>
+      <Border DockPanel.Dock="Top" Padding="10,6" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+              IsVisible="{Binding FileNotice, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissFileNoticeCommand}" />
+          <SelectableTextBlock x:Name="FileNotice" Text="{Binding FileNotice}" TextWrapping="Wrap" VerticalAlignment="Center" />
         </DockPanel>
       </Border>
       <TabControl x:Name="Tabs" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab}" Padding="0">

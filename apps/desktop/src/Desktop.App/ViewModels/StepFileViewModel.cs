@@ -33,6 +33,8 @@ public enum LineMark
 /// <param name="Run">Runs a test file; null when the tab cannot start runs.</param>
 /// <param name="Actions">The actions the engine knows, for the step list; null for none.</param>
 /// <param name="SharedTargets">The names of the project's shared targets, for the target picker; null for none.</param>
+/// <param name="Rename">Renames the tab's file; null when the tab cannot.</param>
+/// <param name="Delete">Deletes the tab's file; null when the tab cannot.</param>
 public sealed record StepFileServices(
     string Root,
     IProjectFiles Files,
@@ -42,7 +44,9 @@ public sealed record StepFileServices(
     Action<string> Report,
     Func<string, Task>? Run = null,
     Func<IReadOnlyList<StepActionChoice>>? Actions = null,
-    Func<IReadOnlyList<string>>? SharedTargets = null);
+    Func<IReadOnlyList<string>>? SharedTargets = null,
+    Func<StepFileViewModel, Task>? Rename = null,
+    Func<StepFileViewModel, Task>? Delete = null);
 
 /// <summary>An editable step file in a tab.</summary>
 public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposable
@@ -396,6 +400,16 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
         _pendingValidation?.Dispose();
         _pendingValidation = null;
     }
+
+    /// <summary>Renames the file (asks for the new name).</summary>
+    /// <returns>A task that completes when the file is renamed or was not.</returns>
+    [RelayCommand]
+    private Task RenameAsync() => _services.Rename?.Invoke(this) ?? Task.CompletedTask;
+
+    /// <summary>Deletes the file (asks first).</summary>
+    /// <returns>A task that completes when the file is deleted or was not.</returns>
+    [RelayCommand]
+    private Task DeleteAsync() => _services.Delete?.Invoke(this) ?? Task.CompletedTask;
 
     /// <summary>Runs this file's test (after asking about unsaved changes).</summary>
     /// <returns>A task that completes when the run has started or was refused.</returns>

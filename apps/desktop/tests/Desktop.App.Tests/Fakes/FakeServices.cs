@@ -47,6 +47,21 @@ internal sealed class FakeProjectFiles : IProjectFiles
 
     public string? TryReadText(string root, string relativePath) => Files.GetValueOrDefault(relativePath);
 
+    public bool Exists(string root, string relativePath) =>
+        Files.ContainsKey(relativePath) || Files.Keys.Any(f => f.StartsWith(relativePath + "/", StringComparison.Ordinal));
+
+    public void Move(string root, string source, string destination)
+    {
+        if (Files.ContainsKey(destination) || !Files.Remove(source, out var text))
+        {
+            throw new IOException($"Cannot move {source} to {destination}.");
+        }
+
+        Files[destination] = text;
+    }
+
+    public void Delete(string root, string relativePath) => Files.Remove(relativePath);
+
     public IReadOnlyList<string> FindFiles(string root, string ending) =>
         [.. Files.Keys.Where(f => f.EndsWith(ending, StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal)];
 
@@ -257,6 +272,30 @@ internal sealed class FakeDialogs : IDialogService
     {
         Asked.Add("overwrite " + file);
         return Task.FromResult(OverwriteAnswer);
+    }
+
+    public (string Folder, string Name)? NewFileAnswer { get; set; }
+
+    public string? RenameAnswer { get; set; }
+
+    public bool DeleteAnswer { get; set; }
+
+    public Task<(string Folder, string Name)?> AskNewFileAsync(string what, string folder, string ending)
+    {
+        Asked.Add($"new {what} in {folder}");
+        return Task.FromResult(NewFileAnswer);
+    }
+
+    public Task<string?> AskRenameAsync(string file)
+    {
+        Asked.Add("rename " + file);
+        return Task.FromResult(RenameAnswer);
+    }
+
+    public Task<bool> AskDeleteAsync(string file)
+    {
+        Asked.Add("delete " + file);
+        return Task.FromResult(DeleteAnswer);
     }
 
     public UnsavedChangesChoice RunAnswer { get; set; } = UnsavedChangesChoice.Cancel;

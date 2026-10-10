@@ -54,6 +54,27 @@ public interface IProjectFiles
     /// <param name="ending">The end of the file name, such as <c>.targets.yaml</c>; compared without regard to case.</param>
     /// <returns>Relative paths, sorted; empty when the root cannot be read.</returns>
     IReadOnlyList<string> FindFiles(string root, string ending);
+
+    /// <summary>Tells whether a file or folder exists.</summary>
+    /// <param name="root">The project root.</param>
+    /// <param name="relativePath">The path, relative to the root.</param>
+    /// <returns>True when it exists.</returns>
+    bool Exists(string root, string relativePath);
+
+    /// <summary>Moves a file, creating the target's folder when needed.</summary>
+    /// <param name="root">The project root.</param>
+    /// <param name="source">The file, relative to the root.</param>
+    /// <param name="destination">Where it goes, relative to the root; must not exist.</param>
+    /// <exception cref="IOException">The file could not be moved, or the target exists.</exception>
+    /// <exception cref="UnauthorizedAccessException">The file or folder may not be changed.</exception>
+    void Move(string root, string source, string destination);
+
+    /// <summary>Deletes a file.</summary>
+    /// <param name="root">The project root.</param>
+    /// <param name="relativePath">The file, relative to the root.</param>
+    /// <exception cref="IOException">The file could not be deleted.</exception>
+    /// <exception cref="UnauthorizedAccessException">The file may not be deleted.</exception>
+    void Delete(string root, string relativePath);
 }
 
 /// <summary>The project files on disk.</summary>
@@ -108,6 +129,24 @@ public sealed class DiskProjectFiles : IProjectFiles
 
     /// <inheritdoc />
     public IDisposable Watch(string root, Action<IReadOnlyCollection<string>> changed) => new Watcher(root, changed);
+
+    /// <inheritdoc />
+    public bool Exists(string root, string relativePath)
+    {
+        var path = Path.Combine(root, relativePath);
+        return File.Exists(path) || Directory.Exists(path);
+    }
+
+    /// <inheritdoc />
+    public void Move(string root, string source, string destination)
+    {
+        var target = Path.Combine(root, destination);
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+        File.Move(Path.Combine(root, source), target, overwrite: false);
+    }
+
+    /// <inheritdoc />
+    public void Delete(string root, string relativePath) => File.Delete(Path.Combine(root, relativePath));
 
     /// <inheritdoc />
     public IReadOnlyList<string> FindFiles(string root, string ending)

@@ -159,5 +159,11 @@ public sealed class ReviewD0002FixesTests
         public Task<bool> AskOverwriteAsync(string file) => throw new InvalidOperationException("dialog broke");
 
         public Task<UnsavedChangesChoice> AskSaveBeforeRunAsync(IReadOnlyList<string> files) => throw new InvalidOperationException("dialog broke");
+
+        public Task<(string Folder, string Name)?> AskNewFileAsync(string what, string folder, string ending) => throw new InvalidOperationException("dialog broke");
+
+        public Task<string?> AskRenameAsync(string file) => throw new InvalidOperationException("dialog broke");
+
+        public Task<bool> AskDeleteAsync(string file) => throw new InvalidOperationException("dialog broke");
     }
 }
