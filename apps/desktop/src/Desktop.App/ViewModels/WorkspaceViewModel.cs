@@ -350,6 +350,29 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private Task NewTargetsAsync() => NewFileAsync(NewFileKind.Targets);
 
+    /// <summary>Opens the recorder's tab, or selects it when it is open.</summary>
+    [RelayCommand]
+    private void Record()
+    {
+        var tab = Tabs.OfType<RecorderTabViewModel>().FirstOrDefault();
+        if (tab is null)
+        {
+            tab = new RecorderTabViewModel();
+            tab.CloseRequested += (_, _) =>
+            {
+                var index = Tabs.IndexOf(tab);
+                Tabs.Remove(tab);
+                if (SelectedTab is null || SelectedTab == tab)
+                {
+                    SelectedTab = Tabs[Math.Clamp(index - 1, 0, Tabs.Count - 1)];
+                }
+            };
+            Tabs.Add(tab);
+        }
+
+        SelectedTab = tab;
+    }
+
     /// <summary>Hides the file notice.</summary>
     [RelayCommand]
     private void DismissFileNotice() => FileNotice = null;

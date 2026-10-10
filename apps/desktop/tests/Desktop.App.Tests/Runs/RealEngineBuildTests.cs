@@ -91,6 +91,33 @@ public sealed class RealEngineBuildTests
             Assert.Equal(TestRunState.Passed, test.State);
             Assert.Equal(["steps", "after"], test.Sections.Select(s => s.Name));
             Assert.Equal(5, test.AllSteps.Count());
+
+            // The README's walk-through, step 10: a failure shows expected and actual.
+            workspace.OpenFile(File);
+            list.SelectCommand.Execute(list.Sections[1].Steps[3]);
+            Set(list, "equals", "2");
+            Assert.True(await tab.SaveAsync());
+            await workspace.RunFileAsync(File);
+            var failing = workspace.Runs.Current!;
+            for (var i = 0; i < 600 && failing.IsActive; i++)
+            {
+                await Task.Delay(100);
+            }
+
+            Assert.Equal(RunState.Failed, failing.State);
+            var failed = failing.Tests.Single().SelectedStep!;
+            Assert.Equal("expect.text", failed.Action);
+            Assert.Equal("\"2\"", failed.ExpectedText);
+            Assert.Equal("\"1\"", failed.ActualText);
+            Assert.All(failing.Tests.Single().Sections.Single(s => s.Name == "after").Steps, s => Assert.Equal(StepRunState.Passed, s.State));
+
+            // Step 11: both runs are in the history.
+            for (var i = 0; i < 200 && workspace.History.Items.Count < 2; i++)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.Equal(["Failed", "Passed"], workspace.History.Items.Select(h => h.StatusText));
         }
         finally
         {
