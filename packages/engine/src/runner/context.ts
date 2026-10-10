@@ -49,9 +49,23 @@ export interface StepContextOptions {
    * "A user action that ignores the signal").
    */
   readonly sealed?: () => boolean;
+  /** Absolute path of the file the step is written in, for paths relative to it. */
+  readonly stepFile?: string | undefined;
 }
 
 const deadlines = new WeakMap<ActionContext, number>();
+const stepFiles = new WeakMap<ActionContext, string>();
+
+/**
+ * The absolute path of the file a step is written in, for built-in actions
+ * whose paths are relative to it (`upload`).
+ *
+ * @param ctx - A context built by {@link createStepContext}.
+ * @returns The path, or undefined when it is not known.
+ */
+export function stepFileOf(ctx: ActionContext): string | undefined {
+  return stepFiles.get(ctx);
+}
 
 /** Time `ctx.locate` keeps back before the step's deadline, in milliseconds. */
 export const LOCATE_MARGIN_MS = 150;
@@ -125,5 +139,6 @@ export function createStepContext(options: StepContextOptions): ActionContext {
           }),
   };
   deadlines.set(ctx, options.deadline);
+  if (options.stepFile !== undefined) stepFiles.set(ctx, options.stepFile);
   return ctx;
 }

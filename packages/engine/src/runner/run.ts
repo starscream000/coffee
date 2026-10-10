@@ -419,6 +419,7 @@ export class RunManager {
             sharedTargets: project.sharedTargetValues(),
             testIdAttribute: project.config?.defaults?.testIdAttribute ?? 'data-testid',
             logins: (fresh) => logins.forTest(test.instance.testId, fresh, emit),
+            root: project.root,
             cancel: run.cancel,
             emit,
           });
