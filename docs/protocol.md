@@ -59,6 +59,13 @@
   their major versions are equal. While the version is `0.x`: major **and**
   minor must be equal, because a `0.x` minor bump may break.
 - `1.0.0` is planned for the desktop app release (v0.3.0).
+- While the version is `0.x`, **compatible additions raise the patch number**
+  ([ADR 0011](adr/0011-protocol-versioning.md), R11). The current version is
+  `0.1.1`. It adds to `0.1.0`: recording (`startRecording`, `stopRecording`,
+  `verifyRecording` and their events), `createProject`,
+  `capabilities.installCommand`, the optional `section`, `action`, `title` and
+  `location` of `stepSkipped`, and the error names `RecordingInProgress`,
+  `RecordingNotFound`, `FileExists` and `FolderNotEmpty`.
 
 Machine-readable definitions: every message is defined once, as a Zod schema in
 `@cfe/protocol` ([ADR 0020](adr/0020-protocol-as-zod-schemas.md)). The
@@ -112,6 +119,13 @@ client                                   engine
   │ ◀── runStarted, testStarted, stepStarted, screenshotReady,
   │     snapshotReady, stepPassed / stepFailed, …, testFinished, runFinished
   │ cancelRun (optional) ─────────────────▶ │
+  │ startRecording ───────────────────────▶ │  (a browser opens)
+  │ ◀────────────── result { recordingId }  │
+  │ ◀── recordingStarted, stepRecorded, stepChanged, recordingNotice, …
+  │ stopRecording ────────────────────────▶ │
+  │ ◀──── recordingStopped, result { file } │
+  │ verifyRecording ──────────────────────▶ │
+  │ ◀── result { runId }, run events …, recordingVerified
   │ shutdown ─────────────────────────────▶ │
   │ ◀──────────────────────── result null   │  (process exits with 0)
 ```
@@ -122,10 +136,10 @@ client                                   engine
 
 ```jsonc
 // params
-{ "protocolVersion": "0.1.0", "client": { "name": "@cfe/cli", "version": "0.1.0" } }
+{ "protocolVersion": "0.1.1", "client": { "name": "@cfe/cli", "version": "0.1.0" } }
 // result
 {
-  "protocolVersion": "0.1.0",
+  "protocolVersion": "0.1.1",
   "engine": { "name": "@cfe/engine", "version": "0.1.0" },
   "capabilities": { "browsers": ["chromium"] }
 }
@@ -135,6 +149,9 @@ client                                   engine
 must not assume any particular browser; they offer what is listed. An engine
 whose browser is not installed reports `[]`; `startRun` then fails with
 invalid params and a message that gives the command that installs it.
+`capabilities.installCommand` (since `0.1.1`) is that command, present only
+while `browsers` is empty, so a client can show it before any run:
+`{ "browsers": [], "installCommand": "npx playwright@1.64.0 install chromium" }`.
 
 ### `shutdown`
 
@@ -162,6 +179,38 @@ no environments. Opening a project loads user actions; naming and loading
 problems arrive as diagnostics. Only one project is open per engine process; opening another
 replaces it. Fails with `ProjectInvalid` if no config file is found, and with
 `RunInProgress` while a run is going: a run keeps its project until it ends.
+
+### `createProject`
+
+```jsonc
+// params
+{
+  "root": "C:/work/shop-tests",          // empty, or not there yet
+  "name": "Shop tests",
+  "baseUrl": "http://localhost:5173",
+  "environment": "local"                  // optional: the first environment's name, default "local"
+}
+// result: the same as openProject's, for the new project
+{
+  "root": "C:/work/shop-tests",
+  "configFile": "C:/work/shop-tests/cfe.config.yaml",
+  "environments": ["local"],
+  "defaultEnvironment": "local",
+  "logins": [],
+  "diagnostics": []
+}
+```
+
+Creates a project in a folder that is empty or does not exist yet, then opens
+it as `openProject` does. It writes a minimal valid config (the project's name
+in its first comment line, the default globs, one environment), creates the
+folders the config's globs name (`tests/`, `flows/`, `targets/`, `actions/`),
+and writes a `.gitignore` that leaves out the data folder and `.env`
+([step-format.md](step-format.md#a-new-project)). Fails with `FolderNotEmpty`,
+whose message names what is in the folder; with `-32602` invalid params for an
+empty name, a root that is a file, or a base URL or environment name the
+config would not accept; and, like `openProject`, with `RunInProgress` or
+`RecordingInProgress`.
 
 ### `listTests`
 
@@ -250,27 +299,97 @@ the viewer failed to start); that error's `data.screenshot` holds the step's
 screenshot path so the client can show it instead. The snapshot format is an
 engine detail and not part of the protocol.
 
+### `startRecording`
+
+```jsonc
+// params
+{
+  "file": "tests/add-todo.test.yaml",   // relative to the project root; must not exist
+  "startUrl": "/todos",                  // optional: a path under the environment's baseUrl, or a full URL; default "/"
+  "environment": "local",                // optional: config default
+  "login": "customer",                   // optional: a saved login for the main page
+  "name": "Add a to-do"                  // optional: made from the file name
+}
+// result (once the recording browser is open; the recording arrives as events)
+{ "recordingId": "rec-20261010-101500-123-1a2b", "file": "tests/add-todo.test.yaml" }
+```
+
+Opens a **visible** browser with the environment's context settings (and the
+saved login's state), goes to the start URL and records what the person does
+there, as [recording.md](recording.md) describes. The engine writes the file
+after every change; it is a valid test file at every moment.
+
+- One recording at a time, and none while a run is going: refused with
+  `RecordingInProgress` or `RunInProgress`. `startRun` and `openProject` are
+  refused with `RecordingInProgress` while a recording is going on.
+- Refused with `FileExists` when the file exists (recording into an existing
+  test is not available yet), and with `-32602` invalid params for a file name
+  that does not end in `.test.yaml`, an unknown environment or login, or a
+  browser that cannot start (the message gives the install command).
+- The recording ends with `stopRecording`, when the person closes the browser,
+  or when the engine ends: on `shutdown`, when the client closes its
+  connection, or for any other reason. The file keeps what was recorded.
+
+### `stopRecording`
+
+`{ "recordingId": "…" }` → `{ "file": "tests/add-todo.test.yaml", "steps": 3 }`.
+Writes the last pending step, closes the recording browser, sends
+`recordingStopped`, then answers. For a recording that has already ended it
+answers the same without doing anything. Fails with `RecordingNotFound` for an
+unknown id.
+
+### `verifyRecording`
+
+`{ "recordingId": "…" }` → `{ "runId": "…", "resultsDir": "…" }`, as
+`startRun`. Runs the recorded file with the normal runner, in a fresh browser
+context; its events are the usual run events, followed by
+`recordingVerified`. A recording counts as runnable only after a verify that
+passed. Fails with `RecordingInProgress` while it is still recording (stop it
+first), with `RecordingNotFound` for an unknown id, and with the errors of
+`startRun`.
+
 ## Events
 
-Events are JSON-RPC notifications. Every event's params include `runId` and
-`seq`, a number that increases by one per event within a run, so a client can
-detect gaps. Times are ISO 8601 UTC strings; durations are milliseconds.
+Events are JSON-RPC notifications. Every run event's params include `runId`
+and `seq`, a number that increases by one per event within a run, so a client
+can detect gaps. Recording events carry `recordingId` instead, and arrive in
+order. Times are ISO 8601 UTC strings; durations are milliseconds.
 
-| Event             | Extra fields                                                                                                                  |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `runStarted`      | `env`, `browser`, `settings`: `{ viewport, locale, timezone }`, `startedAt`, `tests`: `{ testId, file, name, row?, skip? }[]` |
-| `testStarted`     | `testId`, `startedAt`                                                                                                         |
-| `stepStarted`     | `testId`, `stepId`, `parentStepId?`, `section` (`before`, `steps`, `after`), `action`, `params`, `page`, `title`, `location`  |
-| `stepPassed`      | `testId`, `stepId`, `durationMs`, `locators`: `LocatorUse[]`, `snapshot`: `SnapshotStatus`                                    |
-| `stepFailed`      | `testId`, `stepId`, `durationMs`, `error`: `ErrorInfo`, `locators`: `LocatorUse[]`, `snapshot`: `SnapshotStatus`              |
-| `stepSkipped`     | `testId`, `stepId`, `reason` (`previousFailure`, `cancelled`, `variableNotSet`), `message`, `variable?`                       |
-| `screenshotReady` | `testId`, `stepId`, `page`, `path`, `width`, `height`                                                                         |
-| `snapshotReady`   | `testId`, `stepId`, `page`                                                                                                    |
-| `pageOpened`      | `testId`, `stepId`, `page`, `automatic` (`true` when no step named it)                                                        |
-| `log`             | `level` (`debug`, `info`, `warn`, `error`), `message`, `code?`, `testId?`, `stepId?`, `location?`, `data?`                    |
-| `testSkipped`     | `testId`, `reason`: the test's `skip` text (sent instead of `testStarted` … `testFinished`)                                   |
-| `testFinished`    | `testId`, `status` (`passed`, `failed`, `cancelled`), `durationMs`                                                            |
-| `runFinished`     | `status`, `durationMs`, `totals`: `{ passed, failed, cancelled, skipped }`                                                    |
+| Event             | Extra fields                                                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `runStarted`      | `env`, `browser`, `settings`: `{ viewport, locale, timezone }`, `startedAt`, `tests`: `{ testId, file, name, row?, skip? }[]`                         |
+| `testStarted`     | `testId`, `startedAt`                                                                                                                                 |
+| `stepStarted`     | `testId`, `stepId`, `parentStepId?`, `section` (`before`, `steps`, `after`), `action`, `params`, `page`, `title`, `location`                          |
+| `stepPassed`      | `testId`, `stepId`, `durationMs`, `locators`: `LocatorUse[]`, `snapshot`: `SnapshotStatus`                                                            |
+| `stepFailed`      | `testId`, `stepId`, `durationMs`, `error`: `ErrorInfo`, `locators`: `LocatorUse[]`, `snapshot`: `SnapshotStatus`                                      |
+| `stepSkipped`     | `testId`, `stepId`, `reason` (`previousFailure`, `cancelled`, `variableNotSet`), `message`, `variable?`, `section?`, `action?`, `title?`, `location?` |
+| `screenshotReady` | `testId`, `stepId`, `page`, `path`, `width`, `height`                                                                                                 |
+| `snapshotReady`   | `testId`, `stepId`, `page`                                                                                                                            |
+| `pageOpened`      | `testId`, `stepId`, `page`, `automatic` (`true` when no step named it)                                                                                |
+| `log`             | `level` (`debug`, `info`, `warn`, `error`), `message`, `code?`, `testId?`, `stepId?`, `location?`, `data?`                                            |
+| `testSkipped`     | `testId`, `reason`: the test's `skip` text (sent instead of `testStarted` … `testFinished`)                                                           |
+| `testFinished`    | `testId`, `status` (`passed`, `failed`, `cancelled`), `durationMs`                                                                                    |
+| `runFinished`     | `status`, `durationMs`, `totals`: `{ passed, failed, cancelled, skipped }`                                                                            |
+
+Recording events:
+
+| Event               | Fields                                                                                                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `recordingStarted`  | `recordingId`, `file`, `startUrl`                                                                                                                                                               |
+| `stepRecorded`      | `recordingId`, `index`, `step`: `{ action, params, page?, opens? }` (as written, canonical long form), `targets` (the targets the step made, as the file holds them), `review?`                 |
+| `stepChanged`       | `recordingId`, `index`, `step`, `review?`: a `fill` whose text changed, or a step that got `opens`                                                                                              |
+| `recordingNotice`   | `recordingId`, `kind` (`drag`, `fileChooser`, `contextMenu`, `doubleClick`, `shortcut`, `key`, `history`, `contentEditable`, `background`, `unmapped`, `writeFailed`), `message`, `page`, `url` |
+| `recordingStopped`  | `recordingId`, `file`, `reason` (`stopped`, `browserClosed`), `steps`                                                                                                                           |
+| `recordingVerified` | `recordingId`, `runId`, `status` (`passed`, `failed`): sent after the verify run's `runFinished`                                                                                                |
+
+- `stepRecorded.review` is the reason the step is marked for review, the same
+  text as the `# review:` comment above it in the file.
+- `index` is the step's place in the file's `steps` (0 is the first `goto`).
+- `recordingNotice.kind` is an open enum: clients show unknown kinds as they
+  show the others.
+- Recording events are masked like every other message; a recorded `fill`
+  never carries a typed password in the first place
+  ([recording.md](recording.md#secrets)).
 
 - `stepStarted.params` is the step's **canonical long form** with variables
   still uninterpolated (`${secrets.…}` is never resolved in events).
@@ -279,6 +398,10 @@ detect gaps. Times are ISO 8601 UTC strings; durations are milliseconds.
   candidates no longer match; clients can show this as a target to refresh.
 - An unnamed new page produces `pageOpened` with `automatic: true` and a `log`
   event with level `warn`, code `UnnamedPage` and the step's `location`.
+- A step skipped **without a `stepStarted`** (after a failure, after a
+  cancellation, or an `after` step whose variable was never set) carries its
+  `section`, `action`, `title` and `location` in `stepSkipped`, so a client can
+  show it in its place.
 - An `after` step that uses a variable that was never set produces
   `stepSkipped` with reason `variableNotSet`, `variable` (the name) and
   `message` "skipped: orderNumber was never set". It is not a failure.
@@ -399,18 +522,22 @@ Standard JSON-RPC codes (`-32700` parse error, `-32600` invalid request,
 `-32601` method not found, `-32602` invalid params, `-32603` internal error)
 plus:
 
-| Code     | Name                   | When                                                   |
-| -------- | ---------------------- | ------------------------------------------------------ |
-| `-32001` | `NotInitialized`       | Any request before a successful `initialize`           |
-| `-32002` | `IncompatibleProtocol` | `initialize` with an incompatible version (then exit)  |
-| `-32003` | `ProjectNotOpen`       | A project request before `openProject`                 |
-| `-32004` | `ProjectInvalid`       | No or unreadable config file                           |
-| `-32005` | `StepFilesInvalid`     | `startRun` with validation errors (`data.diagnostics`) |
-| `-32006` | `RunInProgress`        | `startRun` or `openProject` while a run is active      |
-| `-32007` | `RunNotFound`          | `cancelRun` / `openSnapshot` with an unknown `runId`   |
-| `-32008` | `SnapshotNotFound`     | `openSnapshot` for a step without a snapshot           |
-| `-32009` | `MessageTooLarge`      | A message over 4 MiB (see [Transport](#transport))     |
-| `-32010` | `SnapshotUnavailable`  | Snapshot exists but cannot be shown; `data.screenshot` |
+| Code     | Name                   | When                                                                                 |
+| -------- | ---------------------- | ------------------------------------------------------------------------------------ |
+| `-32001` | `NotInitialized`       | Any request before a successful `initialize`                                         |
+| `-32002` | `IncompatibleProtocol` | `initialize` with an incompatible version (then exit)                                |
+| `-32003` | `ProjectNotOpen`       | A project request before `openProject`                                               |
+| `-32004` | `ProjectInvalid`       | No or unreadable config file                                                         |
+| `-32005` | `StepFilesInvalid`     | `startRun` with validation errors (`data.diagnostics`)                               |
+| `-32006` | `RunInProgress`        | `startRun`, `openProject`, `createProject` or `startRecording` while a run is active |
+| `-32007` | `RunNotFound`          | `cancelRun` / `openSnapshot` with an unknown `runId`                                 |
+| `-32008` | `SnapshotNotFound`     | `openSnapshot` for a step without a snapshot                                         |
+| `-32009` | `MessageTooLarge`      | A message over 4 MiB (see [Transport](#transport))                                   |
+| `-32010` | `SnapshotUnavailable`  | Snapshot exists but cannot be shown; `data.screenshot`                               |
+| `-32011` | `RecordingInProgress`  | `startRecording`, `startRun`, `openProject` or `verifyRecording` during a recording  |
+| `-32012` | `RecordingNotFound`    | `stopRecording` / `verifyRecording` with an unknown `recordingId`                    |
+| `-32013` | `FileExists`           | `startRecording` with a file that exists                                             |
+| `-32014` | `FolderNotEmpty`       | `createProject` in a folder that is not empty; the message names what is in it       |
 
 Error responses carry `error.data.name` (the name above) so clients can switch on
 names instead of numbers.

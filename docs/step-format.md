@@ -568,6 +568,21 @@ the tests that use it, naming the variable to set. Secrets shorter than 4
 characters are rejected, because masking them would damage ordinary output
 ([ADR 0014](adr/0014-secret-masking.md)).
 
+### A new project
+
+The desktop app (and any client) creates a project with the protocol request
+`createProject` ([protocol.md](protocol.md#createproject)), in a folder that
+is empty or does not exist yet. It writes:
+
+| File or folder                             | What it holds                                                                                                                              |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cfe.config.yaml`                          | `# <name>: the Coffee project configuration.`, `version: 1`, the default globs, `defaults.environment`, one environment with its `baseUrl` |
+| `.gitignore`                               | the data folder (`.cfe/`) and `.env`, each with a comment                                                                                  |
+| `tests/`, `flows/`, `targets/`, `actions/` | empty folders, as the globs name them                                                                                                      |
+
+The project opens with no diagnostics. The config has no `name` key: the name
+is the comment on its first line.
+
 ### Saved logins
 
 A saved login is a named flow that signs in. The engine runs it, saves the

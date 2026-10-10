@@ -1,0 +1,18 @@
+{
+  "title": "request.verifyRecording.result (protocol 0.1.1)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "runId": {
+      "type": "string"
+    },
+    "resultsDir": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "runId",
+    "resultsDir"
+  ],
+  "additionalProperties": {}
+}

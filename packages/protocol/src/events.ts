@@ -92,11 +92,18 @@ export const StepFailedEventSchema = stepScoped.extend({
 /** `stepFailed`. See {@link StepFailedEventSchema}. */
 export type StepFailedEvent = z.infer<typeof StepFailedEventSchema>;
 
-/** `stepSkipped`: a step did not run, and why. */
+/**
+ * `stepSkipped`: a step did not run, and why. `section`, `action`, `title` and
+ * `location` are filled when no `stepStarted` was sent for the step.
+ */
 export const StepSkippedEventSchema = stepScoped.extend({
   reason: z.enum(['previousFailure', 'cancelled', 'variableNotSet']),
   message: z.string(),
   variable: z.string().optional(),
+  section: z.enum(['before', 'steps', 'after']).optional(),
+  action: z.string().optional(),
+  title: z.string().optional(),
+  location: LocationSchema.optional(),
 });
 
 /** `stepSkipped`. See {@link StepSkippedEventSchema}. */
@@ -177,6 +184,79 @@ export const RunFinishedEventSchema = EventBaseSchema.extend({
 /** `runFinished`. See {@link RunFinishedEventSchema}. */
 export type RunFinishedEvent = z.infer<typeof RunFinishedEventSchema>;
 
+/** A recorded step in the canonical long form, as the file holds it (docs/recording.md). */
+export const RecordedStepSchema = z.looseObject({
+  action: z.string(),
+  params: z.record(z.string(), z.unknown()),
+  page: z.string().optional(),
+  opens: z.string().optional(),
+});
+
+/** A recorded step. See {@link RecordedStepSchema}. */
+export type RecordedStep = z.infer<typeof RecordedStepSchema>;
+
+const recordingScoped = z.looseObject({ recordingId: z.string() });
+
+/** `recordingStarted`: the recording browser is open at the start URL. */
+export const RecordingStartedEventSchema = recordingScoped.extend({
+  file: z.string(),
+  startUrl: z.string(),
+});
+
+/** `recordingStarted`. See {@link RecordingStartedEventSchema}. */
+export type RecordingStartedEvent = z.infer<typeof RecordingStartedEventSchema>;
+
+/** `stepRecorded`: a step was added at `index`, with the targets it made. */
+export const StepRecordedEventSchema = recordingScoped.extend({
+  index: z.number().int().min(0),
+  step: RecordedStepSchema,
+  targets: z.record(z.string(), z.unknown()),
+  review: z.string().optional(),
+});
+
+/** `stepRecorded`. See {@link StepRecordedEventSchema}. */
+export type StepRecordedEvent = z.infer<typeof StepRecordedEventSchema>;
+
+/** `stepChanged`: the step at `index` changed (a fill's text, or `opens` added). */
+export const StepChangedEventSchema = recordingScoped.extend({
+  index: z.number().int().min(0),
+  step: RecordedStepSchema,
+  review: z.string().optional(),
+});
+
+/** `stepChanged`. See {@link StepChangedEventSchema}. */
+export type StepChangedEvent = z.infer<typeof StepChangedEventSchema>;
+
+/** `recordingNotice`: something the recorder saw and did not record. */
+export const RecordingNoticeEventSchema = recordingScoped.extend({
+  kind: z.string(),
+  message: z.string(),
+  page: z.string(),
+  url: z.string(),
+});
+
+/** `recordingNotice`. See {@link RecordingNoticeEventSchema}. */
+export type RecordingNoticeEvent = z.infer<typeof RecordingNoticeEventSchema>;
+
+/** `recordingStopped`: the recording ended; the file holds what was recorded. */
+export const RecordingStoppedEventSchema = recordingScoped.extend({
+  file: z.string(),
+  reason: z.enum(['stopped', 'browserClosed']),
+  steps: z.number().int().min(0),
+});
+
+/** `recordingStopped`. See {@link RecordingStoppedEventSchema}. */
+export type RecordingStoppedEvent = z.infer<typeof RecordingStoppedEventSchema>;
+
+/** `recordingVerified`: the verify run of a recording ended. */
+export const RecordingVerifiedEventSchema = recordingScoped.extend({
+  runId: z.string(),
+  status: z.enum(['passed', 'failed']),
+});
+
+/** `recordingVerified`. See {@link RecordingVerifiedEventSchema}. */
+export type RecordingVerifiedEvent = z.infer<typeof RecordingVerifiedEventSchema>;
+
 /**
  * Every event name with the schema of its params, in the order of
  * `docs/protocol.md`.
@@ -200,6 +280,12 @@ export const EVENTS = {
   testSkipped: TestSkippedEventSchema,
   testFinished: TestFinishedEventSchema,
   runFinished: RunFinishedEventSchema,
+  recordingStarted: RecordingStartedEventSchema,
+  stepRecorded: StepRecordedEventSchema,
+  stepChanged: StepChangedEventSchema,
+  recordingNotice: RecordingNoticeEventSchema,
+  recordingStopped: RecordingStoppedEventSchema,
+  recordingVerified: RecordingVerifiedEventSchema,
 } as const;
 
 /** Name of an event, such as `"stepPassed"`. */

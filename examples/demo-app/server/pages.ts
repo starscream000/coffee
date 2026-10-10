@@ -439,8 +439,10 @@ export const tokenPage = document(
 );
 
 /**
- * `/details`: two buttons with the same text "Details", told apart only by
- * their test IDs, so the recorder must reject text and role candidates.
+ * `/details`, for the recorder's tests: two buttons with the same text
+ * "Details", told apart only by their test IDs; a list "Addresses" whose items
+ * each have a "Delete" button that removes the item; and two colour swatches
+ * with nothing but their position to tell them apart.
  */
 export const detailsPage = document(
   'Details',
@@ -448,8 +450,24 @@ export const detailsPage = document(
 <section><h2>Shipping</h2><button type="button" data-testid="shipping-details">Details</button></section>
 <section><h2>Returns</h2><button type="button" data-testid="returns-details">Details</button></section>
 <p data-testid="details-shown">Nothing shown</p>
+<h2>Addresses</h2>
+<ul aria-label="Addresses">
+  <li>Home <button type="button" class="delete-address">Delete</button></li>
+  <li>Office <button type="button" class="delete-address">Delete</button></li>
+</ul>
+<h2>Colours</h2>
+<div class="swatches"><div class="swatch" data-colour="Red"></div><div class="swatch" data-colour="Blue"></div></div>
+<style>.swatch { display: inline-block; width: 40px; height: 40px; margin: 4px; background: #888; }</style>
 <script>
-  for (const button of document.querySelectorAll('button')) {
+  for (const button of document.querySelectorAll('.delete-address')) {
+    button.addEventListener('click', () => button.closest('li').remove());
+  }
+  for (const swatch of document.querySelectorAll('.swatch')) {
+    swatch.addEventListener('click', () => {
+      document.querySelector('[data-testid="details-shown"]').textContent = swatch.dataset.colour + ' chosen';
+    });
+  }
+  for (const button of document.querySelectorAll('section button')) {
     button.addEventListener('click', () => {
       document.querySelector('[data-testid="details-shown"]').textContent =
         button.closest('section').querySelector('h2').textContent + ' details';

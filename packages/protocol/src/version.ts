@@ -13,7 +13,7 @@
  * console.log(`speaking protocol ${PROTOCOL_VERSION}`);
  * ```
  */
-export const PROTOCOL_VERSION = '0.1.0';
+export const PROTOCOL_VERSION = '0.1.1';
 
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 

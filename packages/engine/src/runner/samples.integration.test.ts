@@ -193,10 +193,15 @@ describe('the runner on the demo app', () => {
         location: { file: 'fixtures/failing/assertion.test.yaml', line: 9, column: 5 },
       },
     });
+    // No stepStarted was sent for it, so it says where it is (desktop request R0006).
     expect(eventsOf(collected.events, 'stepSkipped')[0]).toMatchObject({
       stepId: 'steps.4',
       reason: 'previousFailure',
       message: 'skipped: steps.3 failed',
+      section: 'steps',
+      action: 'click',
+      title: 'click todos.add',
+      location: { file: 'fixtures/failing/assertion.test.yaml', line: 11, column: 5 },
     });
     expect(eventsOf(collected.events, 'runFinished')[0]).toMatchObject({
       status: 'failed',

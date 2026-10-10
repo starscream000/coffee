@@ -116,6 +116,29 @@ export function stepTitle(step: NormalizedStep): string {
 }
 
 /**
+ * What `stepSkipped` says about a step for which no `stepStarted` was sent
+ * (desktop request R0006): its section, action, title and location.
+ *
+ * @param step - The step in its canonical long form.
+ * @param scope - Its file.
+ * @param section - Its section.
+ * @returns Fields to spread into the `stepSkipped` event.
+ */
+export function skippedStepFields(
+  step: NormalizedStep,
+  scope: Pick<StepScope, 'file' | 'source'>,
+  section: Section,
+): { section: Section; action: string; title: string; location: Location } {
+  const at = scope.source.positionOf(step.path);
+  return {
+    section,
+    action: step.action,
+    title: stepTitle(step),
+    location: { file: scope.file, line: at.line, column: at.column },
+  };
+}
+
+/**
  * Runs the steps of one test instance, or of one login flow.
  *
  * @example
@@ -253,6 +276,7 @@ export class StepRunner {
           message: cancelled
             ? 'skipped: the run was cancelled'
             : `skipped: ${failed?.stepId ?? ''} failed`,
+          ...skippedStepFields(inner, flowScope, place.section),
         });
         continue;
       }

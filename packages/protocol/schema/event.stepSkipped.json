@@ -1,5 +1,5 @@
 {
-  "title": "event.stepSkipped (protocol 0.1.0)",
+  "title": "event.stepSkipped (protocol 0.1.1)",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -30,6 +30,23 @@
     },
     "variable": {
       "type": "string"
+    },
+    "section": {
+      "type": "string",
+      "enum": [
+        "before",
+        "steps",
+        "after"
+      ]
+    },
+    "action": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "location": {
+      "$ref": "#/$defs/Location"
     }
   },
   "required": [
@@ -40,5 +57,31 @@
     "reason",
     "message"
   ],
-  "additionalProperties": {}
+  "additionalProperties": {},
+  "$defs": {
+    "Location": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "file",
+        "line",
+        "column"
+      ],
+      "additionalProperties": {}
+    }
+  }
 }

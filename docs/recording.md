@@ -1,8 +1,8 @@
 # Recording
 
 > Status: **Accepted design** (2026-10-10), decisions in
-> [ADR 0022](adr/0022-how-recording-works.md). The protocol messages at the end
-> are **Proposed, not built**.
+> [ADR 0022](adr/0022-how-recording-works.md). The protocol messages are part
+> of the protocol since `0.1.1` ([protocol.md](protocol.md#startrecording)).
 
 A person uses a web page in a browser the engine opened, and the engine writes
 what they did as a test file that runs. This document says what a recording
@@ -100,9 +100,50 @@ A click is held until its check is done, so an element that disappears
 because of the click is still there to check.
 
 Of the candidates that pass, the recorder writes the first two that are not
-CSS, then CSS if it passes, so a target has at most three candidates. When
-only CSS passes, the step is written and **marked for review** ("only CSS
-identifies this element"). `nth` and `within` are never written yet.
+CSS, then CSS if it passes, so a target has at most three candidates.
+
+### Scoping within a container
+
+When no candidate other than CSS finds exactly the element (the second
+"Delete" button of a list, say), the recorder scopes the target **`within`
+its nearest container**: the closest list item, table row, form, dialog,
+section, fieldset or article around it. The container gets a target of its
+own, with candidates proposed in this order:
+
+1. its role with its label, where the label is the first piece of text
+   outside the element (a row's first cell) and matches as part of the name
+   (`exact: false`);
+2. its role and full accessible name;
+3. its label as text (`exact: false`);
+4. its full text;
+5. its test ID.
+
+They are checked like any candidate, in the element's frame. Then the
+element's own candidates other than CSS are checked **inside the
+container**, by the same rule. When both find exactly the touched element,
+the step gets the scoped target and no review mark:
+
+```yaml
+targets:
+  products.officeChairRow:
+    - role: row
+      name: Office chair
+      exact: false
+  products.officeChairDelete:
+    within: products.officeChairRow
+    candidates:
+      - role: button
+        name: Delete
+```
+
+A scoped element target has no CSS candidate: a selector from the top of the
+page cannot match inside the container. A container target ends in `Row`,
+`Item`, `Form`, `Dialog`, `Section`, `Group` or `Article`, and the element's
+name starts with the container's label (`officeChairDelete`).
+
+When scoping finds nothing either, the step is written with CSS only and
+**marked for review** ("only CSS identifies this element"). `nth` is never
+written for an element.
 
 A frame's target gets CSS candidates on its `<iframe>` element:
 `iframe#id`, `iframe[title="…"]`, `iframe[name="…"]`, in that order, checked
@@ -175,6 +216,7 @@ never written into the file.
 
 | The person…                                      | What happens                                                                                                                         |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| clicks the page background (on no element)       | a notice; no step                                                                                                                    |
 | drags an element                                 | a notice; no step                                                                                                                    |
 | chooses a file in a file field                   | a notice; no step                                                                                                                    |
 | right-clicks                                     | a notice; no step                                                                                                                    |
@@ -200,41 +242,13 @@ the usual events. It reports each step. After a failed verify, the report
 names the step that failed, its error, and the candidates that matched no
 element or several.
 
-## Protocol proposal
+## Over the protocol
 
-**Proposed, not built.** No schema file contains these messages yet; the
-engine does not answer them. They follow the conventions of
-[protocol.md](protocol.md).
-
-### Requests
-
-| Method            | Params                                                 | Result                  |
-| ----------------- | ------------------------------------------------------ | ----------------------- |
-| `startRecording`  | `file`, `startUrl?`, `environment?`, `login?`, `name?` | `{ recordingId, file }` |
-| `stopRecording`   | `recordingId`                                          | `{ file, steps }`       |
-| `verifyRecording` | `recordingId`                                          | `{ runId, resultsDir }` |
-
-`startRecording` is refused with `RecordingInProgress` while a recording or a
-run is going on, with `FileExists` when the file exists, and with the errors
-of `startRun` for the environment, the login and the browser. `verifyRecording`
-starts an ordinary run of the recorded file, whose events are the usual run
-events, followed by `recordingVerified`.
-
-### Events
-
-| Event               | Params                                                                                                                                                                            |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `recordingStarted`  | `recordingId`, `file`, `startUrl`                                                                                                                                                 |
-| `stepRecorded`      | `recordingId`, `index`, `step` (as written, canonical long form), `targets` (new targets), `review?`                                                                              |
-| `stepChanged`       | `recordingId`, `index`, `step`, `review?`: a `fill` whose text changed, or a step that got `opens`                                                                                |
-| `recordingNotice`   | `recordingId`, `kind` (`drag`, `fileChooser`, `contextMenu`, `doubleClick`, `shortcut`, `key`, `history`, `contentEditable`, `unmapped`, `writeFailed`), `message`, `page`, `url` |
-| `recordingStopped`  | `recordingId`, `file`, `reason` (`stopped`, `browserClosed`), `steps`                                                                                                             |
-| `recordingVerified` | `recordingId`, `runId`, `status` (`passed`, `failed`)                                                                                                                             |
-
-Every message is masked like every other message of the engine; a recorded
-`fill` never carries a typed password in the first place.
-
-### Example messages
+Clients record with `startRecording`, `stopRecording` and `verifyRecording`
+and the events `recordingStarted`, `stepRecorded`, `stepChanged`,
+`recordingNotice`, `recordingStopped` and `recordingVerified`, defined in
+[protocol.md](protocol.md#startrecording) since protocol `0.1.1`. A whole
+session as a client sees it:
 
 ```json
 {"jsonrpc":"2.0","id":7,"method":"startRecording","params":{"file":"tests/add-todo.test.yaml","startUrl":"/todos"}}

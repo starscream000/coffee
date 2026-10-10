@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The root documents (`CLAUDE.md`, `README.md`, `CONTRIBUTING.md`) say how the
+  work is organised now: one implementer, two tracks that stay separate
+  (engine and desktop), each with its own instructions, reports and branches.
 - The candidate order the recorder writes puts `testId` before `text`, as
   decision R5 says; `docs/step-format.md` had them the other way round.
 - The demo project has a committed, demo-only `.env` with `DEMO_PASSWORD`, so
@@ -67,6 +70,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `baseUrl`.
 
 ### Added
+
+- `createProject` (protocol `0.1.1`): creates a project in an empty or new
+  folder (a minimal valid config with the project's name in its first comment
+  line, the folders its globs name, and a `.gitignore` for the data folder and
+  `.env`) and opens it; a folder that is not empty is refused with
+  `FolderNotEmpty`, naming what is in it.
+- `capabilities.installCommand` in the answer to `initialize` while no browser
+  is installed (desktop request R0005), and `section`, `action`, `title` and
+  `location` on a `stepSkipped` sent without a `stepStarted` (desktop request
+  R0006).
+
+- Recording over the protocol, which is now version `0.1.1` (compatible
+  additions raise the patch number while `0.x`; ADR 0011): `startRecording`,
+  `stopRecording`, `verifyRecording` and the events `recordingStarted`,
+  `stepRecorded`, `stepChanged`, `recordingNotice`, `recordingStopped` and
+  `recordingVerified`; error names `RecordingInProgress`, `RecordingNotFound`
+  and `FileExists`. One recording at a time and none during a run; the
+  recording stops on `shutdown` or when the client goes away. The JSON Schema
+  files are regenerated (every title names `0.1.1`).
+
+- The recorder scopes a target `within` its nearest list item, table row,
+  form, dialog, section, fieldset or article when nothing but CSS identifies
+  the element, so a repeated button is recorded as "Delete within the row
+  Office chair" instead of by position (review 0009, finding 1). A click on
+  the page background gives a clear `background` notice, and `pnpm record`
+  names an argument it does not know.
 
 - Verify (ADR 0022, R6): a recorded file runs with the normal runner and
   each step is reported; a failed step comes with its error and every
