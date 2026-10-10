@@ -25,6 +25,15 @@ public interface IDialogService
     /// <returns>The choice; <see cref="UnsavedChangesChoice.Cancel"/> when the dialog is closed without one.</returns>
     Task<UnsavedChangesChoice> AskUnsavedChangesAsync(IReadOnlyList<string> files);
 
+    /// <summary>
+    /// Asks what to do with unsaved changes before a run, because the engine
+    /// runs the files as they are on disk: save them and run, run without saving
+    /// (the text stays unsaved), or not run.
+    /// </summary>
+    /// <param name="files">The files with unsaved changes, relative to the project root.</param>
+    /// <returns><see cref="UnsavedChangesChoice.Save"/> to save and run, <see cref="UnsavedChangesChoice.Discard"/> to run what is on disk, <see cref="UnsavedChangesChoice.Cancel"/> not to run.</returns>
+    Task<UnsavedChangesChoice> AskSaveBeforeRunAsync(IReadOnlyList<string> files);
+
     /// <summary>Asks whether to overwrite a file that changed on disk since it was opened.</summary>
     /// <param name="file">The file, relative to the project root.</param>
     /// <returns>True to overwrite.</returns>
@@ -44,6 +53,15 @@ public sealed class AvaloniaDialogService(Func<Window?> owner) : IDialogService
             ? $"{files[0]} has unsaved changes. Save them?"
             : $"These files have unsaved changes:{Environment.NewLine}{list}{Environment.NewLine}Save them?";
         var answer = await AskAsync("Unsaved changes", text, [("Save", UnsavedChangesChoice.Save), ("Don't save", UnsavedChangesChoice.Discard), ("Cancel", UnsavedChangesChoice.Cancel)]);
+        return answer ?? UnsavedChangesChoice.Cancel;
+    }
+
+    /// <inheritdoc />
+    public async Task<UnsavedChangesChoice> AskSaveBeforeRunAsync(IReadOnlyList<string> files)
+    {
+        ArgumentNullException.ThrowIfNull(files);
+        var text = $"The engine runs the files as they are on disk, and these have unsaved changes:{Environment.NewLine}{string.Join(Environment.NewLine, files.Select(f => "  " + f))}";
+        var answer = await AskAsync("Save before running?", text, [("Save and run", UnsavedChangesChoice.Save), ("Run without saving", UnsavedChangesChoice.Discard), ("Cancel", UnsavedChangesChoice.Cancel)]);
         return answer ?? UnsavedChangesChoice.Cancel;
     }
 

@@ -1,5 +1,6 @@
 // Fakes of the app's services for the view model tests.
 
+using System.Text.Json;
 using Desktop.App.Services;
 using Desktop.Engine;
 using Desktop.Protocol.Messages;
@@ -97,6 +98,9 @@ internal sealed class FakeEngineService : IEngineService
 
     public List<string> Calls { get; } = [];
 
+    public FakeEngineService() =>
+        StartRun = _ => new StartRunResult { RunId = $"run-{Started.Count}", ResultsDir = $"/work/shop-tests/.runs/run-{Started.Count}" };
+
     public static OpenProjectResult Project(string root, params Diagnostic[] diagnostics) => new()
     {
         Root = root,
@@ -189,6 +193,45 @@ internal sealed class FakeEngineService : IEngineService
         return answer;
     }
 
+    /// <summary>The parameters of each startRun.</summary>
+    public List<StartRunParams> Started { get; } = [];
+
+    /// <summary>What startRun answers; by default run-N in a folder of that name.</summary>
+    public Func<StartRunParams, StartRunResult> StartRun { get; set; }
+
+    /// <summary>What openSnapshot does: nothing, or throw.</summary>
+    public Action<OpenSnapshotParams> OpenSnapshot { get; set; } = _ => { };
+
+    public async Task<StartRunResult> StartRunAsync(StartRunParams parameters, CancellationToken cancellationToken = default)
+    {
+        Calls.Add("startRun");
+        Started.Add(parameters);
+        await Before("startRun");
+        return StartRun(parameters);
+    }
+
+    public async Task CancelRunAsync(string runId, CancellationToken cancellationToken = default)
+    {
+        Calls.Add($"cancelRun {runId}");
+        await Before("cancelRun");
+    }
+
+    public async Task OpenSnapshotAsync(OpenSnapshotParams parameters, CancellationToken cancellationToken = default)
+    {
+        Calls.Add($"openSnapshot {parameters.TestId} {parameters.StepId}");
+        await Before("openSnapshot");
+        OpenSnapshot(parameters);
+    }
+
+    /// <summary>An error as the engine answers it.</summary>
+    public static EngineRequestException Refusal(string method, string name, string message, object? data = null) =>
+        new(method, new JsonRpcError
+        {
+            Code = -32000,
+            Message = message,
+            Data = JsonSerializer.SerializeToElement(data ?? new { name }, Desktop.Protocol.Json.ProtocolJson.Options),
+        });
+
     private Task Before(string method) => BeforeAnswer?.Invoke(method) ?? Task.CompletedTask;
 }
 
@@ -211,6 +254,14 @@ internal sealed class FakeDialogs : IDialogService
     {
         Asked.Add("overwrite " + file);
         return Task.FromResult(OverwriteAnswer);
+    }
+
+    public UnsavedChangesChoice RunAnswer { get; set; } = UnsavedChangesChoice.Cancel;
+
+    public Task<UnsavedChangesChoice> AskSaveBeforeRunAsync(IReadOnlyList<string> files)
+    {
+        Asked.Add("run " + string.Join(',', files));
+        return Task.FromResult(RunAnswer);
     }
 }
 

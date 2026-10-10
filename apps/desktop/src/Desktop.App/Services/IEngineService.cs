@@ -68,6 +68,26 @@ public interface IEngineService
     /// <param name="cancellationToken">Stops waiting.</param>
     /// <returns>The problems found.</returns>
     Task<IReadOnlyList<Diagnostic>> ValidateContentAsync(string file, string text, CancellationToken cancellationToken = default);
+
+    /// <summary>Sends <c>startRun</c>; progress arrives as events.</summary>
+    /// <param name="parameters">What to run and how.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>The run's id and folder.</returns>
+    /// <exception cref="EngineRequestException"><c>StepFilesInvalid</c>, <c>RunInProgress</c>, or invalid params (no browser).</exception>
+    Task<StartRunResult> StartRunAsync(StartRunParams parameters, CancellationToken cancellationToken = default);
+
+    /// <summary>Sends <c>cancelRun</c>.</summary>
+    /// <param name="runId">The run.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>A task that completes when cancelling has started.</returns>
+    Task CancelRunAsync(string runId, CancellationToken cancellationToken = default);
+
+    /// <summary>Sends <c>openSnapshot</c>: the engine shows a step's saved page state in a test browser.</summary>
+    /// <param name="parameters">The run, test and step.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>A task that completes when the engine has answered.</returns>
+    /// <exception cref="EngineRequestException"><c>SnapshotNotFound</c> or <c>SnapshotUnavailable</c>.</exception>
+    Task OpenSnapshotAsync(OpenSnapshotParams parameters, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Where a line of the engine log came from.</summary>

@@ -26,6 +26,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Running tests (instruction D0003, tasks 8, 10 and 11): Run all, Run
+  selected (a test or a folder), Run tag and Run in a test's tab, with the
+  environment and "Show browser"; running is off, with the reason and the
+  command that installs Chromium, while the engine cannot start a browser; a
+  question about unsaved files before a run; one run at a time; Cancel; a run
+  tab with the tests, the steps by section, a failed step's details, its
+  screenshot or "No screenshot was recorded.", "Open page state", and a
+  button that opens the step's file at its line. If the engine stops during
+  a run, what it reported is kept. Tested with scripted runs of a fake
+  engine, on the headless platform, and with a real engine and browser
+  against the demo server in a temporary copy of the demo project.
+
 - The run model (instruction D0003, task 9): a run as the app shows it,
   built only from the engine's events, so that a live run and a run read back
   from its folder use the same code: test instances with their state, data
