@@ -14,6 +14,7 @@ import {
   type LocatorReporter,
   type TargetLookup,
 } from '../locate/locate.js';
+import type { ResponseLog } from './responses.js';
 import type { ActionContext, Environment, Secrets, TargetRef } from '../sdk/context.js';
 
 /** Levels `ctx.log` sends as `log` events. */
@@ -57,6 +58,12 @@ export interface StepContextOptions {
   readonly sealed?: () => boolean;
   /** Absolute path of the file the step is written in, for paths relative to it. */
   readonly stepFile?: string | undefined;
+  /** Registers a value found during the step as a secret. */
+  readonly registerSecret?: ((value: string) => boolean) | undefined;
+  /** The test's response log. */
+  readonly responses?: ResponseLog | undefined;
+  /** When the previous step started, on the `performance.now()` clock. */
+  readonly responsesSince?: number | undefined;
 }
 
 const deadlines = new WeakMap<ActionContext, number>();
@@ -91,6 +98,34 @@ export function countMatches(
   return counter(target, visibleOnly);
 }
 const stepFiles = new WeakMap<ActionContext, string>();
+
+/** The engine internals the built-ins `wait.response`, `expect.response` and `api` use. */
+export interface StepInternals {
+  /** Registers a value as a secret; false when it is too short. */
+  readonly registerSecret: (value: string) => boolean;
+  /** The test's response log, if the step has one. */
+  readonly responses: ResponseLog | undefined;
+  /** When the previous step started: responses from then on count. */
+  readonly responsesSince: number;
+}
+const internals = new WeakMap<ActionContext, StepInternals>();
+
+/**
+ * The engine internals of a step, for the built-ins docs/actions.md calls
+ * internal extensions ("Internal extensions").
+ *
+ * @param ctx - A context built by {@link createStepContext}.
+ * @returns Its internals; a context built elsewhere gets inert ones.
+ */
+export function internalsOf(ctx: ActionContext): StepInternals {
+  return (
+    internals.get(ctx) ?? {
+      registerSecret: () => false,
+      responses: undefined,
+      responsesSince: 0,
+    }
+  );
+}
 
 /**
  * The absolute path of the file a step is written in, for built-in actions
@@ -207,5 +242,10 @@ export function createStepContext(options: StepContextOptions): ActionContext {
   });
   deadlines.set(ctx, options.deadline);
   if (options.stepFile !== undefined) stepFiles.set(ctx, options.stepFile);
+  internals.set(ctx, {
+    registerSecret: options.registerSecret ?? (() => false),
+    responses: options.responses,
+    responsesSince: options.responsesSince ?? 0,
+  });
   return ctx;
 }

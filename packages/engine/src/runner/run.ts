@@ -420,6 +420,7 @@ export class RunManager {
             testIdAttribute: project.config?.defaults?.testIdAttribute ?? 'data-testid',
             logins: (fresh) => logins.forTest(test.instance.testId, fresh, emit),
             root: project.root,
+            registerSecret: (value) => project.registerSecret(value),
             cancel: run.cancel,
             emit,
           });

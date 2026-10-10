@@ -20,6 +20,7 @@ import type { SourceFile } from '../stepfile/source.js';
 import type { NormalizedStep } from '../stepfile/steps.js';
 import type { TestSteps } from '../stepfile/validate-file.js';
 import { PageSet, type LoginStates } from './pages.js';
+import { ResponseLog } from './responses.js';
 import { executeStep } from './step.js';
 
 /** Sends one event of the run; the run adds `runId` and `seq`. */
@@ -64,6 +65,8 @@ export interface TestRunOptions {
   readonly logins: (fresh: boolean) => LoginStates;
   /** The project's root folder. */
   readonly root: string;
+  /** Registers a value found while a step runs as a secret (ADR 0014). */
+  readonly registerSecret: (value: string) => boolean;
   /** Aborted when the run is cancelled. */
   readonly cancel: AbortSignal;
   /** Sends events. */
@@ -111,11 +114,14 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
   const started = performance.now();
   emit('testStarted', { testId: test.testId, startedAt: new Date().toISOString() });
 
+  // Every response of the test, for wait.response and expect.response.
+  const responses = new ResponseLog();
   const pages = new PageSet({
     browser: options.browser,
     profile,
     pageLogins: pageLogins(test.data),
     logins: options.logins(test.data.freshLogin === true),
+    responses,
     testId: test.testId,
     emit,
   });
@@ -123,6 +129,8 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
   const targets = targetLookup(test.data.targets, options.sharedTargets);
   let status: TestStatus = 'passed';
   let cancelledAt: number | undefined;
+  // When the previous step started: the response log is read from then on.
+  let previousStepStart = started;
 
   const runStep = async (
     step: NormalizedStep,
@@ -163,6 +171,7 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
         Math.min(timeoutMs, cancelledAt + AFTER_LIMIT_MS - performance.now()),
       );
     }
+    const stepStart = performance.now();
     const result = await executeStep(step, {
       registry: options.registry,
       profile,
@@ -177,11 +186,15 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
       stepId,
       location,
       root: options.root,
+      registerSecret: options.registerSecret,
+      responses,
+      responsesSince: previousStepStart,
       timeoutMs,
       // after steps run even when the run is cancelled.
       cancel: section === 'after' ? undefined : options.cancel,
       emit,
     });
+    previousStepStart = stepStart;
     if (result.outcome === 'passed') {
       emit('stepPassed', {
         testId: test.testId,
