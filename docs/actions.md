@@ -402,5 +402,11 @@ goes on to the next handler or the network.
 ```
 
 Each call is one step in the results, with the flow's steps nested under it
-(`stepId` `steps.4/steps.1`). Repeating a flow per data row is not part of
+(`stepId` `steps.4/steps.1`). Each nested step's `stepStarted` carries the call's
+`stepId` as `parentStepId` and the call's `section`. A `call` step has no
+timeout of its own; each step of the flow has its own. The first failing step
+of a flow skips the rest of it and fails the call with `FlowFailed`, whose
+message names the failing step and its place in the flow file. The outputs the
+flow set are copied back even then, so `after` steps can use them; an output a
+passing flow never set gives a `FlowOutputNotSet` warning. Repeating a flow per data row is not part of
 v0.1.0 ([ADR 0013](adr/0013-data-rows.md)).

@@ -1,0 +1,18 @@
+# S5: call with parameters and outputs, and a flow that calls a flow; the
+# flow's steps appear in the events nested under the call (steps.2/steps.0).
+version: 1
+name: Flows with parameters and outputs
+steps:
+  - api: { method: POST, url: /api/reset }
+  - goto: /todos
+  - call:
+      flow: flows/add-todo.flow.yaml
+      with: { title: Buy milk }
+  - expect.text: { target: todos.count, equals: '${vars.count}' }
+  - call:
+      flow: flows/add-two-todos.flow.yaml
+      with: { first: Walk the dog, second: Water the plants }
+  - expect.text: { target: todos.count, equals: '${vars.count}' }
+  - expect.text: { target: todos.count, equals: '3' }
+after:
+  - api: { method: POST, url: /api/reset }

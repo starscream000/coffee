@@ -1,0 +1,14 @@
+# S5: a flow that calls a flow twice and passes its output on.
+version: 1
+name: Add two to-dos
+params:
+  first: { type: string }
+  second: { type: string }
+outputs: [count]
+steps:
+  - call:
+      flow: flows/add-todo.flow.yaml
+      with: { title: '${params.first}' }
+  - call:
+      flow: flows/add-todo.flow.yaml
+      with: { title: '${params.second}', done: true }
