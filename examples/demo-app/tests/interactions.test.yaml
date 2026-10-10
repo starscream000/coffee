@@ -1,0 +1,15 @@
+# S3: hover (tooltip), drag (sortable list), expect.visible (true and false),
+# expect.count and wait.element.
+version: 1
+name: Hover, drag and count
+steps:
+  - goto: /interactions
+  - expect.visible: { target: interactions.tooltip, visible: false }
+  - hover: interactions.help
+  - wait.element: interactions.tooltip
+  - expect.visible: interactions.tooltip
+  - expect.count: { target: fruit.items, equals: 3 }
+  - drag: { from: fruit.cherry, to: fruit.apple }
+  - expect.text: { target: fruit.order, equals: 'Cherry, Apple, Banana' }
+  - wait.element: { target: interactions.tooltip, state: hidden }
+  - expect.count: { target: fruit.items, min: 2, max: 5 }

@@ -7,7 +7,13 @@
 import type { APIRequestContext, Locator, Page } from 'playwright';
 import type { InterpolationScope } from '../context/interpolate.js';
 import type { VariableStore } from '../context/variables.js';
-import { locate, type LocatorReporter, type TargetLookup } from '../locate/locate.js';
+import {
+  countCandidates,
+  locate,
+  type CandidateCounts,
+  type LocatorReporter,
+  type TargetLookup,
+} from '../locate/locate.js';
 import type { ActionContext, Environment, Secrets, TargetRef } from '../sdk/context.js';
 
 /** Levels `ctx.log` sends as `log` events. */
@@ -54,6 +60,36 @@ export interface StepContextOptions {
 }
 
 const deadlines = new WeakMap<ActionContext, number>();
+
+/** Counts a target's matches for one step; see {@link countMatches}. */
+type Counter = (
+  target: TargetRef,
+  visibleOnly: boolean,
+) => Promise<(CandidateCounts & { report: (index: number | null) => void }) | undefined>;
+const counters = new WeakMap<ActionContext, Counter>();
+
+/**
+ * Counts the matches of every candidate of a target, without the "exactly one
+ * element" rule, for the built-ins ADR 0010 names as exceptions. The result's
+ * `report` records which candidate the action used (`null` for none) in the
+ * step's `locators`.
+ *
+ * @param ctx - A context built by {@link createStepContext}.
+ * @param target - The target.
+ * @param visibleOnly - Count only visible elements.
+ * @returns The counts, or undefined when the target's frame or `within` element
+ *   is not on the page.
+ * @throws Error when the context was not built by the runner.
+ */
+export function countMatches(
+  ctx: ActionContext,
+  target: TargetRef,
+  visibleOnly: boolean,
+): ReturnType<Counter> {
+  const counter = counters.get(ctx);
+  if (counter === undefined) throw new Error('This context cannot count matches.');
+  return counter(target, visibleOnly);
+}
 const stepFiles = new WeakMap<ActionContext, string>();
 
 /**
@@ -138,6 +174,37 @@ export function createStepContext(options: StepContextOptions): ActionContext {
             param: paramOf(target, options.params),
           }),
   };
+  counters.set(ctx, async (target, visibleOnly) => {
+    const param = paramOf(target, options.params);
+    const counted = await countCandidates(
+      target,
+      {
+        page: options.page,
+        targets: options.targets,
+        scope: options.interpolation,
+        testIdAttribute: options.testIdAttribute,
+        fallbackGraceMs: 0,
+        timeoutMs: 0,
+        signal: options.signal,
+        reporter: options.reporter,
+        param,
+      },
+      visibleOnly,
+    );
+    if (counted === undefined) return undefined;
+    return {
+      ...counted,
+      report: (index) => {
+        const candidate = index === null ? undefined : counted.candidates[index];
+        options.reporter.locatorUsed({
+          param,
+          ...(typeof target === 'string' ? { target } : {}),
+          candidateIndex: candidate === undefined ? null : index,
+          candidate: candidate === undefined ? null : { ...candidate },
+        });
+      },
+    };
+  });
   deadlines.set(ctx, options.deadline);
   if (options.stepFile !== undefined) stepFiles.set(ctx, options.stepFile);
   return ctx;

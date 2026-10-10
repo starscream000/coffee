@@ -2,7 +2,9 @@
 // the step's signal is aborted, how targets are named in messages, and the
 // retry rhythm of the `expect.*` and `wait.*` actions.
 
+import { remainingMs } from '../../runner/context.js';
 import type { TargetValue } from '../../schema/targets.js';
+import type { ActionContext } from '../../sdk/context.js';
 import type { ActionSpec } from '../action-spec.js';
 import { BUILTIN_SPECS } from '../builtin-specs.js';
 
@@ -118,4 +120,37 @@ export function buildMatcher(
     expectation: `expected it to match /${expected}/`,
     passes: (actual) => pattern.test(actual),
   };
+}
+
+/**
+ * Checks a condition again and again until it holds or the step's time is
+ * almost up, checking the step's signal on every round (docs/actions.md,
+ * "ctx.signal").
+ *
+ * @param ctx - The step's context.
+ * @param condition - The check; true ends the wait.
+ * @returns True when the condition held in time, false when time ran out.
+ * @throws The signal's reason when the step is ended.
+ */
+export async function poll(
+  ctx: ActionContext,
+  condition: () => Promise<boolean>,
+): Promise<boolean> {
+  for (;;) {
+    ctx.signal.throwIfAborted();
+    if (await condition()) return true;
+    if (remainingMs(ctx) <= ASSERTION_MARGIN_MS + RETRY_INTERVAL_MS) return false;
+    await pause(RETRY_INTERVAL_MS, ctx.signal);
+  }
+}
+
+/**
+ * The time a single Playwright call inside a poll may take: what is left
+ * before the margin, at least 1 ms.
+ *
+ * @param ctx - The step's context.
+ * @returns Milliseconds.
+ */
+export function pollBudget(ctx: ActionContext): number {
+  return Math.max(1, remainingMs(ctx) - ASSERTION_MARGIN_MS);
 }

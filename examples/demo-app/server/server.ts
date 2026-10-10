@@ -22,6 +22,7 @@ import {
   interactionsPage,
   loginPage,
   paymentFramePage,
+  productsPage,
   receiptPage,
   settingsPage,
   slowRenderPage,
@@ -82,6 +83,7 @@ const PAGES: Readonly<Record<string, string>> = {
   '/login': loginPage,
   '/form': formPage,
   '/interactions': interactionsPage,
+  '/products': productsPage,
 };
 
 function send(response: ServerResponse, status: number, type: string, body: string): void {

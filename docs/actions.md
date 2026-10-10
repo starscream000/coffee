@@ -280,8 +280,12 @@ internal extension of the public one.
 Columns: **Short** is the shorthand parameter. Target parameters accept a
 target name or an inline candidate list. URLs may be relative to `env.baseUrl`.
 URL patterns are globs (`**/api/orders*`); a pattern that starts with `regex:`
-is a regular expression (`regex:^/orders/\d+$`). Without the prefix a pattern
-is always a glob, so `/orders/` is a path.
+is a regular expression (`regex:^/orders/\d+$`), tested against the whole URL.
+Without the prefix a pattern is always a glob, so `/orders/` is a path. In a
+glob, `*` matches any characters except `/`, `**` any characters, `{a,b}`
+either alternative, and every other character stands for itself; a glob that
+starts with `/` is relative to `env.baseUrl`. Likewise, `expect.url`'s `equals`
+compares a value that starts with `/` against `env.baseUrl` followed by it.
 
 Any step, whatever its action, may also use the common keys `name`, `page`,
 `timeout` and `opens` ([step-format.md](step-format.md#steps)).

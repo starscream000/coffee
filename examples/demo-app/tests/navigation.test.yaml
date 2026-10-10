@@ -1,0 +1,16 @@
+# S1: goto, back, reload, expect.url and wait.url, with URLs relative to the
+# environment's base URL, a glob and a regex: pattern.
+version: 1
+name: Navigate back and forth
+steps:
+  - goto: /todos
+  - expect.url: /todos
+  - goto: /fallback
+  - wait.url: '**/fallback'
+  - back
+  - expect.url: { contains: /todos }
+  - wait.url: 'regex:/todos$'
+  - reload
+  - expect.url: { equals: /todos }
+  - goto: '${env.apiUrl}/state'
+  - expect.url: { matches: '/api/state$' }

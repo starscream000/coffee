@@ -109,3 +109,12 @@ targets:
     - testId: fruit-cherry
   fruit.order:
     - testId: fruit-order
+  fruit.list:
+    - testId: fruit-list
+  fruit.items:
+    within: fruit.list
+    candidates:
+      - role: listitem
+  # S16: the products table.
+  products.count:
+    - testId: product-count

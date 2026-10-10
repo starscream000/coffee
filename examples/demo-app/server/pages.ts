@@ -32,6 +32,7 @@ export const homePage = document(
     <li><a href="/login">Sign in</a></li>
     <li><a href="/form">Order form</a></li>
     <li><a href="/interactions">Interactions</a></li>
+    <li><a href="/products">Products</a></li>
   </ul>
 </nav>`,
 );
@@ -335,6 +336,34 @@ export const interactionsPage = document(
     const onto = event.target.closest('li');
     if (dragged && onto && dragged !== onto) list.insertBefore(dragged, onto);
     order.textContent = [...list.children].map((item) => item.textContent).join(', ');
+  });
+</script>`,
+);
+
+/**
+ * `/products`: a table of products, each row with its own "Delete" button
+ * (S16: the Delete button of the row named after the data row, through
+ * `within`). Deleting removes the row from the page only.
+ */
+export const productsPage = document(
+  'Products',
+  `<h1>Products</h1>
+<table aria-label="Products">
+  <thead><tr><th>Product</th><th>Price</th><th></th></tr></thead>
+  <tbody>
+    <tr><td>Desk lamp</td><td>€25</td><td><button type="button">Delete</button></td></tr>
+    <tr><td>Office chair</td><td>€120</td><td><button type="button">Delete</button></td></tr>
+    <tr><td>Notebook</td><td>€3</td><td><button type="button">Delete</button></td></tr>
+  </tbody>
+</table>
+<p>Products left: <span data-testid="product-count">3</span></p>
+<script>
+  const body = document.querySelector('tbody');
+  body.addEventListener('click', (event) => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    button.closest('tr').remove();
+    document.querySelector('[data-testid="product-count"]').textContent = String(body.rows.length);
   });
 </script>`,
 );
