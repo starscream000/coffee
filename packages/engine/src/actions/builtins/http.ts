@@ -335,6 +335,9 @@ export const expectResponse = defineAction({
   async run(ctx, params) {
     const query = params as unknown as ResponseQuery & { json?: unknown; contains?: string };
     const needsBody = query.json !== undefined || query.contains !== undefined;
+    // A body never changes: read once, so a late round with little time left
+    // cannot lose a body an earlier round read.
+    const bodies = new Map<Response, string>();
     let last: StoredResponse | undefined;
     // Changed from the poll's callback, so kept in an object the type checker does not narrow.
     const seen = { unread: false };
@@ -342,7 +345,8 @@ export const expectResponse = defineAction({
       for (const response of matching(ctx, query, false)) {
         const headers = await response.allHeaders();
         registerSensitiveHeaders(ctx, headers);
-        const body = needsBody ? await bodyOf(ctx, response) : '';
+        const body = needsBody ? (bodies.get(response) ?? (await bodyOf(ctx, response))) : '';
+        if (body !== undefined) bodies.set(response, body);
         seen.unread = body === undefined;
         const stored = storedResponse(response.status(), headers, body);
         last = stored;
