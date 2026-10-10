@@ -83,6 +83,21 @@ public sealed class RealEngineRunTests
             Assert.Equal(2, run.Tests.Count(t => t.File == Skipped && t.State == TestRunState.Skipped));
             Assert.Equal("1 passed, 1 failed, 0 cancelled, 2 skipped", run.TotalsText);
             Assert.True(workspace.Runs.CanRun);
+
+            // The same run, read back from its folder, shows the same (instruction D0003, task 12).
+            for (var i = 0; i < 200 && !workspace.History.Items.Any(h => h.RunId == run.RunId && h.StatusText == "Failed"); i++)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.Equal("1 passed, 1 failed, 0 cancelled, 2 skipped", Assert.Single(workspace.History.Items, h => h.RunId == run.RunId).TotalsText);
+            var record = new DiskRunRecords().Read(demo.Root, run.RunId)!;
+            Assert.Equal(0, record.DamagedLines);
+            var replay = RunHistoryViewModel.Build(record);
+            Assert.Equal(RunState.Failed, replay.State);
+            Assert.Equal(run.TotalsText, replay.TotalsText);
+            Assert.Equal(run.Tests.Select(t => (t.TestId, t.State)), replay.Tests.Select(t => (t.TestId, t.State)));
+            Assert.Equal(run.Tests.SelectMany(t => t.AllSteps).Select(st => (st.StepId, st.State)), replay.Tests.SelectMany(t => t.AllSteps).Select(st => (st.StepId, st.State)));
         }
         finally
         {

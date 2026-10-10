@@ -148,6 +148,51 @@
           </ListBox>
         </DockPanel>
       </TabItem>
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="Run history" FontSize="14" VerticalAlignment="Center" />
+            <TextBlock x:Name="HistorySummary" Text="{Binding History.Summary}" Classes="muted small" VerticalAlignment="Center" />
+          </StackPanel>
+        </TabItem.Header>
+        <DockPanel>
+          <DockPanel DockPanel.Dock="Top" Margin="8,2">
+            <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding History.RefreshCommand}" Padding="8,2" />
+            <TextBlock Text="{Binding History.Notice}" TextWrapping="Wrap" VerticalAlignment="Center"
+                       IsVisible="{Binding History.Notice, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          </DockPanel>
+          <ScrollViewer>
+            <ItemsControl x:Name="HistoryList" ItemsSource="{Binding History.Items}" Grid.IsSharedSizeScope="True">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="runs:RunHistoryItemViewModel">
+                  <Button Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="8,2"
+                          ToolTip.Tip="{Binding RunId, StringFormat='Open run {0}'}"
+                          Command="{Binding $parent[ItemsControl].((vm:WorkspaceViewModel)DataContext).History.OpenCommand}"
+                          CommandParameter="{Binding}">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="HistoryTime" />
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="HistoryStatus" />
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="HistoryEnv" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Grid.Column="0" Text="{Binding Glyph}" FontWeight="Bold" />
+                      <TextBlock Grid.Column="1" Text="{Binding StartedText}" Classes="code small" Margin="0,0,16,0" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="2" Text="{Binding StatusText}" Margin="0,0,16,0" />
+                      <TextBlock Grid.Column="3" Text="{Binding Environment}" Classes="muted" Margin="0,0,16,0" />
+                      <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="{Binding TotalsText}" Classes="small" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Problem}" Classes="small" Foreground="{StaticResource WarningBrush}" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+      </TabItem>
       <TabItem Header="Engine log" FontSize="14">
         <ListBox ItemsSource="{Binding EngineStatus.Log}">
           <ListBox.ItemTemplate>

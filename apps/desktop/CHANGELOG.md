@@ -26,6 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Run history (instruction D0003, tasks 12 and 13): the bottom panel lists
+  the project's earlier runs, newest first, with start time, environment,
+  result and totals, read only from each run's `events.ndjson`; opening one
+  shows it in the same run view as a live run, and a record that ends early
+  shows as a run that did not finish. Damaged or half-written lines, unknown
+  events, folders without events and folders the engine deletes meanwhile do
+  not break the list.
+
 - Running tests (instruction D0003, tasks 8, 10 and 11): Run all, Run
   selected (a test or a folder), Run tag and Run in a test's tab, with the
   environment and "Show browser"; running is off, with the reason and the
