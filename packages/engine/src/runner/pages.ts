@@ -12,7 +12,7 @@
 // running then is the one the tab is attributed to.
 
 import type { Location } from '@cfe/protocol';
-import type { Browser, BrowserContext, CDPSession, Page } from 'playwright';
+import type { Browser, BrowserContext, BrowserContextOptions, CDPSession, Page } from 'playwright';
 import type { EnvironmentProfile } from '../context/environment.js';
 import { StepError } from './errors.js';
 import type { ResponseLog } from './responses.js';
@@ -28,6 +28,28 @@ export type StorageState = Awaited<ReturnType<BrowserContext['storageState']>>;
  * @param stepId - The step that first needs it, for log events.
  */
 export type LoginStates = (login: string, stepId: string) => Promise<StorageState>;
+
+/**
+ * The options of a test's browser context: the environment's viewport, locale,
+ * timezone and base URL, and a saved login's state. The recorder uses the same.
+ *
+ * @param profile - The selected environment.
+ * @param storageState - A saved login's state, when the context has a login.
+ * @returns Options for `Browser.newContext`.
+ */
+export function contextOptions(
+  profile: EnvironmentProfile,
+  storageState?: StorageState,
+): BrowserContextOptions {
+  return {
+    viewport: profile.settings.viewport,
+    locale: profile.settings.locale,
+    timezoneId: profile.settings.timezone,
+    deviceScaleFactor: 1,
+    baseURL: profile.baseUrl,
+    ...(storageState === undefined ? {} : { storageState }),
+  };
+}
 
 /** What a {@link PageSet} needs. */
 export interface PageSetOptions {
@@ -260,14 +282,7 @@ export class PageSet {
       login === undefined
         ? undefined
         : await this.options.logins(login, this.current?.stepId ?? this.lastStepId);
-    const context = await this.options.browser.newContext({
-      viewport: profile.settings.viewport,
-      locale: profile.settings.locale,
-      timezoneId: profile.settings.timezone,
-      deviceScaleFactor: 1,
-      baseURL: profile.baseUrl,
-      ...(storageState === undefined ? {} : { storageState }),
-    });
+    const context = await this.options.browser.newContext(contextOptions(profile, storageState));
     context.on('response', (response) => {
       this.options.responses?.add(response);
     });

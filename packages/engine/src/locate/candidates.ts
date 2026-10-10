@@ -2,11 +2,11 @@
 // "Candidates"), and describes candidates for messages. Text-like fields match
 // exactly unless the candidate says `exact: false`; `nth` picks one match.
 
-import type { FrameLocator, Locator, Page } from 'playwright';
+import type { Frame, FrameLocator, Locator, Page } from 'playwright';
 import type { Candidate } from '../schema/targets.js';
 
-/** Where a candidate is searched: the page, a frame's content or an element. */
-export type SearchScope = Page | FrameLocator | Locator;
+/** Where a candidate is searched: the page, a frame, a frame's content or an element. */
+export type SearchScope = Page | Frame | FrameLocator | Locator;
 
 /** The role names Playwright's `getByRole` accepts. */
 type AriaRole = Parameters<Page['getByRole']>[0];
