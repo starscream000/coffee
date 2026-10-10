@@ -1,0 +1,26 @@
+{
+  "title": "event.recordingVerified (protocol 0.1.1)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "recordingId": {
+      "type": "string"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed"
+      ]
+    }
+  },
+  "required": [
+    "recordingId",
+    "runId",
+    "status"
+  ],
+  "additionalProperties": {}
+}

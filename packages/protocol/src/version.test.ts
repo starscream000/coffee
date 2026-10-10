@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { PROTOCOL_VERSION, isCompatibleProtocol, parseProtocolVersion } from './version.js';
 
 describe('PROTOCOL_VERSION', () => {
-  it('is 0.1.0 for v0.1.0', () => {
-    expect(PROTOCOL_VERSION).toBe('0.1.0');
+  it('is 0.1.1: recording and createProject were added compatibly (ADR 0011)', () => {
+    expect(PROTOCOL_VERSION).toBe('0.1.1');
   });
 });
 

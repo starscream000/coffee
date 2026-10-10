@@ -26,6 +26,9 @@ export const ERROR_CODES = {
   SnapshotNotFound: -32008,
   MessageTooLarge: -32009,
   SnapshotUnavailable: -32010,
+  RecordingInProgress: -32011,
+  RecordingNotFound: -32012,
+  FileExists: -32013,
 } as const;
 
 /**

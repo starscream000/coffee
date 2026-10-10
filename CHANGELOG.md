@@ -71,6 +71,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Recording over the protocol, which is now version `0.1.1` (compatible
+  additions raise the patch number while `0.x`; ADR 0011): `startRecording`,
+  `stopRecording`, `verifyRecording` and the events `recordingStarted`,
+  `stepRecorded`, `stepChanged`, `recordingNotice`, `recordingStopped` and
+  `recordingVerified`; error names `RecordingInProgress`, `RecordingNotFound`
+  and `FileExists`. One recording at a time and none during a run; the
+  recording stops on `shutdown` or when the client goes away. The JSON Schema
+  files are regenerated (every title names `0.1.1`).
+
 - The recorder scopes a target `within` its nearest list item, table row,
   form, dialog, section, fieldset or article when nothing but CSS identifies
   the element, so a repeated button is recorded as "Delete within the row
