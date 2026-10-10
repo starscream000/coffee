@@ -92,8 +92,10 @@ still shows that a session or token was sent.
 test can read a token from a response and send it in a later request. When
 `api`, `wait.response` or `expect.response` stores or reads a `Cookie`,
 `Set-Cookie` or `Authorization` header, the engine registers its value (for
-`Cookie` and `Set-Cookie`, the value of each cookie) as a secret for the rest
-of the run, with the same encoded forms as a declared secret. From then on it is
+`Cookie` and `Set-Cookie`, the value of each cookie; for `Authorization`, the
+whole value and also the credential after its scheme, such as the token in
+`Bearer <token>`, so the bare token is masked when a test sends it on) as a
+secret for the rest of the run, with the same encoded forms as a declared secret. From then on it is
 masked wherever the engine writes it out: protocol messages, logs, error
 messages, the run folder and traces. Values shorter than 4 characters are not
 registered, as with declared secrets, and the engine logs a `warn` naming the

@@ -12,6 +12,7 @@ import {
   ASSERTION_MARGIN_MS,
   RETRY_INTERVAL_MS,
   buildMatcher,
+  capitalised,
   normaliseText,
   pause,
   poll,
@@ -190,7 +191,3 @@ export const expectCount = defineAction({
     );
   },
 });
-
-function capitalised(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}

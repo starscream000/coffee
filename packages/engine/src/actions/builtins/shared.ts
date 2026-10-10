@@ -61,6 +61,16 @@ export function targetLabel(target: TargetValue): string {
 }
 
 /**
+ * Text with its first letter in upper case, to start a message with a label.
+ *
+ * @param text - Any text, such as `the target`.
+ * @returns `The target`.
+ */
+export function capitalised(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
  * Text as Playwright's text assertions compare it: whitespace collapsed and
  * trimmed.
  *
