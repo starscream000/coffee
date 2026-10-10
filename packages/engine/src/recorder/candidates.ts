@@ -4,13 +4,29 @@
 // locator ctx.locate would build: it must match exactly one attached element,
 // and that element must be the one the person touched.
 
-import type { Frame, Locator } from 'playwright';
+import type { Locator } from 'playwright';
 import { parse } from 'yaml';
-import { candidateLocator } from '../locate/candidates.js';
+import { candidateLocator, type SearchScope } from '../locate/candidates.js';
 import type { Candidate } from '../schema/targets.js';
+
+/** What the page script reports about an element's nearest container (a list item, row, form, …). */
+export interface ContainerFacts {
+  /** Its marker id. */
+  readonly mark: string;
+  /** Tag name, lower case. */
+  readonly tag: string;
+  /** Its first piece of text outside the element, such as a row's first cell. */
+  readonly label?: string | undefined;
+  /** Its visible text, whitespace collapsed. */
+  readonly text?: string | undefined;
+  /** The value of the project's test ID attribute. */
+  readonly testId?: string | undefined;
+}
 
 /** What the page script reports about an element. */
 export interface ElementFacts {
+  /** The nearest list item, table row, form, dialog, section, fieldset or article around it. */
+  readonly container?: ContainerFacts | undefined;
   /** Tag name, lower case. */
   readonly tag: string;
   /** The `type` attribute. */
@@ -129,6 +145,35 @@ export function proposeCandidates(
 }
 
 /**
+ * The candidates to check for a container: its role with its label (a part of
+ * its name, as a row's name holds every cell), its role and full name, its
+ * label as text, its full text, its test ID.
+ *
+ * @param container - What the page script saw.
+ * @param aria - The container's role and name, when Playwright gives them.
+ * @returns Candidates with the page's own text, not yet escaped.
+ */
+export function proposeContainerCandidates(
+  container: ContainerFacts,
+  aria: AriaIdentity | undefined,
+): Candidate[] {
+  const proposals: Candidate[] = [];
+  const named = aria !== undefined && aria.role !== 'generic' && aria.role !== 'none';
+  if (named && container.label !== undefined && aria.name.includes(container.label)) {
+    proposals.push({ role: aria.role, name: container.label, exact: false });
+  }
+  if (named && aria.name !== '' && aria.name.length <= MAX_TEXT) {
+    proposals.push({ role: aria.role, name: aria.name });
+  }
+  if (container.label !== undefined) proposals.push({ text: container.label, exact: false });
+  if (container.text !== undefined && container.text.length <= MAX_TEXT) {
+    proposals.push({ text: container.text });
+  }
+  if (container.testId !== undefined) proposals.push({ testId: container.testId });
+  return proposals;
+}
+
+/**
  * The kind of a candidate.
  *
  * @param candidate - A candidate.
@@ -148,7 +193,7 @@ export function kindOf(candidate: Candidate): CandidateKind {
  * ctx.locate would build matches one attached element, and that element
  * carries the touched element's marker.
  *
- * @param frame - The frame the element is in.
+ * @param scope - Where to search: the element's frame, or a container's locator.
  * @param marked - A locator for the touched element (its marker attribute).
  * @param proposals - Candidates in order.
  * @param testIdAttribute - The project's test ID attribute.
@@ -156,7 +201,7 @@ export function kindOf(candidate: Candidate): CandidateKind {
  * @returns The candidates that passed, in order.
  */
 export async function checkCandidates(
-  frame: Frame,
+  scope: SearchScope,
   marked: Locator,
   proposals: readonly Candidate[],
   testIdAttribute: string,
@@ -168,7 +213,7 @@ export async function checkCandidates(
     stats.proposed[kind] += 1;
     let ok: boolean;
     try {
-      const locator = candidateLocator(frame, candidate, testIdAttribute);
+      const locator = candidateLocator(scope, candidate, testIdAttribute);
       ok = (await locator.count()) === 1 && (await locator.and(marked).count()) === 1;
     } catch {
       // A selector Playwright rejects finds nothing.

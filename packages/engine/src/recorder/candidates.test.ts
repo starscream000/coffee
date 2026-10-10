@@ -6,6 +6,7 @@ import {
   chooseCandidates,
   parseAriaLine,
   proposeCandidates,
+  proposeContainerCandidates,
   type ElementFacts,
 } from './candidates.js';
 
@@ -86,5 +87,37 @@ describe('chooseCandidates', () => {
       cssOnly: true,
     });
     expect(chooseCandidates([])).toEqual({ candidates: [], cssOnly: false });
+  });
+});
+
+describe('proposeContainerCandidates', () => {
+  it('proposes role with label, role with name, label as text, full text, test ID', () => {
+    expect(
+      proposeContainerCandidates(
+        {
+          mark: 'a1',
+          tag: 'tr',
+          label: 'Office chair',
+          text: 'Office chair €120 Delete',
+          testId: 'row-2',
+        },
+        { role: 'row', name: 'Office chair €120 Delete' },
+      ),
+    ).toEqual([
+      { role: 'row', name: 'Office chair', exact: false },
+      { role: 'row', name: 'Office chair €120 Delete' },
+      { text: 'Office chair', exact: false },
+      { text: 'Office chair €120 Delete' },
+      { testId: 'row-2' },
+    ]);
+  });
+
+  it('leaves out role candidates for a container without a role or name', () => {
+    expect(
+      proposeContainerCandidates(
+        { mark: 'b2', tag: 'li', label: 'Office', text: 'Office Delete' },
+        { role: 'listitem', name: '' },
+      ),
+    ).toEqual([{ text: 'Office', exact: false }, { text: 'Office Delete' }]);
   });
 });

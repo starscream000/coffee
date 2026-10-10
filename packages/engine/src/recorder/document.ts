@@ -14,6 +14,8 @@ export interface RecordedTarget {
   readonly candidates: readonly Candidate[];
   /** The name of the frame's target, for an element inside a frame. */
   readonly frame?: string | undefined;
+  /** The name of the target of a container the candidates are searched in. */
+  readonly within?: string | undefined;
 }
 
 /** One recorded step. */
@@ -44,9 +46,16 @@ export interface Recording {
   readonly steps: readonly RecordedStep[];
 }
 
-/** A target as the file holds it: a list of candidates, or the long form with `frame`. */
-function targetValue(target: RecordedTarget): unknown {
+/**
+ * A target as the file holds it: a list of candidates, or the long form with
+ * `frame` or `within`.
+ *
+ * @param target - A recorded target.
+ * @returns The plain value the file and the protocol's `stepRecorded.targets` hold.
+ */
+export function targetValue(target: RecordedTarget): unknown {
   const candidates = target.candidates.map((candidate) => ({ ...candidate }));
+  if (target.within !== undefined) return { within: target.within, candidates };
   return target.frame === undefined ? candidates : { frame: target.frame, candidates };
 }
 

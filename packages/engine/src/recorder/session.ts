@@ -10,7 +10,7 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { PRODUCT } from '@cfe/protocol';
-import type { Browser, BrowserContext, Frame, Page } from 'playwright';
+import type { Browser, BrowserContext, Frame, Locator, Page } from 'playwright';
 import { z } from 'zod';
 import {
   selectEnvironment,
@@ -22,6 +22,7 @@ import type { Project } from '../project/project.js';
 import { launchBrowser } from '../runner/browser.js';
 import { LoginStore } from '../runner/logins.js';
 import { contextOptions } from '../runner/pages.js';
+import { candidateLocator } from '../locate/candidates.js';
 import type { Candidate } from '../schema/targets.js';
 import type { Secrets } from '../sdk/context.js';
 import {
@@ -30,6 +31,8 @@ import {
   emptyStats,
   parseAriaLine,
   proposeCandidates,
+  proposeContainerCandidates,
+  type AriaIdentity,
   type CheckStats,
   type ElementFacts,
 } from './candidates.js';
@@ -47,6 +50,7 @@ export type NoticeKind =
   | 'key'
   | 'history'
   | 'contentEditable'
+  | 'background'
   | 'unmapped'
   | 'writeFailed';
 
@@ -92,6 +96,8 @@ export interface RecordingOptions {
   readonly name?: string | undefined;
   /** Run the browser without a window (for tests); default false. */
   readonly headless?: boolean | undefined;
+  /** Open the browser's remote debugging port (for tests that drive it from another process). */
+  readonly debugPort?: number | undefined;
 }
 
 /** How a session ended. */
@@ -128,6 +134,15 @@ const SETTLE_MS = 200;
 const OPENS_WINDOW_MS = 5_000;
 
 const FactsSchema = z.object({
+  container: z
+    .object({
+      mark: z.string().regex(/^[a-z0-9]+$/),
+      tag: z.string(),
+      label: z.string().optional(),
+      text: z.string().optional(),
+      testId: z.string().optional(),
+    })
+    .optional(),
   tag: z.string(),
   type: z.string().optional(),
   id: z.string().optional(),
@@ -174,6 +189,7 @@ const PageEventSchema = z.discriminatedUnion('kind', [
       'key',
       'history',
       'contentEditable',
+      'background',
     ]),
     message: z.string(),
     mark: Mark.optional(),
@@ -341,7 +357,12 @@ export class RecordingSession {
       config.secrets ?? [],
       testIdAttribute,
     );
-    const browser = await launchBrowser(options.headless !== true);
+    const browser = await launchBrowser(
+      options.headless !== true,
+      options.debugPort === undefined
+        ? []
+        : [`--remote-debugging-port=${String(options.debugPort)}`],
+    );
     session.browser = browser;
     try {
       const storageState =
@@ -628,14 +649,6 @@ export class RecordingSession {
     );
     const { candidates, cssOnly } = chooseCandidates(passed);
     const what = `${facts.tag}${aria?.name ? ` "${aria.name}"` : ''}`;
-    if (candidates.length === 0) {
-      this.notice(
-        'unmapped',
-        `No candidate identifies the ${what} exactly, so the interaction with it is not recorded.`,
-        page,
-      );
-      return undefined;
-    }
     let frameTarget: string | undefined;
     if (frame.parentFrame() !== null) {
       frameTarget = await this.frameTarget(page, frame);
@@ -648,6 +661,19 @@ export class RecordingSession {
         return undefined;
       }
     }
+    // Several elements fit the element's own candidates: scope them within its container.
+    if ((candidates.length === 0 || cssOnly) && facts.container !== undefined) {
+      const scoped = await this.scoped(page, frame, marked, facts, aria, proposals, frameTarget);
+      if (scoped !== undefined) return { name: scoped };
+    }
+    if (candidates.length === 0) {
+      this.notice(
+        'unmapped',
+        `No candidate identifies the ${what} exactly, so the interaction with it is not recorded.`,
+        page,
+      );
+      return undefined;
+    }
     const name = this.nameFor(
       {
         candidates: candidates.map(escaped),
@@ -657,6 +683,73 @@ export class RecordingSession {
       elementSlug([aria?.name, facts.placeholder, facts.testId, facts.text, facts.tag]),
     );
     return { name, review: cssOnly ? REVIEW_CSS : undefined };
+  }
+
+  /**
+   * A target `within` the element's nearest container (review 0009, finding 1):
+   * the container's own candidates are checked in the frame, then the
+   * element's candidates other than CSS are checked inside the container.
+   * Undefined when either finds nothing.
+   */
+  private async scoped(
+    page: Page,
+    frame: Frame,
+    marked: Locator,
+    facts: ElementFacts,
+    aria: AriaIdentity | undefined,
+    proposals: readonly Candidate[],
+    frameTarget: string | undefined,
+  ): Promise<string | undefined> {
+    const container = facts.container;
+    if (container === undefined) return undefined;
+    const containerMarked = frame.locator(`[${MARKER}="${container.mark}"]`);
+    let snapshot: string;
+    try {
+      snapshot = await containerMarked.ariaSnapshot({ timeout: 2_000 });
+    } catch {
+      snapshot = '';
+    }
+    const containerAria = parseAriaLine(snapshot);
+    const outer = (
+      await checkCandidates(
+        frame,
+        containerMarked,
+        proposeContainerCandidates(container, containerAria),
+        this.testIdAttribute,
+        this.stats,
+      )
+    ).slice(0, 2);
+    const first = outer[0];
+    if (first === undefined) return undefined;
+    const scope = candidateLocator(frame, first, this.testIdAttribute);
+    const inner = (
+      await checkCandidates(
+        scope,
+        marked,
+        proposals.filter((candidate) => candidate.css === undefined),
+        this.testIdAttribute,
+        this.stats,
+      )
+    ).slice(0, 2);
+    if (inner.length === 0) return undefined;
+    const slug = pageSlug(page.url());
+    const containerName = this.nameFor(
+      {
+        candidates: outer.map(escaped),
+        ...(frameTarget === undefined ? {} : { frame: frameTarget }),
+      },
+      slug,
+      `${elementSlug([container.label, containerAria?.name, container.testId, container.tag])}${containerSuffix(container.tag, containerAria?.role)}`,
+    );
+    const own =
+      [aria?.name, facts.placeholder, facts.testId, facts.text].find(
+        (text) => text !== undefined && text !== '',
+      ) ?? facts.tag;
+    return this.nameFor(
+      { within: containerName, candidates: inner.map(escaped) },
+      slug,
+      elementSlug([`${container.label ?? ''} ${own}`, own]),
+    );
   }
 
   /** The target of a frame's `<iframe>` element, from its id, title or name, checked like any candidate. */
@@ -862,6 +955,17 @@ export class RecordingSession {
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, text);
   }
+}
+
+/** The word a container's target name ends in: `Row`, `Item`, `Form`, … */
+function containerSuffix(tag: string, role: string | undefined): string {
+  if (tag === 'tr' || role === 'row') return 'Row';
+  if (tag === 'li' || role === 'listitem') return 'Item';
+  if (tag === 'form' || role === 'form') return 'Form';
+  if (tag === 'dialog' || role === 'dialog' || role === 'alertdialog') return 'Dialog';
+  if (tag === 'fieldset' || role === 'group') return 'Group';
+  if (tag === 'article' || role === 'article') return 'Article';
+  return 'Section';
 }
 
 /** Joins review reasons; undefined when there are none. */
