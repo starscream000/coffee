@@ -161,6 +161,26 @@ types are written by hand and how they are kept honest:
   protocol 0.1.0 does not yet take screenshots or save page states, so with
   it every step shows "No screenshot was recorded." and no button.
 
+## Run history
+
+- The bottom panel's **Run history** lists the project's run folders
+  (`<project>/.cfe/runs/<runId>/`), newest first by `runId` (which sorts by
+  start time), with the start time, environment, result and totals. It is read
+  when the project opens and again when a run starts or ends, or on Refresh.
+- Only `events.ndjson` is read; it holds protocol events exactly as sent. The
+  shapes of `run.json` and `test.json` are not part of the protocol, so the
+  app does not use them.
+- Opening a run builds the same `RunViewModel` as a live run, by applying the
+  events in order; a record that ends without `runFinished` is shown as a run
+  that did not finish. Opening the run going on, or one already open, selects
+  its tab.
+- The engine appends to the file during a run and deletes the oldest folders
+  when it starts one (`keepRuns`). The file is read with sharing for writing
+  and deleting. A line that is not JSON or is cut off is counted and left out
+  (and the run says so); an unknown event is noted by the run view; a folder
+  without `events.ndjson` is listed with that reason; a folder that is gone
+  when opened is explained and dropped from the list.
+
 ## Threading
 
 Engine output is read on background tasks. View models receive events through

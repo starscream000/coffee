@@ -26,6 +26,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     private bool _refreshing;
     private int _validateGeneration;
     private int _listGeneration;
+    private string? _historyRunId;
 
     /// <summary>Creates the workspace for a project the engine has opened. Call <see cref="LoadAsync"/> next.</summary>
     /// <param name="project">The engine's answer to <c>openProject</c>.</param>
@@ -35,6 +36,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     /// <param name="engineStatus">The engine's status and log, shown in the bottom panel.</param>
     /// <param name="dialogs">Asks about unsaved changes and overwriting.</param>
     /// <param name="delay">Waits before validating text while typing.</param>
+    /// <param name="runRecords">Reads the records of earlier runs; the project's run folders on disk by default.</param>
     public WorkspaceViewModel(
         OpenProjectResult project,
         IEngineService engine,
@@ -42,7 +44,8 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         IUiDispatcher dispatcher,
         EngineStatusViewModel engineStatus,
         IDialogService dialogs,
-        IDelay delay)
+        IDelay delay,
+        IRunRecords? runRecords = null)
     {
         _dialogs = dialogs;
         _delay = delay;
@@ -67,6 +70,21 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
             ShowRun,
             Problems.SetValidationDiagnostics,
             EngineStatus.Report));
+        History = new RunHistoryViewModel(runRecords ?? new DiskRunRecords(), new RunHistoryHost(
+            project.Root,
+            () => Runs.IsRunning ? Runs.Current?.RunId : null,
+            TrySelectRun,
+            run => ShowRun(run, live: false),
+            EngineStatus.Report));
+        Runs.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(RunControlViewModel.IsRunning) && Runs.Current is { } current && _historyRunId != (current.IsActive ? current.RunId : null))
+            {
+                // A run started or ended: its folder came, or its record is complete.
+                _historyRunId = current.IsActive ? current.RunId : null;
+                _ = History.RefreshAsync();
+            }
+        };
     }
 
     /// <summary>Raised when the config file changed and the project must be opened again.</summary>
@@ -105,6 +123,9 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     /// <summary>Starts, follows and cancels runs.</summary>
     public RunControlViewModel Runs { get; }
 
+    /// <summary>The project's earlier runs.</summary>
+    public RunHistoryViewModel History { get; }
+
     /// <summary>The tabs in the centre.</summary>
     public ObservableCollection<WorkspaceTabViewModel> Tabs { get; } = [];
 
@@ -133,6 +154,8 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         await LoadTestsAsync(cancellationToken);
         Actions.Load(await _engine.ListActionsAsync(cancellationToken));
         await ValidateCoreAsync(cancellationToken);
+        // The list of earlier runs fills in when read; loading does not wait for it.
+        _ = History.RefreshAsync();
         _watch ??= _files.Watch(Root, batch => _dispatcher.Post(() => _ = OnFilesChangedAsync(batch)));
     }
 
@@ -491,9 +514,22 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     private static IEnumerable<string> TestsBelow(ExplorerNodeViewModel node) =>
         node.IsTest ? [node.Path] : node.Children.SelectMany(TestsBelow);
 
-    private void ShowRun(RunViewModel run)
+    private bool TrySelectRun(string runId)
     {
-        var tab = new RunTabViewModel(run, _engine, (file, line) => OpenFile(file, line), Runs.CancelCommand);
+        var tab = Tabs.OfType<RunTabViewModel>().FirstOrDefault(t => t.Run.RunId == runId);
+        if (tab is not null)
+        {
+            SelectedTab = tab;
+        }
+
+        return tab is not null;
+    }
+
+    private void ShowRun(RunViewModel run) => ShowRun(run, live: true);
+
+    private void ShowRun(RunViewModel run, bool live)
+    {
+        var tab = new RunTabViewModel(run, _engine, (file, line) => OpenFile(file, line), live ? Runs.CancelCommand : null);
         tab.CloseRequested += (_, _) =>
         {
             var index = Tabs.IndexOf(tab);
