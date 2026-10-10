@@ -26,6 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The finishing of instruction D0003 (tasks 20 to 23): Record opens a tab that
+  says recording arrives with a later engine version and what it will do; a
+  `NuGet.Config` that restores from nuget.org only; `scripts/publish.sh` and
+  `scripts/publish.ps1`, which build the engine and publish the app into
+  `apps/desktop/dist/app` and print the executable's path; a README
+  walk-through from a fresh clone to a passing run of the demo project; and
+  requests R0004 to R0007 to the engine track.
+
 - From a failure to its target (instruction D0003, task 19): a target that
   was not found or fell back, at any level, opens in the targets editor of
   the file that declares it, with the failure's match counts beside its
