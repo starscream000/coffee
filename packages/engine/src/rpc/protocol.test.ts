@@ -10,6 +10,7 @@ import { MAX_MESSAGE_BYTES, PROTOCOL_VERSION } from '@cfe/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import { ENGINE_MAIN, EngineProcess } from '../testing/engine-process.js';
+import { INSTALL_COMMAND } from '../runner/browser.js';
 
 const TEST_ENGINES = fileURLToPath(new URL('../../test/engines/', import.meta.url));
 
@@ -50,7 +51,8 @@ describe('engine over stdio', () => {
       result: {
         protocolVersion: PROTOCOL_VERSION,
         engine: { name: '@cfe/engine', version: '0.0.0' },
-        capabilities: { browsers: [] },
+        // No browser in this test's engine, so it says how to install one (R0005).
+        capabilities: { browsers: [], installCommand: INSTALL_COMMAND },
       },
     });
   });

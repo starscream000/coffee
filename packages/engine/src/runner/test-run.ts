@@ -20,7 +20,13 @@ import type { NormalizedStep } from '../stepfile/steps.js';
 import type { TestSteps } from '../stepfile/validate-file.js';
 import { PageSet, type LoginStates } from './pages.js';
 import { ResponseLog } from './responses.js';
-import { StepRunner, type LoadedFlow, type Section, type StepScope } from './step-runner.js';
+import {
+  skippedStepFields,
+  StepRunner,
+  type LoadedFlow,
+  type Section,
+  type StepScope,
+} from './step-runner.js';
 
 /** Sends one event of the run; the run adds `runId` and `seq`. */
 export type EmitEvent = (method: string, params: Record<string, unknown>) => void;
@@ -150,6 +156,7 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
           reason: 'variableNotSet',
           message: `skipped: ${unset} was never set`,
           variable: unset,
+          ...skippedStepFields(step, scope, section),
         });
         return 'skipped';
       }
@@ -186,6 +193,7 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
                 : stopped.section === 'before'
                   ? `skipped: the test's setup failed at ${stopped.stepId}`
                   : `skipped: ${stopped.stepId} failed`,
+            ...skippedStepFields(step, scope, section),
           });
           continue;
         }

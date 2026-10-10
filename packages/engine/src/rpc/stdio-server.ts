@@ -12,7 +12,7 @@ import { getEngineInfo } from '../engine-info.js';
 import { registerProjectHandlers } from '../project/handlers.js';
 import { RecordingManager } from '../recorder/manager.js';
 import { RunManager } from '../runner/run.js';
-import { availableBrowsers } from '../runner/browser.js';
+import { availableBrowsers, INSTALL_COMMAND } from '../runner/browser.js';
 import { redirectConsoleToStderr } from './console.js';
 import { LineReader } from './line-reader.js';
 import { MessageWriter } from './message-writer.js';
@@ -89,6 +89,7 @@ export function runStdioServer(): StdioServer {
   const session: Session = new Session(writer, {
     engineInfo,
     browsers: availableBrowsers(),
+    installCommand: INSTALL_COMMAND,
     exit: (code) => {
       process.exit(code);
     },

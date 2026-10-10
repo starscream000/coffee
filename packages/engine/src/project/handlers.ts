@@ -12,6 +12,7 @@ import { RpcError } from '../rpc/rpc-error.js';
 import type { RecordingManager } from '../recorder/manager.js';
 import type { RunManager } from '../runner/run.js';
 import type { Session } from '../rpc/session.js';
+import { createProjectFiles } from './create.js';
 import { Project } from './project.js';
 
 /**
@@ -83,6 +84,20 @@ export function registerProjectHandlers(
     // A newly opened project brings its own secrets; forget the previous ones.
     secrets.clear();
     project = await Project.open(params.root, builtins, { secrets });
+    return project.summary();
+  });
+
+  session.register('createProject', async (params) => {
+    refuseWhileRecording('create a project');
+    if (runs?.running === true) {
+      throw new RpcError(
+        'RunInProgress',
+        'A run is in progress; create a project once it has finished.',
+      );
+    }
+    const root = createProjectFiles(params);
+    secrets.clear();
+    project = await Project.open(root, builtins, { secrets });
     return project.summary();
   });
 
