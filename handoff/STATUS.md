@@ -5,7 +5,7 @@ desktop implementer reads [apps/desktop/handoff/STATUS.md](../apps/desktop/hando
 instead.
 
 - Updated: 2026-10-10
-- **Open instruction:** [0008: the demo `.env` and the built-in actions](instructions/0008-demo-env-and-the-built-in-actions.md)
+- **Open instruction:** [0009: the recorder, first part](instructions/0009-the-recorder-first-part.md)
 - Waiting on: implementer
 
 ## Instructions
@@ -19,7 +19,8 @@ instead.
 | 0005 | Masking and loader fixes, locators, the demo app    | merged | [0005](reports/0005-masking-loader-locators-demo-app.md)        | [0005](reviews/0005-masking-loader-locators-demo-app.md)        | #14, #13, #15, #17                                   |
 | 0006 | Review fixes and the runner                         | merged | [0006](reports/0006-review-fixes-and-the-runner.md)             | [0006](reviews/0006-review-fixes-and-the-runner.md)             | #19, #21, #23, #25                                   |
 | 0007 | A build for the owner, then fixes, pages and logins | merged | [0007](reports/0007-a-build-then-fixes-and-pages-and-logins.md) | [0007](reviews/0007-a-build-then-fixes-and-pages-and-logins.md) | #25, #27, #28, #29                                   |
-| 0008 | The demo `.env` and the built-in actions            | open   | –                                                               | –                                                               | –                                                    |
+| 0008 | The demo `.env` and the built-in actions            | merged | [0008](reports/0008-demo-env-and-the-built-in-actions.md)       | [0008](reviews/0008-demo-env-and-the-built-in-actions.md)       | #30, #43, #44, #45, #46                              |
+| 0009 | The recorder, first part                            | open   | –                                                               | –                                                               | –                                                    |
 
 States: `open` (published, no review yet), `changes requested`, `approved`,
 `merged`, `replaced`.
@@ -27,11 +28,16 @@ States: `open` (published, no review yet), `changes requested`, `approved`,
 ## Where the plan stands
 
 Milestone 0 is finished. Of the 16 branches in
-[the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 10 are on `main`:
-the engine runs tests in a real browser with data rows, a run folder, several
-pages, saved logins and cancelling. It has four built-in actions so far.
-Next are branches 11 to 13 (the remaining built-in actions), then 14 (page
-states), 15 (the command-line `run`) and 16 (the release).
+[the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 13 are on `main`:
+the engine runs tests in a real browser with every built-in action, data rows,
+a run folder, several pages, saved logins, flows and cancelling.
+
+On the owner's word the recorder comes next (instruction 0009), ahead of plan
+branches 14 (page states), 15 (the command-line `run`) and 16 (the release),
+which follow it.
+
+A correction to review 0008: the demo project has 20 test files, not 19; the
+31 test instances it names are right.
 
 ## The desktop track
 
@@ -41,11 +47,6 @@ its own instructions, reports and reviews in
 D0003 are merged: the app is complete from editing to running. The `desktop`
 CI job builds and tests it on three systems for every pull request, engine
 ones included.
-
-For the engine track's next instruction: the test I11 in
-`packages/engine/src/runner/logins.integration.test.ts` fails by chance, about
-once in 60 runs, because it looks for the text `ada` in files that hold random
-hex (desktop request R0007).
 
 ## Owner decisions on record
 
@@ -71,6 +72,8 @@ hex (desktop request R0007).
 - 2026-10-10: the demo project gets a committed, demo-only
   `examples/demo-app/.env` with `DEMO_PASSWORD`, as the one exception to "never
   commit `.env` files" (review 0007, question 1). It goes into instruction 0008.
+- 2026-10-10: the recorder is built now, ahead of plan branches 14 to 16;
+  "it is the main bit".
 
 ## Owner's notes (ideas, not decisions)
 
