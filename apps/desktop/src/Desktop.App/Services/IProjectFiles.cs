@@ -36,16 +36,6 @@ public interface IProjectFiles
     void WriteText(string root, string relativePath, string text);
 
     /// <summary>
-    /// Finds files named <c>*.test.yaml</c> under the root, skipping folders
-    /// whose names start with a dot (the data folder, <c>.git</c>) and
-    /// <c>node_modules</c>. Only for engines that cannot list tests yet
-    /// (request R0003).
-    /// </summary>
-    /// <param name="root">The project root.</param>
-    /// <returns>Relative paths, sorted.</returns>
-    IReadOnlyList<string> FindTestFiles(string root);
-
-    /// <summary>
     /// Watches the root for changes to YAML files and user-action sources
     /// (<see cref="ProjectFileKinds.IsWatched"/>). Changes are gathered for a
     /// short while, then reported together on a background thread.
@@ -104,39 +94,6 @@ public sealed class DiskProjectFiles : IProjectFiles
                 File.Delete(temporary);
             }
         }
-    }
-
-    /// <inheritdoc />
-    public IReadOnlyList<string> FindTestFiles(string root)
-    {
-        var found = new List<string>();
-        var pending = new Stack<string>([root]);
-        while (pending.TryPop(out var dir))
-        {
-            IEnumerable<string> files, dirs;
-            try
-            {
-                files = Directory.EnumerateFiles(dir, "*.test.yaml");
-                dirs = Directory.EnumerateDirectories(dir);
-                found.AddRange(files.Select(f => ToRelative(root, f)));
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                continue;
-            }
-
-            foreach (var sub in dirs)
-            {
-                var name = Path.GetFileName(sub);
-                if (!name.StartsWith('.') && name != "node_modules")
-                {
-                    pending.Push(sub);
-                }
-            }
-        }
-
-        found.Sort(StringComparer.Ordinal);
-        return found;
     }
 
     /// <inheritdoc />

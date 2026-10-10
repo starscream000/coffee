@@ -57,9 +57,6 @@ internal sealed class FakeProjectFiles : IProjectFiles
         Files[relativePath] = text;
     }
 
-    public IReadOnlyList<string> FindTestFiles(string root) =>
-        [.. Files.Keys.Where(f => f.EndsWith(".test.yaml", StringComparison.Ordinal)).Order(StringComparer.Ordinal)];
-
     public IDisposable Watch(string root, Action<IReadOnlyCollection<string>> changed)
     {
         Changed = changed;
@@ -92,8 +89,7 @@ internal sealed class FakeEngineService : IEngineService
 
     public Func<string, OpenProjectResult> OpenProject { get; set; } = root => Project(root);
 
-    /// <summary>Null means "method not found".</summary>
-    public IReadOnlyList<TestInfo>? Tests { get; set; } = [];
+    public IReadOnlyList<TestInfo> Tests { get; set; } = [];
 
     public IReadOnlyList<ActionInfo> Actions { get; set; } = [];
 
@@ -160,7 +156,7 @@ internal sealed class FakeEngineService : IEngineService
         return OpenProject(root);
     }
 
-    public async Task<IReadOnlyList<TestInfo>?> ListTestsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<TestInfo>> ListTestsAsync(CancellationToken cancellationToken = default)
     {
         Calls.Add("listTests");
         await Before("listTests");

@@ -33,6 +33,7 @@ public sealed class RealEngineAppTests
         window.DataContext = shell;
         try
         {
+            DemoEnvironment.Ensure();
             await shell.InitializeAsync();
             if (engine.State != EngineState.Ready)
             {
@@ -51,7 +52,7 @@ public sealed class RealEngineAppTests
             Assert.Contains("tests/user-action.test.yaml", workspace.Explorer.Files);
             Assert.Contains(workspace.Actions.Items, a => a.Name == "demo.addTodo" && a.IsUserAction);
             Assert.Contains(workspace.Actions.Items, a => a.Name == "goto");
-            Assert.Equal(["local"], workspace.Environments);
+            Assert.Contains("local", workspace.Environments);
             Assert.Contains(shell.Engine.Log, l => l.Text.Contains("ready", StringComparison.Ordinal));
             Assert.Contains(RepoPaths.Of("examples/demo-app"), new JsonSettingsStore(settingsFile).Load().RecentProjects);
 

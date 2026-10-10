@@ -164,22 +164,6 @@ public sealed class ShellAndWorkspaceTests
     }
 
     [AvaloniaFact]
-    public async Task Workspace_uses_the_fallback_when_the_engine_cannot_list_tests()
-    {
-        var setup = new Setup();
-        setup.Engine.Tests = null;
-        setup.Files.Files["tests/a.test.yaml"] = "version: 1";
-        setup.Files.Files["flows/f.flow.yaml"] = "version: 1";
-        var shell = setup.Shell();
-
-        await shell.OpenProjectAsync(Root);
-
-        Assert.Equal(["tests/a.test.yaml"], shell.Workspace!.Explorer.Files);
-        Assert.NotNull(shell.Workspace.Explorer.Notice);
-        Assert.Contains("validate tests/a.test.yaml", setup.Engine.Calls);
-    }
-
-    [AvaloniaFact]
     public async Task Workspace_opens_files_in_tabs_and_problems_reveal_their_line()
     {
         var setup = new Setup();

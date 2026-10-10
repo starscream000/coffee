@@ -14,6 +14,11 @@ in an editor (undo, redo, save, revert, problem lines marked, and the
 engine's problems for the text being typed), the action catalogue with each action's
 parameters, and the engine's log.
 
+Saving writes the whole file anew (a temporary file next to it, then moved
+over the old one), so a crash never leaves half a file. The new file does not
+keep the old one's permissions, and a symbolic link is replaced by a plain
+file.
+
 It follows the project folder while it is open: a changed step file (YAML)
 re-reads its tab and validates the tests again; a changed config file, or a
 changed user-action source (`.ts`, `.mts`, `.cts`, `.js`, `.mjs`, `.cjs`

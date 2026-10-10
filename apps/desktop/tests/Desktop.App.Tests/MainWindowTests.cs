@@ -171,6 +171,27 @@ public sealed class MainWindowTests
     }
 
     [AvaloniaFact]
+    public async Task A_new_view_of_a_tab_puts_its_caret_back()
+    {
+        var (window, shell, engine, files) = Create();
+        window.Show();
+        await OpenDemoProject(shell, engine, files);
+        shell.Workspace!.OpenFile("tests/checkout/guest-checkout.test.yaml");
+        Render(window);
+        var editor = Find<AvaloniaEdit.TextEditor>(window, "Editor");
+        editor.CaretOffset = 42;
+        Render(window);
+
+        shell.Workspace.SelectedTab = shell.Workspace.Actions;
+        Render(window);
+        shell.Workspace.OpenFile("tests/checkout/guest-checkout.test.yaml");
+        Render(window);
+
+        Assert.Equal(42, Find<AvaloniaEdit.TextEditor>(window, "Editor").CaretOffset);
+        Assert.Equal(42, ((StepFileViewModel)shell.Workspace.SelectedTab!).CaretOffset);
+    }
+
+    [AvaloniaFact]
     public void Settings_panel_and_failure_notice_render()
     {
         var (window, shell, engine, _) = Create();

@@ -1,6 +1,6 @@
 # D0005. Use MVVM with CommunityToolkit.Mvvm and xUnit
 
-- Status: Proposed
+- Status: Accepted (owner, 2026-10-10)
 - Date: 2026-10-09
 
 ## Context

@@ -132,17 +132,8 @@ public sealed class EngineService : IEngineService, IAsyncDisposable
         _session.Client.OpenProjectAsync(root, cancellationToken);
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<TestInfo>?> ListTestsAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            return (await _session.Client.ListTestsAsync(cancellationToken: cancellationToken).ConfigureAwait(false)).Tests;
-        }
-        catch (EngineRequestException ex) when (ex.Name == ErrorCodes.MethodNotFound)
-        {
-            return null;
-        }
-    }
+    public async Task<IReadOnlyList<TestInfo>> ListTestsAsync(CancellationToken cancellationToken = default) =>
+        (await _session.Client.ListTestsAsync(cancellationToken: cancellationToken).ConfigureAwait(false)).Tests;
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ActionInfo>> ListActionsAsync(CancellationToken cancellationToken = default) =>

@@ -1,6 +1,6 @@
 # D0004. Find Node and the engine in a fixed order
 
-- Status: Proposed
+- Status: Accepted (owner, 2026-10-10)
 - Date: 2026-10-09
 
 ## Context

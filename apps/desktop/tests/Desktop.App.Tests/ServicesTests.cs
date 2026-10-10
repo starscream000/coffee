@@ -37,7 +37,7 @@ public sealed class ServicesTests : IDisposable
     }
 
     [Fact]
-    public void Project_files_finds_test_files_but_not_in_dot_folders_or_node_modules()
+    public void Project_files_reads_files_and_makes_paths_relative()
     {
         Write("tests/a.test.yaml");
         Write("tests/deep/b.test.yaml");
@@ -46,7 +46,7 @@ public sealed class ServicesTests : IDisposable
         Write("node_modules/pkg/c.test.yaml");
         var files = new DiskProjectFiles();
 
-        Assert.Equal(["tests/a.test.yaml", "tests/deep/b.test.yaml"], files.FindTestFiles(_dir));
+        Assert.Null(files.TryReadText(_dir, "tests/missing.test.yaml"));
         Assert.Equal("version: 1", files.ReadText(_dir, "tests/deep/b.test.yaml"));
         Assert.Equal("tests/a.test.yaml", DiskProjectFiles.ToRelative(_dir, Path.Combine(_dir, "tests", "a.test.yaml")));
     }

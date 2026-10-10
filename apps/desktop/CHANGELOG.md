@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Review D0002, findings 1 to 5: opening the same project again moves the
+  open tabs themselves to the new workspace at the moment of the swap, so
+  text typed meanwhile, undo history, caret, scroll position and the
+  "changed on disk" state are all kept; after "keep my version" a tab stays
+  unsaved while its text differs from the disk; if asking about unsaved
+  changes fails, the window stays open; the README says that saving replaces
+  the file. A tab's caret and scroll position also survive switching tabs.
+
+### Changed
+
+- The test explorer shows only what the engine's `listTests` reports (names,
+  tags, row counts); the search for `*.test.yaml` files and its notice are
+  gone. ADRs D0001, D0003, D0004, D0005 and the plan are accepted.
+
 ### Added
 
 - Unsaved changes are never lost by accident (instruction D0002, task 14):

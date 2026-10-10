@@ -15,6 +15,7 @@ internal static class RealEngine
     /// <summary>Finds the checkout's engine and Node, or skips the test.</summary>
     public static EngineLaunch LaunchOrSkip()
     {
+        DemoEnvironment.Ensure();
         try
         {
             return EngineLocator.Locate(EngineSearchInput.ForThisMachine(null, null)).Launch;

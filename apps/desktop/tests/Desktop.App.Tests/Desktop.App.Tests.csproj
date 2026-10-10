@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Desktop.Protocol.Tests\RepoPaths.cs" Link="RepoPaths.cs" />
+    <Compile Include="..\Desktop.Protocol.Tests\DemoEnvironment.cs" Link="DemoEnvironment.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Desktop.App\Desktop.App.csproj" />

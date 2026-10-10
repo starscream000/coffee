@@ -27,8 +27,6 @@
       <StackPanel DockPanel.Dock="Top" Margin="8,8,8,4" Spacing="6">
         <TextBox x:Name="SearchBox" Text="{Binding Explorer.SearchText}" PlaceholderText="Search tests by name or path" />
         <ComboBox ItemsSource="{Binding Explorer.Tags}" SelectedItem="{Binding Explorer.SelectedTag}" HorizontalAlignment="Stretch" />
-        <TextBlock Text="{Binding Explorer.Notice}" TextWrapping="Wrap" Classes="muted small" FontStyle="Italic"
-                   IsVisible="{Binding Explorer.Notice, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
       <TreeView x:Name="ExplorerTree" ItemsSource="{Binding Explorer.Roots}" SelectedItem="{Binding Explorer.SelectedNode}">
         <TreeView.Styles>

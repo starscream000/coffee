@@ -176,14 +176,15 @@ public sealed partial class ShellViewModel : ObservableObject
                 return;
             }
 
-            var carried = sameProject ? previous!.CaptureTabs() : default;
             var project = await _engine.OpenProjectAsync(root);
             var workspace = new WorkspaceViewModel(project, _engine, _files, _dispatcher, Engine, _dialogs, _delay);
             workspace.ReopenRequested += (_, _) => _ = ReopenAsync();
             await workspace.LoadAsync();
-            if (sameProject)
+            if (sameProject && Workspace is { } current)
             {
-                workspace.RestoreTabs(carried);
+                // Taken at the moment of the swap, so nothing typed while the project
+                // was being opened again is left behind (review D0002, findings 1 and 2).
+                workspace.AdoptTabs(current.ReleaseTabs());
             }
 
             Workspace?.Dispose();
@@ -230,7 +231,11 @@ public sealed partial class ShellViewModel : ObservableObject
         RefreshRecent();
     }
 
-    /// <summary>Says whether the window may close: asks about unsaved changes. Never throws.</summary>
+    /// <summary>
+    /// Says whether the window may close: asks about unsaved changes. Never
+    /// throws; if asking fails, the window stays open, so nothing unsaved is
+    /// lost (review D0002, finding 4).
+    /// </summary>
     /// <returns>True when the window may close.</returns>
     public async Task<bool> ConfirmCloseWindowAsync()
     {
@@ -241,7 +246,8 @@ public sealed partial class ShellViewModel : ObservableObject
         catch (Exception ex)
         {
             Engine.Report($"Asking about unsaved changes failed: {ex}");
-            return true;
+            ShowError($"The window stays open because asking about unsaved changes failed ({ex.Message}). Save your files, then close it again.");
+            return false;
         }
     }
 

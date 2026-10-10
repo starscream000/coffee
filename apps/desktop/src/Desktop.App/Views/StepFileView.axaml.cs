@@ -17,11 +17,29 @@ public partial class StepFileView : UserControl
 {
     private readonly ProblemLineRenderer _renderer = new();
     private StepFileViewModel? _viewModel;
+    private bool _restoring;
 
     /// <summary>Creates the view.</summary>
     public StepFileView()
     {
         InitializeComponent();
+        Editor.TextArea.Caret.PositionChanged += (_, _) =>
+        {
+            // Only while the editor shows this view model's document: when the view
+            // lets go of it, the caret moves to 0, which must not be remembered.
+            if (_viewModel is not null && !_restoring && ReferenceEquals(Editor.Document, _viewModel.Document))
+            {
+                _viewModel.CaretOffset = Editor.CaretOffset;
+            }
+        };
+        Editor.DocumentChanged += (_, _) => RestoreViewState();
+        Editor.TextArea.TextView.ScrollOffsetChanged += (_, _) =>
+        {
+            if (_viewModel is not null && !_restoring && ReferenceEquals(Editor.Document, _viewModel.Document))
+            {
+                _viewModel.VerticalScroll = Editor.TextArea.TextView.ScrollOffset.Y;
+            }
+        };
         Editor.TextArea.TextView.BackgroundRenderers.Add(_renderer);
         Editor.TextArea.TextView.PointerMoved += (_, e) => ShowMessagesAt(e.GetPosition(Editor.TextArea.TextView));
     }
@@ -51,7 +69,30 @@ public partial class StepFileView : UserControl
         }
 
         OnDiagnosticsChanged(this, EventArgs.Empty);
+        RestoreViewState();
         RevealPending();
+    }
+
+    /// <summary>Puts the caret and the scroll position back where the view model last saw them, as a new view of the same tab.</summary>
+    private void RestoreViewState()
+    {
+        if (_viewModel is null || !ReferenceEquals(Editor.Document, _viewModel.Document))
+        {
+            return;
+        }
+
+        var caret = _viewModel.CaretOffset;
+        var scroll = _viewModel.VerticalScroll;
+        _restoring = true;
+        try
+        {
+            Editor.CaretOffset = Math.Clamp(caret, 0, Editor.Document?.TextLength ?? 0);
+            Editor.ScrollToVerticalOffset(scroll);
+        }
+        finally
+        {
+            _restoring = false;
+        }
     }
 
     private void OnDiagnosticsChanged(object? sender, EventArgs e)
