@@ -1,6 +1,7 @@
-// A real run: the engine built in this checkout runs demo tests in a real
-// browser against the demo server, in a temporary copy of the demo project,
-// and the app builds the run from the engine's events. Skips when the engine
+// Real runs: the engine built in this checkout runs demo tests in a real
+// browser against the demo server, in a temporary copy of the demo project;
+// the app builds each run from the engine's events, reads a finished one back
+// from its folder, and cancels one. Skips when the engine
 // is not built (unless DESKTOP_TESTS_REQUIRE_ENGINE=1) or cannot start a
 // browser (unless DESKTOP_TESTS_REQUIRE_BROWSER=1).
 
@@ -98,6 +99,24 @@ public sealed class RealEngineRunTests
             Assert.Equal(run.TotalsText, replay.TotalsText);
             Assert.Equal(run.Tests.Select(t => (t.TestId, t.State)), replay.Tests.Select(t => (t.TestId, t.State)));
             Assert.Equal(run.Tests.SelectMany(t => t.AllSteps).Select(st => (st.StepId, st.State)), replay.Tests.SelectMany(t => t.AllSteps).Select(st => (st.StepId, st.State)));
+
+            // A cancelled run: every test, cancelled as soon as its first step starts.
+            await workspace.Runs.RunAllAsync();
+            var cancelled = workspace.Runs.Current!;
+            Assert.NotEqual(run.RunId, cancelled.RunId);
+            for (var i = 0; i < 600 && !cancelled.Tests.Any(t => t.AllSteps.Any()) && cancelled.IsActive; i++)
+            {
+                await Task.Delay(10);
+            }
+
+            await workspace.Runs.CancelCommand.ExecuteAsync(null);
+            for (var i = 0; i < 1200 && cancelled.IsActive; i++)
+            {
+                await Task.Delay(100);
+            }
+
+            Assert.Equal(RunState.Cancelled, cancelled.State);
+            Assert.Contains(cancelled.Tests, t => t.State == TestRunState.Cancelled);
         }
         finally
         {
