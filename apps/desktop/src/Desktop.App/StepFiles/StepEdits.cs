@@ -134,6 +134,21 @@ public static class StepEdits
         return InsertSection(outline, section, step);
     }
 
+    /// <summary>Replaces a step's lines with new text for it.</summary>
+    /// <param name="outline">The file.</param>
+    /// <param name="item">The step.</param>
+    /// <param name="step">The step's new text without indentation, such as <c>"- goto: /cart"</c>.</param>
+    /// <returns>The new text.</returns>
+    public static string Replace(StepOutline outline, StepOutlineItem item, string step)
+    {
+        ArgumentNullException.ThrowIfNull(outline);
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(step);
+        var text = outline.Text;
+        var endsWithBreak = item.End > 0 && text[item.End - 1] == '\n';
+        return text[..item.Start] + Indent(step, item.Indent, outline.NewLine) + (endsWithBreak ? outline.NewLine : string.Empty) + text[item.End..];
+    }
+
     /// <summary>A step's text without its indentation, with "\n" between lines and no final line break.</summary>
     /// <param name="outline">The file.</param>
     /// <param name="item">The step.</param>

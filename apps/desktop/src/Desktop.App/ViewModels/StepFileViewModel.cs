@@ -32,6 +32,7 @@ public enum LineMark
 /// <param name="Report">Writes a line into the engine log.</param>
 /// <param name="Run">Runs a test file; null when the tab cannot start runs.</param>
 /// <param name="Actions">The actions the engine knows, for the step list; null for none.</param>
+/// <param name="SharedTargets">The names of the project's shared targets, for the target picker; null for none.</param>
 public sealed record StepFileServices(
     string Root,
     IProjectFiles Files,
@@ -40,7 +41,8 @@ public sealed record StepFileServices(
     IDelay Delay,
     Action<string> Report,
     Func<string, Task>? Run = null,
-    Func<IReadOnlyList<StepActionChoice>>? Actions = null);
+    Func<IReadOnlyList<StepActionChoice>>? Actions = null,
+    Func<IReadOnlyList<string>>? SharedTargets = null);
 
 /// <summary>An editable step file in a tab.</summary>
 public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposable
@@ -75,7 +77,7 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
         };
         if (StepOutline.SectionsOf(file).Count > 0)
         {
-            Steps = new StepListViewModel(file, Document, services.Actions ?? (() => []), () => LineMarks);
+            Steps = new StepListViewModel(file, Document, services.Actions ?? (() => []), () => LineMarks, services.SharedTargets, () => Diagnostics);
             Steps.StepSelected += (_, line) => Reveal(line);
             DiagnosticsChanged += (_, _) => Steps.RefreshMarks();
         }

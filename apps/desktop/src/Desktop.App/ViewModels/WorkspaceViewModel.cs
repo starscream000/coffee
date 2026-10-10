@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Desktop.App.Services;
+using Desktop.App.StepFiles;
 using Desktop.App.ViewModels.Runs;
 using Desktop.App.ViewModels.Steps;
 using Desktop.Engine;
@@ -184,7 +185,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         var tab = Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == file);
         if (tab is null)
         {
-            tab = new StepFileViewModel(file, new StepFileServices(Root, _files, _engine, _dialogs, _delay, EngineStatus.Report, RunFileAsync, ActionChoices));
+            tab = new StepFileViewModel(file, new StepFileServices(Root, _files, _engine, _dialogs, _delay, EngineStatus.Report, RunFileAsync, ActionChoices, SharedTargets));
             tab.LoadFromDisk();
             Attach(tab);
         }
@@ -513,7 +514,12 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     }
 
     private IReadOnlyList<StepActionChoice> ActionChoices() =>
-        [.. Actions.All.Select(a => new StepActionChoice(a.Name, a.Description, a.Action.Shorthand, [.. a.Parameters.Where(p => p.IsRequired).Select(p => p.Name)]))];
+        [.. Actions.All.Select(a => new StepActionChoice(a.Name, a.Description, a.Action.Shorthand, [.. a.Parameters.Where(p => p.IsRequired).Select(p => p.Name)], a.Action.ParamsSchema))];
+
+    /// <summary>The names of the targets in the project's shared targets files, as the files are now (open tabs included).</summary>
+    private IReadOnlyList<string> SharedTargets() =>
+        [.. _files.FindFiles(Root, TargetNames.SharedFileEnding)
+            .SelectMany(f => TargetNames.Of(Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == f)?.Document.Text ?? _files.TryReadText(Root, f) ?? string.Empty))];
 
     private static IEnumerable<string> TestsBelow(ExplorerNodeViewModel node) =>
         node.IsTest ? [node.Path] : node.Children.SelectMany(TestsBelow);

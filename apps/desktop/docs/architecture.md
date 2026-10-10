@@ -151,6 +151,24 @@ types are written by hand and how they are kept honest:
   parameters empty; the engine then reports what is still missing.
 - A file the step list cannot read (invalid YAML, anchors, sections written
   as `[ … ]`, …) shows a line saying why, and the text editor alone.
+- **The step's form.** Below the list, the selected step's form has a field
+  per parameter of its action, read from the action's `paramsSchema`
+  (`StepFiles/ParamSchema`): text, number (or `${…}`), yes/no, a choice from
+  an `enum`, a target picker offering the file's own targets and those of the
+  project's `*.targets.yaml` files, and YAML text for anything else (lists,
+  objects, an inline target). The protocol does not mark target parameters;
+  a parameter whose schema allows an object with `candidates` is taken as
+  one. Then the step's `name`, `page` and `timeout`.
+- A valid change in a field rewrites the step's lines at once
+  (`StepFiles/StepWriter`): the step keeps the form it was written in where it
+  can (shorthand stays shorthand, a flow mapping stays one), values not
+  changed keep their text, strings are quoted only when they must be, and
+  emptying an optional field removes its key. A value that does not fit its
+  field says why and writes nothing.
+- The engine's problems on the step show next to the field whose key or value
+  they point at (by line and column); the others, such as a missing
+  parameter, are listed at the top of the form. An action the engine does not
+  know keeps its values as YAML.
 
 ## Runs
 

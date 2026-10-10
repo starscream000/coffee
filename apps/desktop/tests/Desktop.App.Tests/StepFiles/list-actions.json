@@ -1,0 +1,2378 @@
+{
+  "actions": [
+    {
+      "name": "goto",
+      "description": "Opens a URL in the page; relative URLs resolve against the environment base URL.",
+      "shorthand": "url",
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "waitUntil": {
+            "type": "string",
+            "enum": ["load", "domcontentloaded", "commit"]
+          }
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "back",
+      "description": "Goes back one page in the browser history.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "reload",
+      "description": "Reloads the page.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "click",
+      "description": "Clicks an element.",
+      "shorthand": "target",
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "button": {
+            "type": "string",
+            "enum": ["left", "right", "middle"]
+          },
+          "clickCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "string",
+                "pattern": "^\\$\\{[^{}]+\\}$"
+              }
+            ]
+          },
+          "modifiers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["Alt", "Control", "Meta", "Shift"]
+            }
+          }
+        },
+        "required": ["target"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "fill",
+      "description": "Clears a field and types a value.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "value": {
+            "type": ["string", "number", "boolean"]
+          }
+        },
+        "required": ["target", "value"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "select",
+      "description": "Selects an option, by value or label, in a select element.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "option": {
+            "anyOf": [
+              {
+                "type": ["string", "number", "boolean"]
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": ["string", "number", "boolean"]
+                }
+              }
+            ]
+          }
+        },
+        "required": ["target", "option"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "check",
+      "description": "Checks a checkbox or radio button, or unchecks it with checked: false.",
+      "shorthand": "target",
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "checked": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\$\\{[^{}]+\\}$"
+              }
+            ]
+          }
+        },
+        "required": ["target"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "hover",
+      "description": "Moves the mouse over an element.",
+      "shorthand": "target",
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "required": ["target"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "press",
+      "description": "Presses a key or chord, on an element or on the focused element.",
+      "shorthand": "key",
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "required": ["key"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "upload",
+      "description": "Sets the files of a file input; paths are relative to the step file.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "files": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            ]
+          }
+        },
+        "required": ["target", "files"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "drag",
+      "description": "Drags one element onto another.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "from": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "to": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "required": ["from", "to"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "wait.element",
+      "description": "Waits until an element is visible, hidden, attached or detached.",
+      "shorthand": "target",
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "state": {
+            "type": "string",
+            "enum": ["visible", "hidden", "attached", "detached"]
+          }
+        },
+        "required": ["target"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "wait.url",
+      "description": "Waits until the page URL matches a pattern.",
+      "shorthand": "url",
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "wait.response",
+      "description": "Waits for a response whose URL matches, including one that arrived since the previous step started.",
+      "shorthand": "url",
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "method": {
+            "type": "string",
+            "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              },
+              {
+                "type": "string",
+                "pattern": "^\\$\\{[^{}]+\\}$"
+              }
+            ]
+          },
+          "as": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "expect.visible",
+      "description": "Checks that an element is visible, or hidden with visible: false.",
+      "shorthand": "target",
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "visible": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\$\\{[^{}]+\\}$"
+              }
+            ]
+          }
+        },
+        "required": ["target"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "expect.text",
+      "description": "Checks an element's text.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "equals": {
+            "type": ["string", "number", "boolean"]
+          },
+          "contains": {
+            "type": "string"
+          },
+          "matches": {
+            "type": "string"
+          },
+          "ignoreCase": {
+            "type": "boolean"
+          }
+        },
+        "required": ["target"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "expect.value",
+      "description": "Checks a field's value.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "equals": {
+            "type": ["string", "number", "boolean"]
+          },
+          "contains": {
+            "type": "string"
+          },
+          "matches": {
+            "type": "string"
+          }
+        },
+        "required": ["target"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "expect.url",
+      "description": "Checks the page's URL.",
+      "shorthand": "equals",
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "equals": {
+            "type": ["string", "number", "boolean"]
+          },
+          "contains": {
+            "type": "string"
+          },
+          "matches": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "expect.count",
+      "description": "Checks how many elements a target matches.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "equals": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "string",
+                "pattern": "^\\$\\{[^{}]+\\}$"
+              }
+            ]
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "string",
+                "pattern": "^\\$\\{[^{}]+\\}$"
+              }
+            ]
+          },
+          "max": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "string",
+                "pattern": "^\\$\\{[^{}]+\\}$"
+              }
+            ]
+          }
+        },
+        "required": ["target"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "expect.response",
+      "description": "Checks a response: its status, part of its JSON, or text in its body.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "method": {
+            "type": "string",
+            "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              },
+              {
+                "type": "string",
+                "pattern": "^\\$\\{[^{}]+\\}$"
+              }
+            ]
+          },
+          "json": {},
+          "contains": {
+            "type": "string"
+          }
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "set",
+      "description": "Sets one or more variables.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "propertyNames": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "additionalProperties": {}
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "extract",
+      "description": "Reads an element's text, value or attribute into a variable.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "as": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "from": {
+            "type": "string",
+            "enum": ["text", "value", "attribute"]
+          },
+          "attribute": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pattern": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["target", "as"],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "testId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "css": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exact": {
+                      "type": "boolean"
+                    },
+                    "nth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "candidates": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "placeholder": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "testId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "css": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "exact": {
+                          "type": "boolean"
+                        },
+                        "nth": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "frame": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "within": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                },
+                "required": ["candidates"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "api",
+      "description": "Sends an HTTP request signed in like the page, and optionally stores the response.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "headers": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": ["string", "number", "boolean"]
+            }
+          },
+          "query": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": ["string", "number", "boolean"]
+            }
+          },
+          "json": {},
+          "form": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": ["string", "number", "boolean"]
+            }
+          },
+          "body": {
+            "type": "string"
+          },
+          "as": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              },
+              {
+                "type": "string",
+                "pattern": "^\\$\\{[^{}]+\\}$"
+              }
+            ]
+          }
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "mock",
+      "description": "Answers matching requests with a fixed response until the test ends.",
+      "shorthand": null,
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "method": {
+            "type": "string",
+            "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              },
+              {
+                "type": "string",
+                "pattern": "^\\$\\{[^{}]+\\}$"
+              }
+            ]
+          },
+          "headers": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": ["string", "number", "boolean"]
+            }
+          },
+          "json": {},
+          "body": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string",
+            "minLength": 1
+          },
+          "times": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "string",
+                "pattern": "^\\$\\{[^{}]+\\}$"
+              }
+            ]
+          }
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    },
+    {
+      "name": "call",
+      "description": "Runs a flow with parameters; its outputs become variables.",
+      "shorthand": "flow",
+      "paramsSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "flow": {
+            "type": "string",
+            "minLength": 1
+          },
+          "with": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": ["flow"],
+        "additionalProperties": false
+      },
+      "source": {
+        "kind": "builtin"
+      }
+    }
+  ]
+}

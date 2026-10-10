@@ -38,7 +38,7 @@ public sealed class StepListViewTests
     [AvaloniaFact]
     public async Task The_step_list_shows_beside_the_text_and_text_only_files_say_why()
     {
-        var engine = new FakeEngineService { Tests = [Make.Test("tests/a.test.yaml", "A")] };
+        var engine = new FakeEngineService { Tests = [Make.Test("tests/a.test.yaml", "A")], Actions = StepFormTests.RealActions() };
         var files = new FakeProjectFiles();
         files.Files["tests/a.test.yaml"] = StepOutlineTests.Sample;
         files.Files["tests/b.test.yaml"] = "version: 1\nsteps: [back]\n";
@@ -56,6 +56,12 @@ public sealed class StepListViewTests
         tab.Steps.StartAddingCommand.Execute(null);
         Render(window, "21-step-list-picker");
         Assert.True(Find<TextBox>(window, "PickerSearch").IsEffectivelyVisible);
+
+        tab.Steps.CancelAddingCommand.Execute(null);
+        Render(window, "22-step-form");
+        Assert.Equal("click", Find<TextBlock>(window, "FormAction").Text);
+        Assert.Equal(4, Find<ItemsControl>(window, "FormParameters").ItemCount);
+        Assert.Equal(3, Find<ItemsControl>(window, "FormSettings").ItemCount);
 
         shell.Workspace.OpenFile("tests/b.test.yaml");
         Render(window);
