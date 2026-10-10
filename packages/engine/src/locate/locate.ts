@@ -472,3 +472,63 @@ export async function locate(target: TargetValue, options: LocateOptions): Promi
     throw error;
   }
 }
+
+/** What {@link countCandidates} found: each candidate of the element itself and its matches. */
+export interface CandidateCounts {
+  /** The element's candidates, after interpolation. */
+  readonly candidates: readonly Candidate[];
+  /** How many elements each candidate matches, in order. */
+  readonly counts: readonly number[];
+  /** Each candidate's locator, in its frame and `within` scope. */
+  readonly locators: readonly Locator[];
+}
+
+/**
+ * Counts the matches of every candidate of a target, once, without the
+ * "exactly one element" rule: for `expect.count`, `expect.visible: false` and
+ * `wait.element` with `hidden` or `detached` (ADR 0010). The target's `frame`
+ * and `within` are still resolved by the usual rule, every candidate allowed.
+ *
+ * @param target - A target name, a list of candidates or a long-form target.
+ * @param options - As for {@link locate}; its timing and reporter are not used.
+ * @param visibleOnly - Count only visible elements.
+ * @returns The counts, or undefined when the target's frame or `within`
+ *   element is not on the page (so the element cannot be either).
+ * @throws LocateError for an unknown target, a cycle or a selector Playwright rejects.
+ */
+export async function countCandidates(
+  target: TargetValue,
+  options: LocateOptions,
+  visibleOnly: boolean,
+): Promise<CandidateCounts | undefined> {
+  const level = buildLevel(target, options.param ?? 'target', false, options.targets, []);
+  let scope: SearchScope = options.page;
+  if (level.frame !== undefined) {
+    const frame = await attempt(level.frame, scope, true, options);
+    if (frame === undefined) return undefined;
+    scope = frame.locator.contentFrame();
+  }
+  if (level.within !== undefined) {
+    const within = await attempt(level.within, scope, true, options);
+    if (within === undefined) return undefined;
+    scope = within.locator;
+  }
+  const candidates: Candidate[] = [];
+  const counts: number[] = [];
+  const locators: Locator[] = [];
+  for (const raw of level.candidates) {
+    const candidate = interpolateCandidate(raw, options.scope);
+    let locator = candidateLocator(scope, candidate, options.testIdAttribute);
+    if (visibleOnly) locator = locator.filter({ visible: true });
+    let count: number;
+    try {
+      count = await locator.count();
+    } catch (error) {
+      throw invalidSelector(error, level, candidate) ?? error;
+    }
+    candidates.push(candidate);
+    counts.push(count);
+    locators.push(locator);
+  }
+  return { candidates, counts, locators };
+}

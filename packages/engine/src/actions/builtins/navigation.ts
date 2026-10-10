@@ -17,3 +17,19 @@ export const goto = defineAction({
     await ctx.page.goto(url, { waitUntil: waitUntil ?? 'load', timeout: remainingMs(ctx) });
   },
 });
+
+/** `back`: goes back one page in the browser history. */
+export const back = defineAction({
+  ...specOf('back'),
+  async run(ctx) {
+    await ctx.page.goBack({ waitUntil: 'load', timeout: remainingMs(ctx) });
+  },
+});
+
+/** `reload`: reloads the page. */
+export const reload = defineAction({
+  ...specOf('reload'),
+  async run(ctx) {
+    await ctx.page.reload({ waitUntil: 'load', timeout: remainingMs(ctx) });
+  },
+});

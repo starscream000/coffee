@@ -7,16 +7,33 @@
 import type { RunnableAction } from '../../sdk/define-action.js';
 import type { ActionSpec } from '../action-spec.js';
 import { BUILTIN_SPECS } from '../builtin-specs.js';
-import { expectText } from './assertions.js';
+import { expectCount, expectText, expectUrl, expectValue, expectVisible } from './assertions.js';
 import { check, click, drag, fill, hover, press, select, upload } from './interaction.js';
-import { goto } from './navigation.js';
+import { back, goto, reload } from './navigation.js';
+import { waitElement, waitUrl } from './waiting.js';
 
 /** The built-in actions that have a `run`, by name. */
 const IMPLEMENTED: ReadonlyMap<string, RunnableAction> = new Map(
-  [goto, click, fill, select, check, hover, press, upload, drag, expectText].map((action) => [
-    action.name,
-    action as RunnableAction,
-  ]),
+  [
+    goto,
+    back,
+    reload,
+    click,
+    fill,
+    select,
+    check,
+    hover,
+    press,
+    upload,
+    drag,
+    waitElement,
+    waitUrl,
+    expectVisible,
+    expectText,
+    expectValue,
+    expectUrl,
+    expectCount,
+  ].map((action) => [action.name, action as RunnableAction]),
 );
 
 /**

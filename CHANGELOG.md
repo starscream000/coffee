@@ -60,6 +60,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The built-in actions `back`, `reload`, `wait.element`, `wait.url`,
+  `expect.visible`, `expect.value`, `expect.url` and `expect.count`. Every
+  wait polls and checks the step's signal on each round. URL patterns follow
+  the owner's rule at run time (`regex:` or a glob, relative to the base URL
+  when it starts with `/`). `expect.visible: false`, `expect.count` and
+  `wait.element` with `hidden` or `detached` count matches without the
+  "exactly one element" rule, as ADR 0010 says.
+- Demo page `/products`, samples S1, S3 and S16, and the `expect.value` steps
+  of S2.
+
 - The built-in actions `select`, `check` (and uncheck), `hover`, `press`,
   `upload` (paths relative to the step file, `[]` clears) and `drag`, defined
   with `defineAction` like the others.
