@@ -68,6 +68,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The recorder's building blocks (`packages/engine/src/recorder/`, ADR 0022):
+  candidates proposed in the order of R5 and checked with the locator
+  `ctx.locate` builds, readable target names, and the recorded test file
+  rendered in the canonical form with `# review:` comments.
+
 - The recorder's design: ADR 0022 "Record by listening in the page, and check
   every candidate with the runner's rule" (reviewer decisions R4 to R10) and
   `docs/recording.md` (sessions, the mapping of interactions to steps,
