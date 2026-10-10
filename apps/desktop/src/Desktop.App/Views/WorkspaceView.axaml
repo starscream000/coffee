@@ -17,6 +17,9 @@
     <DataTemplate DataType="runs:RunTabViewModel">
       <views:RunTabView />
     </DataTemplate>
+    <DataTemplate DataType="vm:RecorderTabViewModel">
+      <views:RecorderTabView />
+    </DataTemplate>
   </UserControl.DataTemplates>
 
   <Grid ColumnDefinitions="320,4,*" RowDefinitions="*,4,230,Auto">
@@ -45,6 +48,8 @@
                   ToolTip.Tip="Create a test in the selected folder." />
           <Button Content="New flow" Command="{Binding NewFlowCommand}" Margin="0,0,4,4" />
           <Button Content="New targets file" Command="{Binding NewTargetsCommand}" Margin="0,0,4,4" />
+          <Button x:Name="RecordButton" Content="Record" Command="{Binding RecordCommand}" Margin="0,0,4,4"
+                  ToolTip.Tip="Recording arrives with a later engine version." />
         </WrapPanel>
         <SelectableTextBlock x:Name="RunUnavailable" Text="{Binding Runs.UnavailableReason}" TextWrapping="Wrap" Classes="small"
                              IsVisible="{Binding Runs.UnavailableReason, Converter={x:Static ObjectConverters.IsNotNull}}" />

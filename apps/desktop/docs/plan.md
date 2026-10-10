@@ -2,11 +2,13 @@
 
 > Status: **Accepted (owner, 2026-10-10)**. Milestone D1 and the text editor
 > of D4 are on `main`. [Instruction D0003](../handoff/instructions/D0003-a-complete-app-from-edit-to-run.md)
-> makes the app complete from editing to running, in this order: runs (D2),
-> run history (D3), the rest of D4 (building steps and targets without YAML),
-> and the place of recording (D5). The owner wants the app low-code, even
-> no-code: a tester creates, edits and runs tests without writing YAML, which
-> stays the source of truth underneath.
+> is in pull requests (see its [report](../handoff/reports/D0003-a-complete-app-from-edit-to-run.md)):
+> runs (D2), run history (D3, without comparing runs and flaky or slow tests),
+> the rest of D4 (step list, step forms, targets editor, new files; without
+> completion and colouring in the text editor) and the place of recording
+> (D5). The owner wants the app low-code, even no-code: a tester creates,
+> edits and runs tests without writing YAML, which stays the source of truth
+> underneath.
 
 The desktop app is a test-suite management client for the engine. It never
 runs tests itself: everything it knows about a project, a test or a run comes
