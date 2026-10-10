@@ -18,8 +18,13 @@ Once listening it prints `Demo app listening on http://127.0.0.1:<port>`. All
 state lives in memory and is lost when the server stops.
 
 The saved logins `customer` (user `alice`) and `admin` (user `ada`) sign in
-through `flows/login.flow.yaml` with the secret `DEMO_PASSWORD`, so set it
-(any value of 4 characters or more) before running tests that use them.
+through `flows/login.flow.yaml` with the secret `DEMO_PASSWORD`. Its value
+comes from `examples/demo-app/.env`, which is committed so the demo opens
+without setup. That file is for the demo only and protects nothing: the value
+is made up, and the demo server accepts any password unless it is started with
+`DEMO_PASSWORD` itself. A real project keeps its `.env` out of Git; this is the
+one `.env` the repository allows. An environment variable `DEMO_PASSWORD`
+still takes precedence, as for any secret.
 
 The test harness (`packages/engine/src/testing/demo-app.ts`) starts it on a
 free port, copies this project to a temporary folder with

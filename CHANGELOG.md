@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The demo project has a committed, demo-only `.env` with `DEMO_PASSWORD`, so
+  it opens without any setup and without diagnostics. It is the one `.env`
+  the repository allows; a real project keeps its `.env` out of Git.
 - A step's timeout starts once its page is ready, so signing in with a saved
   login is limited by the login flow's own step timeouts.
 - Run ids carry milliseconds (`20261009-054902-123-1a2b`), so they sort by
