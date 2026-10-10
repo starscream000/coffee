@@ -421,6 +421,7 @@ export class RunManager {
             logins: (fresh) => logins.forTest(test.instance.testId, fresh, emit),
             root: project.root,
             registerSecret: (value) => project.registerSecret(value),
+            readFlow: (file) => project.readFlow(file),
             cancel: run.cancel,
             emit,
           });

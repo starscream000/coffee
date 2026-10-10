@@ -1,14 +1,15 @@
 // The built-in actions that can run, defined with `defineAction` like user
 // actions (docs/actions.md, "Built-in actions"). Each takes its spec from
 // BUILTIN_SPECS, honours ctx.signal and gives every Playwright call at most
-// the step's remaining time. A built-in without a `run` here is a spec only,
-// and a step that calls it fails with NotImplemented.
+// the step's remaining time. Every built-in has a `run`; one without would be
+// a spec only, and a step that calls it would fail with NotImplemented.
 
 import type { RunnableAction } from '../../sdk/define-action.js';
 import type { ActionSpec } from '../action-spec.js';
 import { BUILTIN_SPECS } from '../builtin-specs.js';
 import { expectCount, expectText, expectUrl, expectValue, expectVisible } from './assertions.js';
 import { extract, set } from './data.js';
+import { call } from './flows.js';
 import { api, expectResponse, mock, waitResponse } from './http.js';
 import { check, click, drag, fill, hover, press, select, upload } from './interaction.js';
 import { back, goto, reload } from './navigation.js';
@@ -41,6 +42,7 @@ const IMPLEMENTED: ReadonlyMap<string, RunnableAction> = new Map(
     extract,
     api,
     mock,
+    call,
   ].map((action) => [action.name, action as RunnableAction]),
 );
 

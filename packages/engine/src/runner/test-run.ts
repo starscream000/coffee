@@ -11,7 +11,6 @@ import type { EnvironmentProfile } from '../context/environment.js';
 import { unsetVariables } from '../context/interpolate.js';
 import { VariableStore } from '../context/variables.js';
 import { targetLookup } from '../locate/locate.js';
-import { durationToMs } from '../schema/common.js';
 import type { TestFile } from '../schema/files.js';
 import type { TargetValue } from '../schema/targets.js';
 import type { Secrets } from '../sdk/context.js';
@@ -21,7 +20,7 @@ import type { NormalizedStep } from '../stepfile/steps.js';
 import type { TestSteps } from '../stepfile/validate-file.js';
 import { PageSet, type LoginStates } from './pages.js';
 import { ResponseLog } from './responses.js';
-import { executeStep } from './step.js';
+import { StepRunner, type LoadedFlow, type Section, type StepScope } from './step-runner.js';
 
 /** Sends one event of the run; the run adds `runId` and `seq`. */
 export type EmitEvent = (method: string, params: Record<string, unknown>) => void;
@@ -67,6 +66,8 @@ export interface TestRunOptions {
   readonly root: string;
   /** Registers a value found while a step runs as a secret (ADR 0014). */
   readonly registerSecret: (value: string) => boolean;
+  /** Reads a flow file for `call`; undefined when it cannot be read or is invalid. */
+  readonly readFlow: (file: string) => LoadedFlow | undefined;
   /** Aborted when the run is cancelled. */
   readonly cancel: AbortSignal;
   /** Sends events. */
@@ -75,23 +76,6 @@ export interface TestRunOptions {
 
 /** How a test instance ended. */
 export type TestStatus = 'passed' | 'failed' | 'cancelled';
-
-type Section = 'before' | 'steps' | 'after';
-
-/**
- * The label of a step in results: its `name`, or the action and its main
- * value (the URL, the target's name, or its first parameter).
- *
- * @param step - A step in its canonical long form.
- * @returns Such as `click checkout.submit` or `goto /todos`.
- */
-export function stepTitle(step: NormalizedStep): string {
-  if (step.name !== undefined) return step.name;
-  const main = step.params.url ?? step.params.target ?? Object.values(step.params)[0];
-  return typeof main === 'string' || typeof main === 'number'
-    ? `${step.action} ${String(main)}`
-    : step.action;
-}
 
 /** The login of each declared page; `login:` is the shorthand for `pages.main.login`. */
 function pageLogins(data: TestFile): Map<string, string | undefined> {
@@ -125,12 +109,31 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
     testId: test.testId,
     emit,
   });
+  const runner = new StepRunner({
+    registry: options.registry,
+    profile,
+    secrets: options.secrets,
+    testIdAttribute: options.testIdAttribute,
+    sharedTargets: options.sharedTargets,
+    pages,
+    responses,
+    testId: test.testId,
+    root: options.root,
+    readFlow: options.readFlow,
+    registerSecret: options.registerSecret,
+    emit,
+  });
   const vars = new VariableStore(test.data.vars ?? {});
-  const targets = targetLookup(test.data.targets, options.sharedTargets);
+  const scope: StepScope = {
+    file: test.file,
+    source: test.source,
+    vars,
+    targets: targetLookup(test.data.targets, options.sharedTargets),
+    row: test.row,
+    chain: [],
+  };
   let status: TestStatus = 'passed';
   let cancelledAt: number | undefined;
-  // When the previous step started: the response log is read from then on.
-  let previousStepStart = started;
 
   const runStep = async (
     step: NormalizedStep,
@@ -138,8 +141,6 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
     index: number,
   ): Promise<'passed' | 'failed' | 'cancelled' | 'skipped'> => {
     const stepId = `${section}.${String(index)}`;
-    const at = test.source.positionOf(step.path);
-    const location = { file: test.file, line: at.line, column: at.column };
     if (section === 'after') {
       const [unset] = unsetVariables(step.params, vars);
       if (unset !== undefined) {
@@ -153,66 +154,15 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
         return 'skipped';
       }
     }
-    emit('stepStarted', {
-      testId: test.testId,
+    const result = await runner.run(step, scope, {
       stepId,
       section,
-      action: step.action,
-      params: step.params,
-      page: step.page ?? 'main',
-      title: stepTitle(step),
-      location,
-    });
-    let timeoutMs = durationToMs(step.timeout ?? profile.settings.timeout);
-    if (section === 'after' && cancelledAt !== undefined) {
       // After a cancellation, the after steps share 30 seconds.
-      timeoutMs = Math.max(
-        1,
-        Math.min(timeoutMs, cancelledAt + AFTER_LIMIT_MS - performance.now()),
-      );
-    }
-    const stepStart = performance.now();
-    const result = await executeStep(step, {
-      registry: options.registry,
-      profile,
-      secrets: options.secrets,
-      testIdAttribute: options.testIdAttribute,
-      vars,
-      targets,
-      row: test.row,
-      pages,
-      section,
-      testId: test.testId,
-      stepId,
-      location,
-      root: options.root,
-      registerSecret: options.registerSecret,
-      responses,
-      responsesSince: previousStepStart,
-      timeoutMs,
+      limitAt:
+        section === 'after' && cancelledAt !== undefined ? cancelledAt + AFTER_LIMIT_MS : undefined,
       // after steps run even when the run is cancelled.
       cancel: section === 'after' ? undefined : options.cancel,
-      emit,
     });
-    previousStepStart = stepStart;
-    if (result.outcome === 'passed') {
-      emit('stepPassed', {
-        testId: test.testId,
-        stepId,
-        durationMs: result.durationMs,
-        locators: result.locators,
-        snapshot: { state: 'skipped' },
-      });
-    } else {
-      emit('stepFailed', {
-        testId: test.testId,
-        stepId,
-        durationMs: result.durationMs,
-        error: result.error,
-        locators: result.locators,
-        snapshot: { state: 'skipped' },
-      });
-    }
     return result.outcome;
   };
 
