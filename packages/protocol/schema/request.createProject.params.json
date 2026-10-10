@@ -1,0 +1,25 @@
+{
+  "title": "request.createProject.params (protocol 0.1.1)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "root": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "baseUrl": {
+      "type": "string"
+    },
+    "environment": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "root",
+    "name",
+    "baseUrl"
+  ],
+  "additionalProperties": {}
+}

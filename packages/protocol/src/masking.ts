@@ -79,6 +79,8 @@ export const MASK_RULES: Readonly<Record<string, MaskRule>> = {
   files: 'keep',
   path: 'keep',
   root: 'keep',
+  installCommand: 'keep',
+  baseUrl: 'mask',
   configFile: 'keep',
   resultsDir: 'keep',
   screenshot: 'keep',

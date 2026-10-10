@@ -25,7 +25,11 @@ export type InitializeParams = z.infer<typeof InitializeParamsSchema>;
 export const InitializeResultSchema = z.looseObject({
   protocolVersion: z.string(),
   engine: z.looseObject({ name: z.string(), version: z.string() }),
-  capabilities: z.looseObject({ browsers: z.array(z.string()) }),
+  capabilities: z.looseObject({
+    browsers: z.array(z.string()),
+    /** The command that installs the browser, present when `browsers` is empty. */
+    installCommand: z.string().optional(),
+  }),
 });
 
 /** Result of `initialize`. See {@link InitializeResultSchema}. */
@@ -53,6 +57,19 @@ export const OpenProjectResultSchema = z.looseObject({
 
 /** Result of `openProject`. See {@link OpenProjectResultSchema}. */
 export type OpenProjectResult = z.infer<typeof OpenProjectResultSchema>;
+
+// createProject
+
+/** Parameters of `createProject`: where, what it is called, and the first environment. */
+export const CreateProjectParamsSchema = z.looseObject({
+  root: z.string(),
+  name: z.string(),
+  baseUrl: z.string(),
+  environment: z.string().optional(),
+});
+
+/** Parameters of `createProject`. See {@link CreateProjectParamsSchema}. */
+export type CreateProjectParams = z.infer<typeof CreateProjectParamsSchema>;
 
 // listTests
 
@@ -240,6 +257,7 @@ export const REQUESTS = {
   initialize: { params: InitializeParamsSchema, result: InitializeResultSchema },
   shutdown: { params: NoParamsSchema, result: NullResultSchema },
   openProject: { params: OpenProjectParamsSchema, result: OpenProjectResultSchema },
+  createProject: { params: CreateProjectParamsSchema, result: OpenProjectResultSchema },
   listTests: { params: ListTestsParamsSchema, result: ListTestsResultSchema },
   listActions: { params: NoParamsSchema, result: ListActionsResultSchema },
   validate: { params: ValidateParamsSchema, result: ValidateResultSchema },

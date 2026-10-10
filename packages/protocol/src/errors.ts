@@ -29,6 +29,7 @@ export const ERROR_CODES = {
   RecordingInProgress: -32011,
   RecordingNotFound: -32012,
   FileExists: -32013,
+  FolderNotEmpty: -32014,
 } as const;
 
 /**

@@ -1,0 +1,97 @@
+{
+  "title": "request.createProject.result (protocol 0.1.1)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "root": {
+      "type": "string"
+    },
+    "configFile": {
+      "type": "string"
+    },
+    "environments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "defaultEnvironment": {
+      "type": "string"
+    },
+    "logins": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Diagnostic"
+      }
+    }
+  },
+  "required": [
+    "root",
+    "configFile",
+    "environments",
+    "logins",
+    "diagnostics"
+  ],
+  "additionalProperties": {},
+  "$defs": {
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "endColumn": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "error",
+            "warning"
+          ]
+        },
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "hint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file",
+        "line",
+        "column",
+        "severity",
+        "code",
+        "message"
+      ],
+      "additionalProperties": {}
+    }
+  }
+}
