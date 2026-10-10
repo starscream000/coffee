@@ -15,16 +15,22 @@ import {
   accountPage,
   checkoutFramePage,
   fallbackPage,
+  formPage,
   framesPage,
   helpPage,
   homePage,
+  interactionsPage,
   loginPage,
+  notesPage,
+  ordersPage,
   paymentFramePage,
+  productsPage,
   receiptPage,
   settingsPage,
   slowRenderPage,
   tabsPage,
   todosPage,
+  tokenPage,
 } from './pages.ts';
 
 /** One to-do item. */
@@ -78,7 +84,31 @@ const PAGES: Readonly<Record<string, string>> = {
   '/help': helpPage,
   '/settings': settingsPage,
   '/login': loginPage,
+  '/form': formPage,
+  '/interactions': interactionsPage,
+  '/products': productsPage,
+  '/orders': ordersPage,
+  '/notes': notesPage,
+  '/token': tokenPage,
 };
+
+/** The orders `GET /api/orders` answers with (S4). */
+const ORDERS = [
+  { id: 1, item: 'Desk lamp' },
+  { id: 2, item: 'Notebook' },
+];
+
+/** Tokens `POST /api/token` issued (S19), and the last one, for tests. */
+const tokens = new Set<string>();
+let lastToken: string | null = null;
+
+/** Whether a request carries the demo password in `X-Demo-Password` (S9). */
+function hasDemoPassword(request: IncomingMessage): boolean {
+  const sent = request.headers['x-demo-password'];
+  const expected = process.env.DEMO_PASSWORD;
+  if (typeof sent !== 'string' || sent === '') return false;
+  return expected === undefined || expected === '' || sent === expected;
+}
 
 function send(response: ServerResponse, status: number, type: string, body: string): void {
   response.writeHead(status, {
@@ -148,6 +178,32 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     sendJson(response, 200, { user: input.username });
   } else if (path === '/api/logins' && method === 'GET') {
     sendJson(response, 200, { logins });
+  } else if (path === '/api/orders' && method === 'GET') {
+    sendJson(response, 200, ORDERS);
+  } else if (path === '/api/whoami' && method === 'GET') {
+    const user = sessionUser(request);
+    if (user === undefined || !hasDemoPassword(request)) {
+      sendJson(response, 401, { error: 'Sign in and send X-Demo-Password.' });
+      return;
+    }
+    sendJson(response, 200, { user });
+  } else if (path === '/api/token' && method === 'POST') {
+    const token = randomBytes(24).toString('hex');
+    tokens.add(token);
+    lastToken = token;
+    response.setHeader('authorization', `Bearer ${token}`);
+    sendJson(response, 200, { issued: true });
+  } else if (path === '/api/token/last' && method === 'GET') {
+    sendJson(response, 200, { token: lastToken });
+  } else if (path === '/api/protected' && method === 'GET') {
+    const token = /^Bearer (\S+)$/.exec(request.headers.authorization ?? '')?.[1];
+    if (token === undefined || !tokens.has(token)) {
+      sendJson(response, 401, {
+        error: 'Send Authorization: Bearer <token from POST /api/token>.',
+      });
+      return;
+    }
+    sendJson(response, 200, { ok: true });
   } else if (path === '/account' && method === 'GET') {
     send(response, 200, 'text/html', accountPage(escapeHtml(sessionUser(request) ?? '')));
   } else {

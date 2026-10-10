@@ -30,6 +30,12 @@ export const homePage = document(
     <li><a href="/tabs">Tabs</a></li>
     <li><a href="/settings">Browser settings</a></li>
     <li><a href="/login">Sign in</a></li>
+    <li><a href="/form">Order form</a></li>
+    <li><a href="/interactions">Interactions</a></li>
+    <li><a href="/products">Products</a></li>
+    <li><a href="/orders">Orders</a></li>
+    <li><a href="/notes">Notes</a></li>
+    <li><a href="/token">Token</a></li>
   </ul>
 </nav>`,
 );
@@ -246,3 +252,183 @@ export function accountPage(user: string): string {
       : `<h1>Account</h1>\n<p>Signed in as <span data-testid="account-user">${user}</span></p>`,
   );
 }
+
+/**
+ * `/form`: an order form for the interaction actions (S2): a text field, a
+ * select, a multi-select, a checkbox, a file input and a search field that
+ * reacts to Enter. Sending the form writes a summary of every value.
+ */
+export const formPage = document(
+  'Order form',
+  `<h1>Order form</h1>
+<form id="order-form">
+  <p><label for="name">Name</label> <input id="name" name="name"></p>
+  <p><label for="country">Country</label>
+    <select id="country" name="country">
+      <option value="">Choose…</option>
+      <option value="de">Germany</option>
+      <option value="fr">France</option>
+    </select></p>
+  <p><label for="toppings">Toppings</label>
+    <select id="toppings" name="toppings" multiple>
+      <option value="cheese">Cheese</option>
+      <option value="olives">Olives</option>
+      <option value="ham">Ham</option>
+    </select></p>
+  <p><label><input type="checkbox" id="subscribe" name="subscribe"> Subscribe to the newsletter</label></p>
+  <p><label for="attachment">Attachment</label> <input type="file" id="attachment" name="attachment" multiple></p>
+  <p><label for="search">Search</label> <input id="search" type="search" name="search"></p>
+  <p role="status" data-testid="search-result"></p>
+  <button type="submit">Send order</button>
+</form>
+<p data-testid="form-summary"></p>
+<script>
+  document.getElementById('search').addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    document.querySelector('[data-testid="search-result"]').textContent =
+      'Searching for ' + event.target.value;
+  });
+  document.getElementById('order-form').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const toppings = [...document.getElementById('toppings').selectedOptions].map((o) => o.value);
+    const files = [...document.getElementById('attachment').files].map((f) => f.name);
+    document.querySelector('[data-testid="form-summary"]').textContent = [
+      document.getElementById('name').value || 'no name',
+      document.getElementById('country').value || 'no country',
+      toppings.join('+') || 'no toppings',
+      document.getElementById('subscribe').checked ? 'subscribed' : 'not subscribed',
+      files.join(' ') || 'no files',
+    ].join(', ');
+  });
+</script>`,
+);
+
+/**
+ * `/interactions`: a button with a tooltip shown on hover, and a list sorted by
+ * drag and drop (HTML5), for `hover` and `drag` (S3).
+ */
+export const interactionsPage = document(
+  'Interactions',
+  `<h1>Interactions</h1>
+<p><button type="button" id="help">Help</button>
+  <span role="tooltip" data-testid="tooltip" hidden></span></p>
+<ul aria-label="Fruit" data-testid="fruit-list">
+  <li draggable="true" data-testid="fruit-apple">Apple</li>
+  <li draggable="true" data-testid="fruit-banana">Banana</li>
+  <li draggable="true" data-testid="fruit-cherry">Cherry</li>
+</ul>
+<p>Order: <span data-testid="fruit-order">Apple, Banana, Cherry</span></p>
+<script>
+  const help = document.getElementById('help');
+  const tooltip = document.querySelector('[data-testid="tooltip"]');
+  // The tooltip gets its text on the first hover, so a test can see the hover happened.
+  help.addEventListener('mouseenter', () => {
+    tooltip.textContent = 'Opens the help pages';
+    tooltip.hidden = false;
+  });
+  help.addEventListener('mouseleave', () => { tooltip.hidden = true; });
+
+  const list = document.querySelector('[data-testid="fruit-list"]');
+  const order = document.querySelector('[data-testid="fruit-order"]');
+  let dragged;
+  list.addEventListener('dragstart', (event) => { dragged = event.target; });
+  list.addEventListener('dragover', (event) => { event.preventDefault(); });
+  list.addEventListener('drop', (event) => {
+    event.preventDefault();
+    const onto = event.target.closest('li');
+    if (dragged && onto && dragged !== onto) list.insertBefore(dragged, onto);
+    order.textContent = [...list.children].map((item) => item.textContent).join(', ');
+  });
+</script>`,
+);
+
+/**
+ * `/products`: a table of products, each row with its own "Delete" button
+ * (S16: the Delete button of the row named after the data row, through
+ * `within`). Deleting removes the row from the page only.
+ */
+export const productsPage = document(
+  'Products',
+  `<h1>Products</h1>
+<table aria-label="Products">
+  <thead><tr><th>Product</th><th>Price</th><th></th></tr></thead>
+  <tbody>
+    <tr><td>Desk lamp</td><td>€25</td><td><button type="button">Delete</button></td></tr>
+    <tr><td>Office chair</td><td>€120</td><td><button type="button">Delete</button></td></tr>
+    <tr><td>Notebook</td><td>€3</td><td><button type="button">Delete</button></td></tr>
+  </tbody>
+</table>
+<p>Products left: <span data-testid="product-count">3</span></p>
+<script>
+  const body = document.querySelector('tbody');
+  body.addEventListener('click', (event) => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    button.closest('tr').remove();
+    document.querySelector('[data-testid="product-count"]').textContent = String(body.rows.length);
+  });
+</script>`,
+);
+
+/**
+ * `/orders`: a button that loads the orders from `GET /api/orders` (S4), so a
+ * test can mock that request and wait for its response.
+ */
+export const ordersPage = document(
+  'Orders',
+  `<h1>Orders</h1>
+<button type="button">Load orders</button>
+<ul aria-label="Orders"></ul>
+<p data-testid="order-summary">No orders loaded</p>
+<script>
+  const list = document.querySelector('ul');
+  const summary = document.querySelector('[data-testid="order-summary"]');
+  document.querySelector('button').addEventListener('click', async () => {
+    const orders = await (await fetch('/api/orders')).json();
+    list.replaceChildren(
+      ...orders.map((order) => {
+        const item = document.createElement('li');
+        item.textContent = order.item;
+        return item;
+      }),
+    );
+    summary.textContent = orders.length + ' orders loaded';
+  });
+</script>`,
+);
+
+/** `/notes`: a field whose text a button shows on the page (S9). */
+export const notesPage = document(
+  'Notes',
+  `<h1>Notes</h1>
+<p><label for="note">Note</label> <input id="note"></p>
+<button type="button">Show note</button>
+<p>Shown: <span data-testid="note-shown"></span></p>
+<script>
+  document.querySelector('button').addEventListener('click', () => {
+    document.querySelector('[data-testid="note-shown"]').textContent =
+      document.getElementById('note').value;
+  });
+</script>`,
+);
+
+/**
+ * `/token`: a button that asks `POST /api/token` for a token, which arrives in
+ * the response's Authorization header (S19).
+ */
+export const tokenPage = document(
+  'Token',
+  `<h1>Token</h1>
+<button type="button">Get token</button>
+<p data-testid="token-status">No token yet</p>
+<script>
+  document.querySelector('button').addEventListener('click', async () => {
+    const response = await fetch('/api/token', { method: 'POST' });
+    const answer = await response.json();
+    document.querySelector('[data-testid="token-status"]').textContent = answer.issued
+      ? 'Token received'
+      : 'No token';
+  });
+</script>`,
+);

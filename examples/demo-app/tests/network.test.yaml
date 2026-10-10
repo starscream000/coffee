@@ -1,0 +1,40 @@
+# S4: mock, wait.response after the click that caused it (no race),
+# expect.response, api, extract and set.
+version: 1
+name: Orders over the network
+steps:
+  - api: { method: POST, url: /api/reset }
+  # The first request for the orders gets three mocked ones, later ones the server's.
+  - mock:
+      url: /api/orders
+      json:
+        - { id: 7, item: Coffee beans }
+        - { id: 8, item: Filter papers }
+        - { id: 9, item: Grinder }
+      times: 1
+  - goto: /orders
+  - click: orders.load
+  # The response may already have arrived during the click; it still counts.
+  - wait.response: { url: /api/orders, status: 200, as: mocked }
+  - expect.count: { target: orders.items, equals: 3 }
+  - extract: { target: orders.summary, as: orderCount, pattern: '^(\d+) orders' }
+  - set: { firstItem: '${vars.mocked.json.0.item}' }
+  - expect.text: { target: orders.list, contains: '${vars.firstItem}' }
+  - click: orders.load
+  - expect.response:
+      url: /api/orders
+      method: GET
+      status: 200
+      json: [{ item: Desk lamp }, { item: Notebook }]
+  - expect.count: { target: orders.items, equals: 2 }
+  - api:
+      method: POST
+      url: /api/todos
+      json: { title: 'Order ${vars.orderCount} items' }
+      status: 201
+      as: created
+  - goto: /todos
+  - expect.response: { url: /api/todos, json: [{ title: Order 3 items, done: false }] }
+  - expect.text: { target: todos.count, equals: '1' }
+after:
+  - api: { method: POST, url: /api/reset }

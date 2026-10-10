@@ -15,9 +15,11 @@ import { checkSdkVersion, loadUserActions } from '../actions/loader.js';
 import { ActionRegistry, type BuiltinAction } from '../actions/registry.js';
 import { SecretRegistry } from '../context/mask.js';
 import { SecretStore } from '../context/secrets.js';
-import { DEFAULT_GLOBS, fileKindOf, type ConfigFile } from '../schema/files.js';
+import { DEFAULT_GLOBS, fileKindOf, type ConfigFile, type FlowFile } from '../schema/files.js';
 import { TargetSchema, type TargetValue } from '../schema/targets.js';
 import { readDataRows } from '../stepfile/data-rows.js';
+import type { SourceFile } from '../stepfile/source.js';
+import type { NormalizedStep } from '../stepfile/steps.js';
 import { validateFile, type FileValidation } from '../stepfile/validate-file.js';
 import { RpcError } from '../rpc/rpc-error.js';
 import { crossCheck, type CheckContext, type SharedTarget } from './cross-checks.js';
@@ -342,6 +344,22 @@ export class Project {
   }
 
   /**
+   * Reads a flow file for `call`, with its steps and source.
+   *
+   * @param file - Project-relative path.
+   * @returns The flow, or `undefined` when it cannot be read, is not a flow
+   *   file or does not pass its own validation.
+   */
+  readFlow(
+    file: string,
+  ): { data: FlowFile; steps: readonly NormalizedStep[]; source: SourceFile } | undefined {
+    const validation = this.readStepFile(file);
+    const parsed = validation?.parsed;
+    if (validation === undefined || parsed?.kind !== 'flow') return undefined;
+    return { data: parsed.data, steps: parsed.steps, source: validation.source };
+  }
+
+  /**
    * The answer to `listTests`: every test file the config's `tests` globs find,
    * with its name as written (`${row.…}` uninterpolated), its tags and how many
    * test instances it makes. A file too broken to read still appears, named
@@ -375,6 +393,18 @@ export class Project {
       });
     }
     return tests;
+  }
+
+  /**
+   * Registers a value found while a test runs (such as an `Authorization`
+   * header) as a secret, so it is masked wherever the engine writes it out
+   * (ADR 0014).
+   *
+   * @param value - The value.
+   * @returns False when it is shorter than 4 characters and was not registered.
+   */
+  registerSecret(value: string): boolean {
+    return this.secretRegistry.register(value);
   }
 
   /**

@@ -280,8 +280,12 @@ internal extension of the public one.
 Columns: **Short** is the shorthand parameter. Target parameters accept a
 target name or an inline candidate list. URLs may be relative to `env.baseUrl`.
 URL patterns are globs (`**/api/orders*`); a pattern that starts with `regex:`
-is a regular expression (`regex:^/orders/\d+$`). Without the prefix a pattern
-is always a glob, so `/orders/` is a path.
+is a regular expression (`regex:^/orders/\d+$`), tested against the whole URL.
+Without the prefix a pattern is always a glob, so `/orders/` is a path. In a
+glob, `*` matches any characters except `/`, `**` any characters, `{a,b}`
+either alternative, and every other character stands for itself; a glob that
+starts with `/` is relative to `env.baseUrl`. Likewise, `expect.url`'s `equals`
+compares a value that starts with `/` against `env.baseUrl` followed by it.
 
 Any step, whatever its action, may also use the common keys `name`, `page`,
 `timeout` and `opens` ([step-format.md](step-format.md#steps)).
@@ -327,6 +331,15 @@ each cookie's value), so it is masked wherever the engine writes it out
 ([ADR 0014](adr/0014-secret-masking.md)). `expect.response` does the same for
 the headers it reads.
 
+Header names in a stored response are in lower case
+(`${vars.issued.headers.authorization}`). For `Authorization`, both the whole
+value and the credential after its scheme (`Bearer …`) are masked. A browser
+never finishes loading the body of a `fetch` the page does not read, so
+Playwright cannot give it: `wait.response … as` then waits for the body until
+the step's time is almost up, logs a `warn` and stores the response with an
+empty `text` and a `null` `json`; `expect.response` with `json` or `contains`
+fails, saying so.
+
 ### Assertions
 
 All `expect.*` actions retry until they pass or the step times out, then fail
@@ -367,8 +380,13 @@ expected).
 | `api`  | –     | `method` (default `GET`), `url`, `headers`, `query`; one of `json`, `form`, `body`; `as`; `status`: expected status (default: any 2xx or 3xx)  |
 | `mock` | –     | `url` pattern, `method`; `status` (default 200), `headers`; one of `json`, `body`, `file`; `times`: how many requests to answer (default: all) |
 
-`api` uses `ctx.request`, so it is signed in exactly like the page. `mock`
-applies to every page in the step's browser context until the test ends.
+`api` uses `ctx.request`, so it is signed in exactly like the page; a URL
+that starts with `/` is relative to the environment's `baseUrl`. With `as`, the
+response is stored before its status is checked, so a failing step still
+leaves it for later steps of an `after` section. `mock` applies to every page
+in the step's browser context until the test ends; `file` is relative to the
+step file. A request `mock` does not answer (another method, or after `times`)
+goes on to the next handler or the network.
 
 ### Flows
 
@@ -384,5 +402,11 @@ applies to every page in the step's browser context until the test ends.
 ```
 
 Each call is one step in the results, with the flow's steps nested under it
-(`stepId` `steps.4/steps.1`). Repeating a flow per data row is not part of
+(`stepId` `steps.4/steps.1`). Each nested step's `stepStarted` carries the call's
+`stepId` as `parentStepId` and the call's `section`. A `call` step has no
+timeout of its own; each step of the flow has its own. The first failing step
+of a flow skips the rest of it and fails the call with `FlowFailed`, whose
+message names the failing step and its place in the flow file. The outputs the
+flow set are copied back even then, so `after` steps can use them; an output a
+passing flow never set gives a `FlowOutputNotSet` warning. Repeating a flow per data row is not part of
 v0.1.0 ([ADR 0013](adr/0013-data-rows.md)).

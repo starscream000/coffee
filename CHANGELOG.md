@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The demo project has a committed, demo-only `.env` with `DEMO_PASSWORD`, so
+  it opens without any setup and without diagnostics. It is the one `.env`
+  the repository allows; a real project keeps its `.env` out of Git.
 - A step's timeout starts once its page is ready, so signing in with a saved
   login is limited by the login flow's own step timeouts.
 - Run ids carry milliseconds (`20261009-054902-123-1a2b`), so they sort by
@@ -56,6 +59,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `baseUrl`.
 
 ### Added
+
+- The built-in action `call`: a flow runs with its own variables, its
+  parameters (defaults, then `with`) and its own targets, and copies its
+  `outputs` back to the caller; flows can call flows. Its steps appear in the
+  events nested under the call (`steps.4/steps.1`, with `parentStepId`); a
+  failing step fails the call with `FlowFailed`. Login flows can call flows
+  too. Every built-in action of `docs/actions.md` can now run.
+- Demo flows `add-todo` and `add-two-todos`, sample S5 and check I2 (S5's
+  event sequence against a checked-in expectation).
+
+- The built-in actions `set`, `extract`, `api`, `mock`, `wait.response` and
+  `expect.response`. `api` sends requests with `ctx.request`, so they carry
+  the page's cookies; `mock` answers matching requests of the step's browser
+  context until the test ends. A response log per test lets `wait.response`
+  and `expect.response` see responses that arrived since the previous step
+  started, so "click, then wait for the response" has no race. When a step
+  stores or reads a `Cookie`, `Set-Cookie` or `Authorization` response header,
+  its values are registered as secrets for the rest of the run (ADR 0014).
+- Demo pages `/orders`, `/notes` and `/token` with their API endpoints, and
+  samples S4, S9 and S19.
+
+- The built-in actions `back`, `reload`, `wait.element`, `wait.url`,
+  `expect.visible`, `expect.value`, `expect.url` and `expect.count`. Every
+  wait polls and checks the step's signal on each round. URL patterns follow
+  the owner's rule at run time (`regex:` or a glob, relative to the base URL
+  when it starts with `/`). `expect.visible: false`, `expect.count` and
+  `wait.element` with `hidden` or `detached` count matches without the
+  "exactly one element" rule, as ADR 0010 says.
+- Demo page `/products`, samples S1, S3 and S16, and the `expect.value` steps
+  of S2.
+
+- The built-in actions `select`, `check` (and uncheck), `hover`, `press`,
+  `upload` (paths relative to the step file, `[]` clears) and `drag`, defined
+  with `defineAction` like the others.
+- Demo pages `/form` and `/interactions`, and sample S2
+  (`tests/forms.test.yaml`); its `expect.value` steps come with plan branch 12.
 
 - Saved logins (ADR 0018): a page with a login signs in on first use by
   running the login flow, and the storage state is saved under

@@ -13,7 +13,7 @@
 import { createHmac, randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PRODUCT, type Location } from '@cfe/protocol';
+import { PRODUCT } from '@cfe/protocol';
 import type { Browser } from 'playwright';
 import type { ActionRegistry } from '../actions/registry.js';
 import type { EnvironmentProfile } from '../context/environment.js';
@@ -25,10 +25,9 @@ import { durationToMs } from '../schema/common.js';
 import type { ConfigFile, FlowFile } from '../schema/files.js';
 import type { TargetValue } from '../schema/targets.js';
 import type { Secrets } from '../sdk/context.js';
-import type { NormalizedStep } from '../stepfile/steps.js';
 import { LoginFailedError, StepError } from './errors.js';
 import { PageSet, type LoginStates, type StorageState } from './pages.js';
-import { executeStep } from './step.js';
+import { StepRunner, type StepScope } from './step-runner.js';
 import type { EmitEvent } from './test-run.js';
 
 /** The default `maxAge` of a saved login. */
@@ -365,24 +364,32 @@ export class LoginStore {
       emit: forward,
     });
     try {
-      const vars = new VariableStore();
-      const targets = targetLookup(flow.targets, this.options.sharedTargets);
+      const project = this.options.project;
+      const runner = new StepRunner({
+        registry: this.options.registry,
+        profile: this.options.profile,
+        secrets: this.options.secrets,
+        testIdAttribute: this.options.testIdAttribute,
+        sharedTargets: this.options.sharedTargets,
+        pages,
+        testId,
+        root: project.root,
+        readFlow: (file) => project.readFlow(file),
+        registerSecret: (value) => project.registerSecret(value),
+        emit: forward,
+      });
+      const scope: StepScope = {
+        file: definition.flow,
+        source: validation.source,
+        vars: new VariableStore(),
+        targets: targetLookup(flow.targets, this.options.sharedTargets),
+        flowParams: params,
+        chain: [definition.flow],
+      };
       for (const [index, step] of parsed.steps.entries()) {
-        const result = await executeStep(step, {
-          registry: this.options.registry,
-          profile: this.options.profile,
-          secrets: this.options.secrets,
-          testIdAttribute: this.options.testIdAttribute,
-          vars,
-          targets,
-          flowParams: params,
-          pages,
-          section: 'steps',
-          testId,
+        const result = await runner.run(step, scope, {
           stepId: `${stepId}/login.${String(index)}`,
-          location: locationOf(validation.source, definition.flow, step),
-          timeoutMs: durationToMs(step.timeout ?? this.options.profile.settings.timeout),
-          emit: forward,
+          section: 'steps',
         });
         if (result.error !== undefined) throw new LoginFailedError(login, result.error);
       }
@@ -407,13 +414,4 @@ function defaultsOf(flow: FlowFile): Record<string, unknown> {
       param.default === undefined ? [] : [[name, param.default]],
     ),
   );
-}
-
-function locationOf(
-  source: { positionOf: (path: readonly (string | number)[]) => { line: number; column: number } },
-  file: string,
-  step: NormalizedStep,
-): Location {
-  const at = source.positionOf(step.path);
-  return { file, line: at.line, column: at.column };
 }

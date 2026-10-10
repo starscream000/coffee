@@ -6,6 +6,7 @@
 // a `StrayActionCode` warning is sent. Used for the steps of tests and of
 // login flows; the caller sends the step's own events.
 
+import { join } from 'node:path';
 import type { ErrorInfo, Location, LocatorUse } from '@cfe/protocol';
 import type { Page } from 'playwright';
 import type { ActionRegistry } from '../actions/registry.js';
@@ -20,6 +21,7 @@ import type { NormalizedStep } from '../stepfile/steps.js';
 import { createStepContext, type LogLevel } from './context.js';
 import { StepError, toErrorInfo, type StepStop } from './errors.js';
 import type { PageSet } from './pages.js';
+import type { ResponseLog } from './responses.js';
 import type { EmitEvent } from './test-run.js';
 
 /** Time the wait for an `opens` page keeps back before the step's deadline. */
@@ -56,6 +58,14 @@ export interface StepRun {
   readonly stepId: string;
   /** Where the step is written. */
   readonly location: Location;
+  /** The project's root folder, to find the step's file. */
+  readonly root: string;
+  /** Registers a value found during the step as a secret (ADR 0014). */
+  readonly registerSecret: (value: string) => boolean;
+  /** The test's response log, for wait.response and expect.response. */
+  readonly responses?: ResponseLog | undefined;
+  /** When the previous step started: the response log is read from then on. */
+  readonly responsesSince?: number | undefined;
   /** The step's timeout in milliseconds. */
   readonly timeoutMs: number;
   /** Aborted when the run is cancelled; absent for steps that are not cancelled. */
@@ -209,6 +219,10 @@ export async function executeStep(step: NormalizedStep, run: StepRun): Promise<S
       },
       log,
       sealed: () => state.strayed,
+      stepFile: join(run.root, run.location.file),
+      registerSecret: run.registerSecret,
+      responses: run.responses,
+      responsesSince: run.responsesSince ?? start,
     });
     running = action.run(ctx, checked.data);
     running.then(

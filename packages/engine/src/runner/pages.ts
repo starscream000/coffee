@@ -15,6 +15,7 @@ import type { Location } from '@cfe/protocol';
 import type { Browser, BrowserContext, CDPSession, Page } from 'playwright';
 import type { EnvironmentProfile } from '../context/environment.js';
 import { StepError } from './errors.js';
+import type { ResponseLog } from './responses.js';
 import type { EmitEvent } from './test-run.js';
 
 /** Playwright's storage state: cookies and local storage of a signed-in session. */
@@ -38,6 +39,8 @@ export interface PageSetOptions {
   readonly pageLogins: ReadonlyMap<string, string | undefined>;
   /** Gives the storage state of a login. */
   readonly logins: LoginStates;
+  /** Where every response of the test's contexts is recorded, if anywhere. */
+  readonly responses?: ResponseLog | undefined;
   /** The test instance, for events. */
   readonly testId: string;
   /** Sends events. */
@@ -264,6 +267,9 @@ export class PageSet {
       deviceScaleFactor: 1,
       baseURL: profile.baseUrl,
       ...(storageState === undefined ? {} : { storageState }),
+    });
+    context.on('response', (response) => {
+      this.options.responses?.add(response);
     });
     context.on('page', (page) => {
       this.onNewPage(page, context);

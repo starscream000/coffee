@@ -1,0 +1,495 @@
+[
+  {
+    "method": "runStarted",
+    "seq": 1
+  },
+  {
+    "method": "testStarted",
+    "seq": 2,
+    "testId": "tests/flows.test.yaml#0"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 3,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.0",
+    "section": "steps",
+    "action": "api",
+    "params": {
+      "method": "POST",
+      "url": "/api/reset"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 4,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.0"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 5,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.1",
+    "section": "steps",
+    "action": "goto",
+    "params": {
+      "url": "/todos"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 6,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.1"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 7,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.2",
+    "section": "steps",
+    "action": "call",
+    "params": {
+      "flow": "flows/add-todo.flow.yaml",
+      "with": {
+        "title": "Buy milk"
+      }
+    }
+  },
+  {
+    "method": "stepStarted",
+    "seq": 8,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.2/steps.0",
+    "parentStepId": "steps.2",
+    "section": "steps",
+    "action": "fill",
+    "params": {
+      "target": "todos.new",
+      "value": "${params.title}"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 9,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.2/steps.0"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 10,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.2/steps.1",
+    "parentStepId": "steps.2",
+    "section": "steps",
+    "action": "check",
+    "params": {
+      "target": "done",
+      "checked": "${params.done}"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 11,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.2/steps.1"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 12,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.2/steps.2",
+    "parentStepId": "steps.2",
+    "section": "steps",
+    "action": "click",
+    "params": {
+      "target": "todos.add"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 13,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.2/steps.2"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 14,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.2/steps.3",
+    "parentStepId": "steps.2",
+    "section": "steps",
+    "action": "expect.text",
+    "params": {
+      "target": "list",
+      "contains": "${params.title}"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 15,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.2/steps.3"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 16,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.2/steps.4",
+    "parentStepId": "steps.2",
+    "section": "steps",
+    "action": "extract",
+    "params": {
+      "target": "todos.count",
+      "as": "count"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 17,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.2/steps.4"
+  },
+  {
+    "method": "stepPassed",
+    "seq": 18,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.2"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 19,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.3",
+    "section": "steps",
+    "action": "expect.text",
+    "params": {
+      "target": "todos.count",
+      "equals": "${vars.count}"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 20,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.3"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 21,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4",
+    "section": "steps",
+    "action": "call",
+    "params": {
+      "flow": "flows/add-two-todos.flow.yaml",
+      "with": {
+        "first": "Walk the dog",
+        "second": "Water the plants"
+      }
+    }
+  },
+  {
+    "method": "stepStarted",
+    "seq": 22,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.0",
+    "parentStepId": "steps.4",
+    "section": "steps",
+    "action": "call",
+    "params": {
+      "flow": "flows/add-todo.flow.yaml",
+      "with": {
+        "title": "${params.first}"
+      }
+    }
+  },
+  {
+    "method": "stepStarted",
+    "seq": 23,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.0/steps.0",
+    "parentStepId": "steps.4/steps.0",
+    "section": "steps",
+    "action": "fill",
+    "params": {
+      "target": "todos.new",
+      "value": "${params.title}"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 24,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.0/steps.0"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 25,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.0/steps.1",
+    "parentStepId": "steps.4/steps.0",
+    "section": "steps",
+    "action": "check",
+    "params": {
+      "target": "done",
+      "checked": "${params.done}"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 26,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.0/steps.1"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 27,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.0/steps.2",
+    "parentStepId": "steps.4/steps.0",
+    "section": "steps",
+    "action": "click",
+    "params": {
+      "target": "todos.add"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 28,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.0/steps.2"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 29,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.0/steps.3",
+    "parentStepId": "steps.4/steps.0",
+    "section": "steps",
+    "action": "expect.text",
+    "params": {
+      "target": "list",
+      "contains": "${params.title}"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 30,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.0/steps.3"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 31,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.0/steps.4",
+    "parentStepId": "steps.4/steps.0",
+    "section": "steps",
+    "action": "extract",
+    "params": {
+      "target": "todos.count",
+      "as": "count"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 32,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.0/steps.4"
+  },
+  {
+    "method": "stepPassed",
+    "seq": 33,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.0"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 34,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.1",
+    "parentStepId": "steps.4",
+    "section": "steps",
+    "action": "call",
+    "params": {
+      "flow": "flows/add-todo.flow.yaml",
+      "with": {
+        "title": "${params.second}",
+        "done": true
+      }
+    }
+  },
+  {
+    "method": "stepStarted",
+    "seq": 35,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.1/steps.0",
+    "parentStepId": "steps.4/steps.1",
+    "section": "steps",
+    "action": "fill",
+    "params": {
+      "target": "todos.new",
+      "value": "${params.title}"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 36,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.1/steps.0"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 37,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.1/steps.1",
+    "parentStepId": "steps.4/steps.1",
+    "section": "steps",
+    "action": "check",
+    "params": {
+      "target": "done",
+      "checked": "${params.done}"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 38,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.1/steps.1"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 39,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.1/steps.2",
+    "parentStepId": "steps.4/steps.1",
+    "section": "steps",
+    "action": "click",
+    "params": {
+      "target": "todos.add"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 40,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.1/steps.2"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 41,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.1/steps.3",
+    "parentStepId": "steps.4/steps.1",
+    "section": "steps",
+    "action": "expect.text",
+    "params": {
+      "target": "list",
+      "contains": "${params.title}"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 42,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.1/steps.3"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 43,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.1/steps.4",
+    "parentStepId": "steps.4/steps.1",
+    "section": "steps",
+    "action": "extract",
+    "params": {
+      "target": "todos.count",
+      "as": "count"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 44,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.1/steps.4"
+  },
+  {
+    "method": "stepPassed",
+    "seq": 45,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4/steps.1"
+  },
+  {
+    "method": "stepPassed",
+    "seq": 46,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.4"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 47,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.5",
+    "section": "steps",
+    "action": "expect.text",
+    "params": {
+      "target": "todos.count",
+      "equals": "${vars.count}"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 48,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.5"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 49,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.6",
+    "section": "steps",
+    "action": "expect.text",
+    "params": {
+      "target": "todos.count",
+      "equals": "3"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 50,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "steps.6"
+  },
+  {
+    "method": "stepStarted",
+    "seq": 51,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "after.0",
+    "section": "after",
+    "action": "api",
+    "params": {
+      "method": "POST",
+      "url": "/api/reset"
+    }
+  },
+  {
+    "method": "stepPassed",
+    "seq": 52,
+    "testId": "tests/flows.test.yaml#0",
+    "stepId": "after.0"
+  },
+  {
+    "method": "testFinished",
+    "seq": 53,
+    "testId": "tests/flows.test.yaml#0",
+    "status": "passed"
+  },
+  {
+    "method": "runFinished",
+    "seq": 54,
+    "status": "passed"
+  }
+]

@@ -1,0 +1,25 @@
+# S2: fill, select (by label and by value, one and several), check and uncheck,
+# press (on a field and on the focused element), upload and expect.text, in
+# shorthand and long forms, and expect.value.
+version: 1
+name: Fill in the order form
+steps:
+  - goto: /form
+  - fill: { target: form.name, value: Ada Lovelace }
+  - expect.value: { target: form.name, equals: Ada Lovelace }
+  - select: { target: form.country, option: France }
+  - expect.value: { target: form.country, equals: fr }
+  - select: { target: form.toppings, option: [cheese, olives] }
+  - check: form.subscribe
+  - check: { target: form.subscribe, checked: false }
+  - check: form.subscribe
+  - upload: { target: form.attachment, files: data/notes.txt }
+  - fill: { target: form.search, value: lamps }
+  - expect.value: { target: form.search, contains: lamp }
+  - press: { key: Enter, target: form.search }
+  - expect.text: { target: form.searchResult, equals: Searching for lamps }
+  - press: Tab
+  - click: form.send
+  - expect.text:
+      target: form.summary
+      equals: 'Ada Lovelace, fr, cheese+olives, subscribed, notes.txt'

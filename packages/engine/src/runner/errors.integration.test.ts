@@ -1,6 +1,5 @@
 // Integration tests of step errors a tester can read (instruction 0006, task
-// 14), of a built-in without an implementation (task 15), and of the stdio
-// guard (task 8; review 0005, finding 6) at load time and inside `run`. The
+// 14) and of the stdio guard (task 8; review 0005, finding 6) at load time and inside `run`. The
 // test writes its own action file and test files into the harness's copy of
 // the demo project and opens it again.
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -55,7 +54,6 @@ export default [
 `;
 
 const TESTS: Record<string, string> = {
-  'not-implemented': '  - goto: /todos\n  - hover: todos.add\n',
   'plain-error': '  - test.throwPlain\n',
   'page-closed': '  - goto: /todos\n  - test.closePage\n',
   'invalid-selector':
@@ -95,16 +93,6 @@ async function failureOf(name: string): Promise<Record<string, unknown>> {
 }
 
 describe('step errors a tester can read', () => {
-  it('a built-in action without an implementation fails its step with NotImplemented', async () => {
-    expect(await failureOf('not-implemented')).toMatchObject({
-      code: 'NotImplemented',
-      message: 'The built-in action "hover" cannot run yet in this engine version.',
-      location: { file: 'tests/errors/not-implemented.test.yaml', line: 5, column: 5 },
-    });
-    // The engine is still there.
-    expect(await app.engine.request(nextId++, 'listActions')).toHaveProperty('result');
-  });
-
   it('an action that throws something that is not an SDK error is an ActionError', async () => {
     expect(await failureOf('plain-error')).toMatchObject({
       code: 'ActionError',
