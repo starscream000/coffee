@@ -36,6 +36,7 @@ export const homePage = document(
     <li><a href="/orders">Orders</a></li>
     <li><a href="/notes">Notes</a></li>
     <li><a href="/token">Token</a></li>
+    <li><a href="/details">Details</a></li>
   </ul>
 </nav>`,
 );
@@ -276,6 +277,10 @@ export const formPage = document(
       <option value="ham">Ham</option>
     </select></p>
   <p><label><input type="checkbox" id="subscribe" name="subscribe"> Subscribe to the newsletter</label></p>
+  <fieldset><legend>Delivery</legend>
+    <label><input type="radio" name="delivery" value="standard" checked> Standard</label>
+    <label><input type="radio" name="delivery" value="express"> Express</label>
+  </fieldset>
   <p><label for="attachment">Attachment</label> <input type="file" id="attachment" name="attachment" multiple></p>
   <p><label for="search">Search</label> <input id="search" type="search" name="search"></p>
   <p role="status" data-testid="search-result"></p>
@@ -430,5 +435,25 @@ export const tokenPage = document(
       ? 'Token received'
       : 'No token';
   });
+</script>`,
+);
+
+/**
+ * `/details`: two buttons with the same text "Details", told apart only by
+ * their test IDs, so the recorder must reject text and role candidates.
+ */
+export const detailsPage = document(
+  'Details',
+  `<h1>Details</h1>
+<section><h2>Shipping</h2><button type="button" data-testid="shipping-details">Details</button></section>
+<section><h2>Returns</h2><button type="button" data-testid="returns-details">Details</button></section>
+<p data-testid="details-shown">Nothing shown</p>
+<script>
+  for (const button of document.querySelectorAll('button')) {
+    button.addEventListener('click', () => {
+      document.querySelector('[data-testid="details-shown"]').textContent =
+        button.closest('section').querySelector('h2').textContent + ' details';
+    });
+  }
 </script>`,
 );

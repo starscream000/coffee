@@ -3,7 +3,9 @@
 // temporary folder with the server's URL as the environment's base URL, starts
 // the engine as a child process and opens the copy. `close` stops both and
 // deletes the copy; call it in `afterAll`/`finally` so it also runs when a test
-// fails. Used by the integration tests; not part of the engine build.
+// fails. `startDemoProject` does the same without an engine process, for
+// tests that open the project in their own process. Used by the integration
+// tests; not part of the engine build.
 
 import { spawn, type ChildProcess } from 'node:child_process';
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -159,6 +161,41 @@ export async function startDemoApp(options: DemoAppOptions = {}): Promise<DemoAp
       throw new Error(`openProject failed: ${JSON.stringify(response)}`);
     }
     return { url, root, engine, diagnostics: result.diagnostics, close };
+  } catch (error) {
+    await close();
+    throw error;
+  }
+}
+
+/** A running demo server and a copy of the demo project, with no engine process. */
+export interface DemoProject {
+  /** The server's base URL. */
+  readonly url: string;
+  /** The temporary copy of the demo project. */
+  readonly root: string;
+  /** Stops the server and deletes the copy. Safe to call twice. */
+  close(): Promise<void>;
+}
+
+/**
+ * Starts the demo server and copies the demo project, for tests that open the
+ * project inside the test process (the recorder's).
+ *
+ * @returns The server's URL and the copy; call `close` when done.
+ */
+export async function startDemoProject(): Promise<DemoProject> {
+  const { server, url } = await startServer();
+  let root: string | undefined;
+  let closed = false;
+  const close = async (): Promise<void> => {
+    if (closed) return;
+    closed = true;
+    await stop(server);
+    if (root !== undefined) rmSync(root, { recursive: true, force: true });
+  };
+  try {
+    root = copyDemoProject(url);
+    return { url, root, close };
   } catch (error) {
     await close();
     throw error;
