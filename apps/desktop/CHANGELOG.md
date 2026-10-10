@@ -26,6 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The run model (instruction D0003, task 9): a run as the app shows it,
+  built only from the engine's events, so that a live run and a run read back
+  from its folder use the same code: test instances with their state, data
+  row and duration; steps grouped into before, steps and after, nested under
+  the flow step that called them, with title, page, duration, parameters,
+  warnings, locators used and fallbacks; a failure's code, message, hint,
+  expected and actual values and locator candidates; skip reasons; the
+  screenshot and page state of each step; a gap in the events is noted, and a
+  run whose events stop is marked unfinished with what it reported kept.
+
 - Unsaved changes are never lost by accident (instruction D0002, task 14):
   closing a tab, the project or the window, or opening another project, asks
   whether to save, discard or cancel; Save all saves every changed tab; and
