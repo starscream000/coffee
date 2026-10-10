@@ -24,7 +24,7 @@ names the branch it sits on.
 | `chore/demo-env`               | `main`                         | `a70719f`   | #30          | yes    | +37 / −3                                                     |
 | `feat/actions-interaction`     | `chore/demo-env`               | `a00af62`   | #43          | yes    | +624 / −180 (the −180 is mostly moving built-ins into files) |
 | `feat/actions-wait-expect`     | `feat/actions-interaction`     | `aafa3b5`   | #44          | yes    | +817 / −13                                                   |
-| `feat/actions-data-http-flows` | `feat/actions-wait-expect`     | `caf7362`   | #45          | yes    | +1,082 / −12                                                 |
+| `feat/actions-data-http-flows` | `feat/actions-wait-expect`     | `7e9c9ce`   | #45          | yes    | +1,082 / −12                                                 |
 | `feat/actions-flows`           | `feat/actions-data-http-flows` | this report | #46          | yes    | +1,136 / −126, about 430 of them the I2 expectation (JSON)   |
 
 ### CI (verify, integration, desktop; each on Linux, Windows, macOS)
@@ -34,11 +34,21 @@ names the branch it sits on.
 | #30          | all 9 jobs pass | all 9 jobs pass |
 | #43          | all 9 jobs pass | all 9 jobs pass |
 | #44          | all 9 jobs pass | all 9 jobs pass |
-| #45          | all 9 jobs pass | all 9 jobs pass |
-| #46          | all 9 jobs pass | see below       |
+| #45          | see below       | see below       |
+| #46          | see below       | see below       |
 
-#46's second run is the run on the commit that adds this report (no code
-change); its result is in the pull request.
+**One failure, fixed.** #45 passed twice at `caf7362`, and #46 passed once at
+`66b7002`. Then the run on the report commit failed one job: `integration` on
+macOS, in "expect.response says what it got", with `json: null` instead of
+the orders.
+
+The cause was a real bug. The last poll round of `expect.response` had about
+1 ms left, so its body read gave up. That empty reading then replaced the
+body an earlier round had read.
+
+The fix (`7e9c9ce` on #45, merged into #46 with a merge commit): each body is
+read once and reused, since a body never changes. The runs after the fix are
+in each pull request; I re-run each until it has two green runs in a row.
 
 The `desktop` job passed on every run. No `desktop` test failed.
 
