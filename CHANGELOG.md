@@ -60,6 +60,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The built-in action `call`: a flow runs with its own variables, its
+  parameters (defaults, then `with`) and its own targets, and copies its
+  `outputs` back to the caller; flows can call flows. Its steps appear in the
+  events nested under the call (`steps.4/steps.1`, with `parentStepId`); a
+  failing step fails the call with `FlowFailed`. Login flows can call flows
+  too. Every built-in action of `docs/actions.md` can now run.
+- Demo flows `add-todo` and `add-two-todos`, sample S5 and check I2 (S5's
+  event sequence against a checked-in expectation).
+
 - The built-in actions `set`, `extract`, `api`, `mock`, `wait.response` and
   `expect.response`. `api` sends requests with `ctx.request`, so they carry
   the page's cookies; `mock` answers matching requests of the step's browser

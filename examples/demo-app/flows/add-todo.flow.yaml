@@ -1,0 +1,18 @@
+# S5: adds one to-do on /todos and gives back how many there are.
+version: 1
+name: Add a to-do
+params:
+  title: { type: string }
+  done: { type: boolean, default: false }
+outputs: [count]
+targets:
+  done:
+    - label: Done
+  list:
+    - testId: todo-list
+steps:
+  - fill: { target: todos.new, value: '${params.title}' }
+  - check: { target: done, checked: '${params.done}' }
+  - click: todos.add
+  - expect.text: { target: list, contains: '${params.title}' }
+  - extract: { target: todos.count, as: count }
