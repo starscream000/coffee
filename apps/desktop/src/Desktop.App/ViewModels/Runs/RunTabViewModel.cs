@@ -15,14 +15,17 @@ public sealed partial class RunTabViewModel : WorkspaceTabViewModel
 {
     private readonly IEngineService _engine;
     private readonly Action<string, int> _openFile;
+    private readonly Action<string, string, IReadOnlyList<CandidateMatches>?>? _openTarget;
 
     /// <summary>Creates the tab.</summary>
     /// <param name="run">The run.</param>
     /// <param name="engine">The engine, for page states.</param>
     /// <param name="openFile">Opens a file at a line.</param>
     /// <param name="cancel">The command that cancels the run going on, when this is a live run.</param>
-    public RunTabViewModel(RunViewModel run, IEngineService engine, Action<string, int> openFile, IAsyncRelayCommand? cancel)
+    /// <param name="openTarget">Opens a target in the targets editor: its name, the file of the step that used it, and a failure's match counts.</param>
+    public RunTabViewModel(RunViewModel run, IEngineService engine, Action<string, int> openFile, IAsyncRelayCommand? cancel, Action<string, string, IReadOnlyList<CandidateMatches>?>? openTarget = null)
     {
+        _openTarget = openTarget;
         ArgumentNullException.ThrowIfNull(run);
         Run = run;
         _engine = engine;
@@ -65,6 +68,19 @@ public sealed partial class RunTabViewModel : WorkspaceTabViewModel
         {
             _openFile(step.Location.File, step.Location.Line);
         }
+    }
+
+    /// <summary>Opens the target a locator row is about in the targets editor, with the failure's match counts when nothing matched.</summary>
+    /// <param name="row">The row.</param>
+    [RelayCommand]
+    private void OpenTarget(LocatorRow? row)
+    {
+        if (row?.Target is not { } target || Run.SelectedTest?.SelectedStep is not { } step)
+        {
+            return;
+        }
+
+        _openTarget?.Invoke(target, step.Location.File, row.NotFound ? step.Error?.Candidates : null);
     }
 
     /// <summary>Asks the engine to show a step's saved page state in a test browser.</summary>
