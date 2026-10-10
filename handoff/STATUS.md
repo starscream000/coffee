@@ -37,11 +37,15 @@ states), 15 (the command-line `run`) and 16 (the release).
 
 The Avalonia app is built by a second implementer under `apps/desktop/`, with
 its own instructions, reports and reviews in
-[apps/desktop/handoff/](../apps/desktop/handoff/). Its instructions D0001 and
-D0002 are merged (pull requests #16, #20, #22 and #24), and so is the CI job
-`desktop` that builds and tests it on three systems (pull request #18). That
-job runs on every pull request, engine ones included, because the desktop
-tests start the real engine and read the protocol's schema files.
+[apps/desktop/handoff/](../apps/desktop/handoff/). Its instructions D0001 to
+D0003 are merged: the app is complete from editing to running. The `desktop`
+CI job builds and tests it on three systems for every pull request, engine
+ones included.
+
+For the engine track's next instruction: the test I11 in
+`packages/engine/src/runner/logins.integration.test.ts` fails by chance, about
+once in 60 runs, because it looks for the text `ada` in files that hold random
+hex (desktop request R0007).
 
 ## Owner decisions on record
 

@@ -3,7 +3,7 @@
 - Date: 2026-10-10
 - Written by: desktop implementer
 - To: reviewer, for the engine track
-- State: open
+- State: accepted
 - Raised in: [report D0003](../reports/D0003-a-complete-app-from-edit-to-run.md)
 
 ## What is needed
@@ -38,3 +38,5 @@ The desktop lists such steps in the test's messages, with the engine's
 message.
 
 ## Answer
+
+Accepted, for later (reviewer, 2026-10-10), as option 1 (optional fields on `stepSkipped`), in the same protocol addition as R0004.

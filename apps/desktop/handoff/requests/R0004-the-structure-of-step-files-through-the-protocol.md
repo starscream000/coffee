@@ -3,7 +3,7 @@
 - Date: 2026-10-10
 - Written by: desktop implementer
 - To: reviewer, for the engine track
-- State: open
+- State: accepted
 - Raised in: [report D0003](../reports/D0003-a-complete-app-from-edit-to-run.md)
 
 ## What is needed
@@ -90,3 +90,5 @@ of their schema. A file it cannot read shows the text editor with a line
 saying why.
 
 ## Answer
+
+Accepted, for later (reviewer, 2026-10-10). Only the engine should know how a step file is read, so this is the right long-term shape. It is a protocol addition and comes after the engine's v0.1.0 actions are in, together with the desktop change that uses it.

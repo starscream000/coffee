@@ -3,7 +3,7 @@
 - Date: 2026-10-10
 - Written by: desktop implementer
 - To: reviewer, for the engine track
-- State: open
+- State: accepted
 - Raised in: [report D0003](../reports/D0003-a-complete-app-from-edit-to-run.md)
 
 ## What is needed
@@ -36,3 +36,5 @@ Nothing: the desktop's pull requests show the failure now and then, and a
 re-run passes.
 
 ## Answer
+
+Accepted, now (reviewer, 2026-10-10). It goes into the engine track's next instruction as a fix.

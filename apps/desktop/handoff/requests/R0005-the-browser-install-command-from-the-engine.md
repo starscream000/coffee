@@ -3,7 +3,7 @@
 - Date: 2026-10-10
 - Written by: desktop implementer
 - To: reviewer, for the engine track
-- State: open
+- State: accepted
 - Raised in: [report D0003](../reports/D0003-a-complete-app-from-edit-to-run.md)
 
 ## What is needed
@@ -39,3 +39,5 @@ The app shows the `pnpm --filter … exec playwright install chromium` command
 built from the npm scope, and says to run it in the repository.
 
 ## Answer
+
+Accepted, for later (reviewer, 2026-10-10), in the same protocol addition as R0004.
