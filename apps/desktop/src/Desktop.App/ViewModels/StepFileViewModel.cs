@@ -6,6 +6,8 @@ using AvaloniaEdit.Document;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Desktop.App.Services;
+using Desktop.App.StepFiles;
+using Desktop.App.ViewModels.Steps;
 using Desktop.Protocol.Messages;
 
 namespace Desktop.App.ViewModels;
@@ -29,6 +31,7 @@ public enum LineMark
 /// <param name="Delay">Waits before validating while typing.</param>
 /// <param name="Report">Writes a line into the engine log.</param>
 /// <param name="Run">Runs a test file; null when the tab cannot start runs.</param>
+/// <param name="Actions">The actions the engine knows, for the step list; null for none.</param>
 public sealed record StepFileServices(
     string Root,
     IProjectFiles Files,
@@ -36,7 +39,8 @@ public sealed record StepFileServices(
     IDialogService Dialogs,
     IDelay Delay,
     Action<string> Report,
-    Func<string, Task>? Run = null);
+    Func<string, Task>? Run = null,
+    Func<IReadOnlyList<StepActionChoice>>? Actions = null);
 
 /// <summary>An editable step file in a tab.</summary>
 public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposable
@@ -69,7 +73,19 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
             UndoCommand.NotifyCanExecuteChanged();
             RedoCommand.NotifyCanExecuteChanged();
         };
+        if (StepOutline.SectionsOf(file).Count > 0)
+        {
+            Steps = new StepListViewModel(file, Document, services.Actions ?? (() => []), () => LineMarks);
+            Steps.StepSelected += (_, line) => Reveal(line);
+            DiagnosticsChanged += (_, _) => Steps.RefreshMarks();
+        }
     }
+
+    /// <summary>The step list of a test or flow file; null for other files.</summary>
+    public StepListViewModel? Steps { get; }
+
+    /// <summary>True for a test or flow file, which has a step list.</summary>
+    public bool HasSteps => Steps is not null;
 
     /// <summary>
     /// Raised with the problems of the text being edited, or with null when the

@@ -1,8 +1,9 @@
-<!-- An editable step file: toolbar, bars for changes on disk and failed saves, and the editor with problem lines marked. -->
+<!-- An editable step file: toolbar, bars for changes on disk and failed saves, the step list of a test or flow, and the text editor with problem lines marked. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Desktop.App.ViewModels"
              xmlns:edit="using:AvaloniaEdit"
+             xmlns:views="using:Desktop.App.Views"
              x:Class="Desktop.App.Views.StepFileView"
              x:DataType="vm:StepFileViewModel">
   <DockPanel>
@@ -39,13 +40,17 @@
     <TextBlock DockPanel.Dock="Top" Margin="12" Text="{Binding LoadError}" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap"
                IsVisible="{Binding LoadError, Converter={x:Static ObjectConverters.IsNotNull}}" />
 
-    <edit:TextEditor x:Name="Editor"
-                     Document="{Binding Document}"
-                     ShowLineNumbers="True"
-                     FontFamily="{StaticResource CodeFont}"
-                     FontSize="13"
-                     Padding="4,2"
-                     HorizontalScrollBarVisibility="Auto"
-                     VerticalScrollBarVisibility="Auto" />
+    <Grid ColumnDefinitions="Auto,Auto,*">
+      <views:StepListView x:Name="StepList" Grid.Column="0" Width="340" DataContext="{Binding Steps}" IsVisible="{Binding $parent[UserControl].((vm:StepFileViewModel)DataContext).HasSteps, FallbackValue=False}" />
+      <GridSplitter Grid.Column="1" ResizeDirection="Columns" Width="4" IsVisible="{Binding HasSteps}" />
+      <edit:TextEditor x:Name="Editor" Grid.Column="2"
+                       Document="{Binding Document}"
+                       ShowLineNumbers="True"
+                       FontFamily="{StaticResource CodeFont}"
+                       FontSize="13"
+                       Padding="4,2"
+                       HorizontalScrollBarVisibility="Auto"
+                       VerticalScrollBarVisibility="Auto" />
+    </Grid>
   </DockPanel>
 </UserControl>

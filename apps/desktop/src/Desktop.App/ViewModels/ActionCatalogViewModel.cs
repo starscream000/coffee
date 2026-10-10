@@ -118,6 +118,9 @@ public sealed partial class ActionCatalogViewModel : WorkspaceTabViewModel
     /// <inheritdoc />
     public override bool CanClose => false;
 
+    /// <summary>Every action the engine listed, in its order.</summary>
+    public IReadOnlyList<ActionItemViewModel> All => _all;
+
     /// <summary>The actions shown, after the search.</summary>
     public ObservableCollection<ActionItemViewModel> Items { get; } = [];
 
