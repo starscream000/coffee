@@ -62,6 +62,8 @@ export interface TestRunOptions {
   readonly testIdAttribute: string;
   /** Gives the storage state of a saved login for this test. */
   readonly logins: (fresh: boolean) => LoginStates;
+  /** The project's root folder. */
+  readonly root: string;
   /** Aborted when the run is cancelled. */
   readonly cancel: AbortSignal;
   /** Sends events. */
@@ -174,6 +176,7 @@ export async function runTest(test: TestInstance, options: TestRunOptions): Prom
       testId: test.testId,
       stepId,
       location,
+      root: options.root,
       timeoutMs,
       // after steps run even when the run is cancelled.
       cancel: section === 'after' ? undefined : options.cancel,

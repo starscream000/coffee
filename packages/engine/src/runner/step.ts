@@ -6,6 +6,7 @@
 // a `StrayActionCode` warning is sent. Used for the steps of tests and of
 // login flows; the caller sends the step's own events.
 
+import { join } from 'node:path';
 import type { ErrorInfo, Location, LocatorUse } from '@cfe/protocol';
 import type { Page } from 'playwright';
 import type { ActionRegistry } from '../actions/registry.js';
@@ -56,6 +57,8 @@ export interface StepRun {
   readonly stepId: string;
   /** Where the step is written. */
   readonly location: Location;
+  /** The project's root folder, to find the step's file. */
+  readonly root: string;
   /** The step's timeout in milliseconds. */
   readonly timeoutMs: number;
   /** Aborted when the run is cancelled; absent for steps that are not cancelled. */
@@ -209,6 +212,7 @@ export async function executeStep(step: NormalizedStep, run: StepRun): Promise<S
       },
       log,
       sealed: () => state.strayed,
+      stepFile: join(run.root, run.location.file),
     });
     running = action.run(ctx, checked.data);
     running.then(

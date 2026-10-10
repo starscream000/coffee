@@ -60,6 +60,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The built-in actions `select`, `check` (and uncheck), `hover`, `press`,
+  `upload` (paths relative to the step file, `[]` clears) and `drag`, defined
+  with `defineAction` like the others.
+- Demo pages `/form` and `/interactions`, and sample S2
+  (`tests/forms.test.yaml`); its `expect.value` steps come with plan branch 12.
+
 - Saved logins (ADR 0018): a page with a login signs in on first use by
   running the login flow, and the storage state is saved under
   `.cfe/logins/<key>.json`, where the key is an HMAC-SHA-256 of the
