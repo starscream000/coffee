@@ -30,6 +30,8 @@ export const homePage = document(
     <li><a href="/tabs">Tabs</a></li>
     <li><a href="/settings">Browser settings</a></li>
     <li><a href="/login">Sign in</a></li>
+    <li><a href="/form">Order form</a></li>
+    <li><a href="/interactions">Interactions</a></li>
   </ul>
 </nav>`,
 );
@@ -246,3 +248,93 @@ export function accountPage(user: string): string {
       : `<h1>Account</h1>\n<p>Signed in as <span data-testid="account-user">${user}</span></p>`,
   );
 }
+
+/**
+ * `/form`: an order form for the interaction actions (S2): a text field, a
+ * select, a multi-select, a checkbox, a file input and a search field that
+ * reacts to Enter. Sending the form writes a summary of every value.
+ */
+export const formPage = document(
+  'Order form',
+  `<h1>Order form</h1>
+<form id="order-form">
+  <p><label for="name">Name</label> <input id="name" name="name"></p>
+  <p><label for="country">Country</label>
+    <select id="country" name="country">
+      <option value="">Choose…</option>
+      <option value="de">Germany</option>
+      <option value="fr">France</option>
+    </select></p>
+  <p><label for="toppings">Toppings</label>
+    <select id="toppings" name="toppings" multiple>
+      <option value="cheese">Cheese</option>
+      <option value="olives">Olives</option>
+      <option value="ham">Ham</option>
+    </select></p>
+  <p><label><input type="checkbox" id="subscribe" name="subscribe"> Subscribe to the newsletter</label></p>
+  <p><label for="attachment">Attachment</label> <input type="file" id="attachment" name="attachment" multiple></p>
+  <p><label for="search">Search</label> <input id="search" type="search" name="search"></p>
+  <p role="status" data-testid="search-result"></p>
+  <button type="submit">Send order</button>
+</form>
+<p data-testid="form-summary"></p>
+<script>
+  document.getElementById('search').addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    document.querySelector('[data-testid="search-result"]').textContent =
+      'Searching for ' + event.target.value;
+  });
+  document.getElementById('order-form').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const toppings = [...document.getElementById('toppings').selectedOptions].map((o) => o.value);
+    const files = [...document.getElementById('attachment').files].map((f) => f.name);
+    document.querySelector('[data-testid="form-summary"]').textContent = [
+      document.getElementById('name').value || 'no name',
+      document.getElementById('country').value || 'no country',
+      toppings.join('+') || 'no toppings',
+      document.getElementById('subscribe').checked ? 'subscribed' : 'not subscribed',
+      files.join(' ') || 'no files',
+    ].join(', ');
+  });
+</script>`,
+);
+
+/**
+ * `/interactions`: a button with a tooltip shown on hover, and a list sorted by
+ * drag and drop (HTML5), for `hover` and `drag` (S3).
+ */
+export const interactionsPage = document(
+  'Interactions',
+  `<h1>Interactions</h1>
+<p><button type="button" id="help">Help</button>
+  <span role="tooltip" data-testid="tooltip" hidden></span></p>
+<ul aria-label="Fruit" data-testid="fruit-list">
+  <li draggable="true" data-testid="fruit-apple">Apple</li>
+  <li draggable="true" data-testid="fruit-banana">Banana</li>
+  <li draggable="true" data-testid="fruit-cherry">Cherry</li>
+</ul>
+<p>Order: <span data-testid="fruit-order">Apple, Banana, Cherry</span></p>
+<script>
+  const help = document.getElementById('help');
+  const tooltip = document.querySelector('[data-testid="tooltip"]');
+  // The tooltip gets its text on the first hover, so a test can see the hover happened.
+  help.addEventListener('mouseenter', () => {
+    tooltip.textContent = 'Opens the help pages';
+    tooltip.hidden = false;
+  });
+  help.addEventListener('mouseleave', () => { tooltip.hidden = true; });
+
+  const list = document.querySelector('[data-testid="fruit-list"]');
+  const order = document.querySelector('[data-testid="fruit-order"]');
+  let dragged;
+  list.addEventListener('dragstart', (event) => { dragged = event.target; });
+  list.addEventListener('dragover', (event) => { event.preventDefault(); });
+  list.addEventListener('drop', (event) => {
+    event.preventDefault();
+    const onto = event.target.closest('li');
+    if (dragged && onto && dragged !== onto) list.insertBefore(dragged, onto);
+    order.textContent = [...list.children].map((item) => item.textContent).join(', ');
+  });
+</script>`,
+);

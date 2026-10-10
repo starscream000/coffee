@@ -15,9 +15,11 @@ import {
   accountPage,
   checkoutFramePage,
   fallbackPage,
+  formPage,
   framesPage,
   helpPage,
   homePage,
+  interactionsPage,
   loginPage,
   paymentFramePage,
   receiptPage,
@@ -78,6 +80,8 @@ const PAGES: Readonly<Record<string, string>> = {
   '/help': helpPage,
   '/settings': settingsPage,
   '/login': loginPage,
+  '/form': formPage,
+  '/interactions': interactionsPage,
 };
 
 function send(response: ServerResponse, status: number, type: string, body: string): void {

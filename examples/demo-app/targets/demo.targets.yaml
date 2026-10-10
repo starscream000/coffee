@@ -76,3 +76,36 @@ targets:
       name: Sign in
   account.user:
     - testId: account-user
+  # S2: the order form.
+  form.name:
+    - label: Name
+  form.country:
+    - label: Country
+  form.toppings:
+    - label: Toppings
+  form.subscribe:
+    - role: checkbox
+      name: Subscribe to the newsletter
+  form.attachment:
+    - label: Attachment
+  form.search:
+    - label: Search
+  form.searchResult:
+    - testId: search-result
+  form.send:
+    - role: button
+      name: Send order
+  form.summary:
+    - testId: form-summary
+  # S3: hover and drag.
+  interactions.help:
+    - role: button
+      name: Help
+  interactions.tooltip:
+    - testId: tooltip
+  fruit.apple:
+    - testId: fruit-apple
+  fruit.cherry:
+    - testId: fruit-cherry
+  fruit.order:
+    - testId: fruit-order
