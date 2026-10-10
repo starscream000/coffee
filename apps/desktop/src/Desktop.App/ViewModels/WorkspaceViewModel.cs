@@ -308,6 +308,33 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private Task RunAllAsync() => Runs.RunAllAsync();
 
+    /// <summary>
+    /// Opens a target in the targets editor of the file that declares it: the
+    /// file of the step that used it, else a shared targets file. A failure's
+    /// match counts are shown beside the candidates.
+    /// </summary>
+    /// <param name="target">The target's name.</param>
+    /// <param name="stepFile">The file of the step that used it.</param>
+    /// <param name="counts">The failure's candidates and counts, or null.</param>
+    public void OpenTarget(string target, string stepFile, IReadOnlyList<CandidateMatches>? counts)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        string Text(string file) => Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == file)?.Document.Text ?? _files.TryReadText(Root, file) ?? string.Empty;
+        var file = new[] { stepFile }.Concat(_files.FindFiles(Root, TargetNames.SharedFileEnding))
+            .FirstOrDefault(f => TargetNames.Of(Text(f)).Contains(target, StringComparer.Ordinal));
+        if (file is null)
+        {
+            Runs.Notice = $"The target {target} is declared neither in {stepFile} nor in a shared targets file.";
+            return;
+        }
+
+        OpenFile(file);
+        if (SelectedTab is StepFileViewModel tab)
+        {
+            tab.ShowTarget(target, counts);
+        }
+    }
+
     /// <summary>Creates a test in the folder selected in the explorer (else <c>tests</c>) and opens it.</summary>
     /// <returns>A task that completes when the file is open or was not created.</returns>
     [RelayCommand]
@@ -693,7 +720,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
 
     private void ShowRun(RunViewModel run, bool live)
     {
-        var tab = new RunTabViewModel(run, _engine, (file, line) => OpenFile(file, line), live ? Runs.CancelCommand : null);
+        var tab = new RunTabViewModel(run, _engine, (file, line) => OpenFile(file, line), live ? Runs.CancelCommand : null, OpenTarget);
         tab.CloseRequested += (_, _) =>
         {
             var index = Tabs.IndexOf(tab);

@@ -190,6 +190,13 @@ types are written by hand and how they are kept honest:
   lines: the comment lines above a candidate and a comment at the end of its
   line stay with it, also when it moves. A target written in the short form
   stays short until it gets a frame or within.
+- **From a failure to its target.** In the run view, each target a step used
+  is listed with the candidate it took; a target that was not found, or was
+  found by a fallback candidate, at any level (frame, within, the element),
+  has an "Open target" button. It opens the file that declares the target
+  (the step's own file, else a shared targets file) on its targets editor,
+  with the target selected; after `TargetNotFound`, each candidate shows how
+  many elements it matched. An inline target has no button.
 
 ## Files
 

@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- From a failure to its target (instruction D0003, task 19): a target that
+  was not found or fell back, at any level, opens in the targets editor of
+  the file that declares it, with the failure's match counts beside its
+  candidates.
+
 - A targets editor (instruction D0003, task 18) for targets files and the
   targets of a test or flow: targets by name, added and removed; for each,
   frame and within picked from other targets, and its candidates in order of

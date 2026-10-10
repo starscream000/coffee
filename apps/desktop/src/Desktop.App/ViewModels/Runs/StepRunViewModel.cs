@@ -33,7 +33,15 @@ public sealed record CandidateRow(string Candidate, int Matches);
 /// <param name="Description">"target cart.count: candidate 2 {"css":".count"}", nested frame and within levels included.</param>
 /// <param name="IsFallback">True when a candidate other than the first was used, at any level.</param>
 /// <param name="NotFound">True when no candidate matched.</param>
-public sealed record LocatorRow(string Description, bool IsFallback, bool NotFound);
+/// <param name="Target">The named target to look at: the level where the search stopped, or where a fallback was used; null when that level is inline or all is well.</param>
+public sealed record LocatorRow(string Description, bool IsFallback, bool NotFound, string? Target = null)
+{
+    /// <summary>True when the row links to a target in the editor.</summary>
+    public bool HasTarget => Target is not null;
+
+    /// <summary>"Open target cart.count".</summary>
+    public string OpenText => $"Open target {Target}";
+}
 
 /// <summary>One step of a test instance in a run.</summary>
 public sealed partial class StepRunViewModel : ObservableObject
@@ -216,7 +224,7 @@ public sealed partial class StepRunViewModel : ObservableObject
         Locators.Clear();
         foreach (var use in uses)
         {
-            Locators.Add(new LocatorRow(DescribeUse(use), IsFallback(use), use.CandidateIndex is null));
+            Locators.Add(new LocatorRow(DescribeUse(use), IsFallback(use), NotFound(use), Concern(use)?.Target));
         }
     }
 
@@ -224,6 +232,23 @@ public sealed partial class StepRunViewModel : ObservableObject
     {
         HasPageState |= snapshot.State == SnapshotState.Saved;
         PageStateProblem = snapshot.State == SnapshotState.Failed ? snapshot.Reason : null;
+    }
+
+    /// <summary>True when no candidate matched at some level (the search stops there).</summary>
+    private static bool NotFound(LocatorUse use) =>
+        use.CandidateIndex is null || (use.Frame is { } f && NotFound(f)) || (use.Within is { } w && NotFound(w));
+
+    /// <summary>
+    /// The level to look at: the outermost level where nothing matched (frames are
+    /// found first, then within, then the element), else the outermost level where
+    /// a fallback was used; null when every level used its first candidate.
+    /// </summary>
+    private static LocatorUse? Concern(LocatorUse use)
+    {
+        IEnumerable<LocatorUse> Levels(LocatorUse u) =>
+            (u.Frame is { } f ? Levels(f) : []).Concat(u.Within is { } w ? Levels(w) : []).Append(u);
+        var levels = Levels(use).ToList();
+        return levels.FirstOrDefault(l => l.CandidateIndex is null) ?? levels.FirstOrDefault(l => l.CandidateIndex > 0);
     }
 
     private static bool IsFallback(LocatorUse use) =>
