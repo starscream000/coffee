@@ -408,6 +408,16 @@ export class Project {
   }
 
   /**
+   * Masks every registered secret in a text, in every encoded form (ADR 0014).
+   *
+   * @param text - Any text the engine is about to write out.
+   * @returns The text with each secret replaced by `•••`.
+   */
+  mask(text: string): string {
+    return this.secretRegistry.mask(text);
+  }
+
+  /**
    * Reads a project file's text.
    *
    * @param file - Project-relative path.

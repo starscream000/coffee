@@ -18,7 +18,8 @@
     "test:integration": "tsc -b && vitest run --config vitest.integration.config.ts",
     "verify": "tsc -b && tsc -p tsconfig.check.json && eslint . && prettier --check . && vitest run",
     "clean": "tsc -b --clean",
-    "generate:schemas": "tsc -b && node packages/protocol/scripts/generate-schemas.mjs"
+    "generate:schemas": "tsc -b && node packages/protocol/scripts/generate-schemas.mjs",
+    "record": "tsc -b && node packages/engine/dist/recorder/dev-record.js"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
