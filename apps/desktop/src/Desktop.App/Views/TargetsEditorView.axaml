@@ -1,0 +1,99 @@
+<!-- The targets editor: the file's targets by name, adding and removing targets, and the selected target's frame, within and candidates in order of reliability. Text fields write back when they lose focus. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:targets="using:Desktop.App.ViewModels.Targets"
+             x:Class="Desktop.App.Views.TargetsEditorView"
+             x:DataType="targets:TargetsEditorViewModel">
+  <UserControl.Styles>
+    <Style Selector="Button.tool">
+      <Setter Property="Padding" Value="8,2" />
+      <Setter Property="Margin" Value="0,0,4,4" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <TextBlock x:Name="TargetsProblem" DockPanel.Dock="Top" Margin="10" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding !IsAvailable}" />
+
+    <Grid RowDefinitions="Auto,*,4,2*" IsVisible="{Binding IsAvailable}">
+      <!-- Targets -->
+      <StackPanel Grid.Row="0" Margin="8,6,8,0" Spacing="4">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Classes="tool" Content="Add target" Command="{Binding AddTargetCommand}" Margin="4,0,0,0" />
+          <TextBox x:Name="NewTargetName" Text="{Binding NewName}" PlaceholderText="New target name, such as cart.checkout" />
+        </DockPanel>
+        <TextBlock Text="{Binding Notice}" Classes="small" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap"
+                   IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <TextBlock Text="{Binding EmptyText}" Classes="muted small" IsVisible="{Binding EmptyText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+      <ListBox x:Name="TargetNames" Grid.Row="1" Margin="6,4" ItemsSource="{Binding Names}" SelectedItem="{Binding SelectedName}" />
+
+      <GridSplitter Grid.Row="2" ResizeDirection="Rows" IsVisible="{Binding Form, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+      <!-- The selected target -->
+      <ScrollViewer Grid.Row="3" IsVisible="{Binding Form, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <StackPanel Margin="10,6" Spacing="6" DataContext="{Binding Form}" x:DataType="targets:TargetFormViewModel">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="tool" Content="Remove target"
+                    Command="{Binding $parent[UserControl].((targets:TargetsEditorViewModel)DataContext).RemoveTargetCommand}" />
+            <TextBlock x:Name="TargetName" Text="{Binding Name}" Classes="code" FontWeight="SemiBold" VerticalAlignment="Center" />
+          </DockPanel>
+          <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}"
+                     IsVisible="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+          <StackPanel Spacing="6" IsVisible="{Binding IsEditable}">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+              <TextBlock Grid.Row="0" Text="frame" Classes="small" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"
+                         ToolTip.Tip="The target of the iframe this element is in." />
+              <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding FrameChoices}" SelectedItem="{Binding Frame}" HorizontalAlignment="Stretch"
+                        IsEnabled="{Binding !IsFrameInline}" />
+              <TextBlock Grid.Row="1" Text="within" Classes="small" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,4,8,0"
+                         ToolTip.Tip="The target of an element this one is inside." />
+              <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding FrameChoices}" SelectedItem="{Binding Within}" HorizontalAlignment="Stretch" Margin="0,4,0,0"
+                        IsEnabled="{Binding !IsWithinInline}" />
+            </Grid>
+            <TextBlock Text="{Binding Error}" Classes="small" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap"
+                       IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+            <TextBlock Text="Candidates, most reliable first" Classes="heading muted" Margin="0,6,0,0" />
+            <ItemsControl x:Name="CandidateList" ItemsSource="{Binding Candidates}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="targets:CandidateViewModel">
+                  <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" Padding="0,6">
+                    <StackPanel Spacing="4">
+                      <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2">
+                          <Button Content="↑" Padding="6,0" ToolTip.Tip="More reliable"
+                                  Command="{Binding $parent[ItemsControl].((targets:TargetFormViewModel)DataContext).MoveCandidateUpCommand}" CommandParameter="{Binding}" />
+                          <Button Content="↓" Padding="6,0" ToolTip.Tip="Less reliable"
+                                  Command="{Binding $parent[ItemsControl].((targets:TargetFormViewModel)DataContext).MoveCandidateDownCommand}" CommandParameter="{Binding}" />
+                          <Button Content="×" Padding="6,0" ToolTip.Tip="Remove"
+                                  Command="{Binding $parent[ItemsControl].((targets:TargetFormViewModel)DataContext).RemoveCandidateCommand}" CommandParameter="{Binding}" />
+                        </StackPanel>
+                        <ComboBox ItemsSource="{x:Static targets:CandidateViewModel.Kinds}" SelectedItem="{Binding Kind}" MinWidth="110" IsVisible="{Binding IsEditable}" />
+                        <TextBlock Text="Kept as written" Classes="muted small" VerticalAlignment="Center" IsVisible="{Binding IsKeptAsWritten}" />
+                      </DockPanel>
+                      <TextBox Text="{Binding Value, UpdateSourceTrigger=LostFocus}" IsVisible="{Binding IsEditable}" />
+                      <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" PlaceholderText="Accessible name" IsVisible="{Binding IsRole}" />
+                      <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsEditable}">
+                        <TextBlock Text="exact" Classes="small" VerticalAlignment="Center" />
+                        <ComboBox ItemsSource="{Binding ExactChoices}" SelectedItem="{Binding Exact}" MinWidth="80" />
+                        <TextBlock Text="nth" Classes="small" VerticalAlignment="Center" />
+                        <TextBox Text="{Binding Nth, UpdateSourceTrigger=LostFocus}" MinWidth="50" />
+                      </StackPanel>
+                      <SelectableTextBlock Text="{Binding RawText}" Classes="code small" IsVisible="{Binding IsKeptAsWritten}" />
+                      <TextBlock Text="{Binding MatchText}" Classes="small" FontWeight="SemiBold"
+                                 IsVisible="{Binding MatchText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                      <TextBlock Text="{Binding Error}" Classes="small" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap"
+                                 IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Classes="tool" Content="Add candidate" Command="{Binding AddCandidateCommand}" HorizontalAlignment="Left" />
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </DockPanel>
+</UserControl>

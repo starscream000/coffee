@@ -170,6 +170,27 @@ types are written by hand and how they are kept honest:
   parameter, are listed at the top of the form. An action the engine does not
   know keeps its values as YAML.
 
+## The targets editor
+
+- Test, flow and targets files have a **Targets** tab in the side panel (a
+  targets file opens on it): the file's targets by name, adding a target
+  (with a name that is not taken in the file or the shared targets) and
+  removing one, and the selected target's form.
+- The form shows `frame` and `within`, each picked from the other targets
+  (a target has one or the other, not both), and the **candidates in order of
+  reliability**: each with its kind (`role`, `label`, `placeholder`, `text`,
+  `testId`, `css`), its value, the accessible name of a `role` candidate,
+  `exact` and `nth`. Candidates can be added, removed and moved up or down.
+  A candidate with other keys, or an inline frame or within, is kept as
+  written.
+- It reads targets with the same tree as the step list
+  (`StepFiles/TargetsOutline`) and writes only the lines of the target that
+  changed (`StepFiles/TargetWriter`), as one replacement of the document, so
+  the text editor's undo covers it. Unchanged candidates keep their original
+  lines: the comment lines above a candidate and a comment at the end of its
+  line stay with it, also when it moves. A target written in the short form
+  stays short until it gets a frame or within.
+
 ## Files
 
 - **New test, New flow, New targets file** (in the explorer) ask for a folder

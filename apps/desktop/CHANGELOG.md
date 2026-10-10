@@ -26,6 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A targets editor (instruction D0003, task 18) for targets files and the
+  targets of a test or flow: targets by name, added and removed; for each,
+  frame and within picked from other targets, and its candidates in order of
+  reliability with kind, value, accessible name, exact and nth, added,
+  removed and moved. Only the target's lines change; unchanged candidates
+  keep their comments. The Run button shows only on tests.
+
 - New files (instruction D0003, task 17): New test, New flow and New targets
   file ask for a folder and name, write a minimal file the engine reads
   without problems, and open it; Rename and Delete in a file's tab, with a

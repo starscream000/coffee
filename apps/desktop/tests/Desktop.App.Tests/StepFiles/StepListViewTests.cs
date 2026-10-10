@@ -63,6 +63,18 @@ public sealed class StepListViewTests
         Assert.Equal(4, Find<ItemsControl>(window, "FormParameters").ItemCount);
         Assert.Equal(3, Find<ItemsControl>(window, "FormSettings").ItemCount);
 
+        tab.SidePanelIndex = 1;
+        Render(window);
+        Assert.Equal(0, Find<ListBox>(window, "TargetNames").ItemCount);
+        files.Files["targets/shop.targets.yaml"] = TargetsTests.Shared;
+        shell.Workspace.OpenFile("targets/shop.targets.yaml");
+        var targets = (StepFileViewModel)shell.Workspace.SelectedTab!;
+        targets.Targets!.Select("checkout");
+        Render(window, "23-targets-editor");
+        Assert.Equal(3, Find<ListBox>(window, "TargetNames").ItemCount);
+        Assert.Equal(2, Find<ItemsControl>(window, "CandidateList").ItemCount);
+        Assert.False(Find<TabControl>(window, "SidePanel").Items.Cast<TabItem>().First().IsVisible);
+
         shell.Workspace.OpenFile("tests/b.test.yaml");
         Render(window);
         Assert.StartsWith("The step list cannot show this file.", Find<TextBlock>(window, "StepListProblem").Text, StringComparison.Ordinal);
