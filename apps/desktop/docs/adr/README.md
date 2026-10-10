@@ -18,3 +18,4 @@ A record marked "Proposed" needs the owner's approval before it is binding.
 | [D0004](0004-finding-node-and-the-engine.md)     | Find Node and the engine in a fixed order                  | Accepted (owner, 2026-10-10) |
 | [D0005](0005-mvvm-with-the-community-toolkit.md) | Use MVVM with CommunityToolkit.Mvvm and xUnit              | Accepted (owner, 2026-10-10) |
 | [D0006](0006-avaloniaedit-for-step-files.md)     | Edit step files with AvaloniaEdit                          | Proposed                     |
+| [D0007](0007-yamldotnet-for-the-step-list.md)    | Read step files with YamlDotNet for the step list          | Proposed                     |
