@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The candidate order the recorder writes puts `testId` before `text`, as
+  decision R5 says; `docs/step-format.md` had them the other way round.
 - The demo project has a committed, demo-only `.env` with `DEMO_PASSWORD`, so
   it opens without any setup and without diagnostics. It is the one `.env`
   the repository allows; a real project keeps its `.env` out of Git.
@@ -65,6 +67,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `baseUrl`.
 
 ### Added
+
+- The recorder's design: ADR 0022 "Record by listening in the page, and check
+  every candidate with the runner's rule" (reviewer decisions R4 to R10) and
+  `docs/recording.md` (sessions, the mapping of interactions to steps,
+  candidates and their check, typing, secrets, review marks, what is not
+  recorded yet, and a protocol proposal that is not built).
 
 - The built-in action `call`: a flow runs with its own variables, its
   parameters (defaults, then `with`) and its own targets, and copies its

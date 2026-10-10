@@ -196,15 +196,16 @@ checkoutButton:
 
 ### Candidates
 
-Candidate kinds, in the order the recorder will write them:
+Candidate kinds, in the order the recorder writes them
+([recording.md](recording.md#candidates-and-how-they-are-checked)):
 
 | Kind          | Example                         | Playwright equivalent           |
 | ------------- | ------------------------------- | ------------------------------- |
 | `role`+`name` | `{ role: button, name: Save }`  | `getByRole('button', { name })` |
 | `label`       | `{ label: Email address }`      | `getByLabel`                    |
 | `placeholder` | `{ placeholder: Search }`       | `getByPlaceholder`              |
-| `text`        | `{ text: Order confirmed }`     | `getByText`                     |
 | `testId`      | `{ testId: checkout }`          | `getByTestId`                   |
+| `text`        | `{ text: Order confirmed }`     | `getByText`                     |
 | `css`         | `{ css: '#cart .btn-primary' }` | `locator(css)`                  |
 
 A candidate **matches** when exactly one attached element fits it, hidden

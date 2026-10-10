@@ -60,21 +60,22 @@ find its executable; ESLint blocks any code import ([ADR 0009](adr/0009-clients-
 
 Each module is a folder under `packages/engine/src/` with one job.
 
-| Module      | Job                                                                                                                                                     |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rpc`       | Newline-delimited JSON-RPC on stdio, version handshake, dispatch, event emission; masks every message                                                   |
-| `project`   | Finds `cfe.config.yaml`, environments, saved logins, test, flow and target files                                                                        |
-| `stepfile`  | Parses YAML with source positions, validates, normalises shorthand to the long form, resolves references                                                |
-| `schema`    | Zod schemas for step files and config; maps validation issues to file, line and column                                                                  |
-| `actions`   | `ActionSpec` of every built-in ([ADR 0021](adr/0021-action-spec.md)), `defineAction`, registry, built-in `run`s, loading and name-checking user actions |
-| `locators`  | `ctx.locate`: tries a target's candidates in order and records which one matched                                                                        |
-| `context`   | Builds `ctx` per test: pages, request, vars, env, secrets, log, locate, signal; interpolation                                                           |
-| `secrets`   | Loads declared secrets, keeps the registry of values to mask, masks text and artifacts                                                                  |
-| `runner`    | Runs tests: data rows, before → steps → after, flow calls, timeouts, cancellation, `opens`, events                                                      |
-| `pagestate` | Internal `PageStateRecorder` interface: screenshot and snapshot per step, open a snapshot on request                                                    |
-| `results`   | Writes the run folder (`run.json`, `events.ndjson`, per-step artifacts)                                                                                 |
-| `browser`   | Launches the configured browser, fresh context per test, applies saved logins                                                                           |
-| `errors`    | Typed error classes with a stable `code`, a tester-readable message, the location and a hint                                                            |
+| Module      | Job                                                                                                                                                                                 |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rpc`       | Newline-delimited JSON-RPC on stdio, version handshake, dispatch, event emission; masks every message                                                                               |
+| `project`   | Finds `cfe.config.yaml`, environments, saved logins, test, flow and target files                                                                                                    |
+| `stepfile`  | Parses YAML with source positions, validates, normalises shorthand to the long form, resolves references                                                                            |
+| `schema`    | Zod schemas for step files and config; maps validation issues to file, line and column                                                                                              |
+| `actions`   | `ActionSpec` of every built-in ([ADR 0021](adr/0021-action-spec.md)), `defineAction`, registry, built-in `run`s, loading and name-checking user actions                             |
+| `locators`  | `ctx.locate`: tries a target's candidates in order and records which one matched                                                                                                    |
+| `context`   | Builds `ctx` per test: pages, request, vars, env, secrets, log, locate, signal; interpolation                                                                                       |
+| `secrets`   | Loads declared secrets, keeps the registry of values to mask, masks text and artifacts                                                                                              |
+| `runner`    | Runs tests: data rows, before → steps → after, flow calls, timeouts, cancellation, `opens`, events                                                                                  |
+| `recorder`  | Records what a person does in a browser as a test file, checking every candidate with the runner's rule ([recording.md](recording.md), [ADR 0022](adr/0022-how-recording-works.md)) |
+| `pagestate` | Internal `PageStateRecorder` interface: screenshot and snapshot per step, open a snapshot on request                                                                                |
+| `results`   | Writes the run folder (`run.json`, `events.ndjson`, per-step artifacts)                                                                                                             |
+| `browser`   | Launches the configured browser, fresh context per test, applies saved logins                                                                                                       |
+| `errors`    | Typed error classes with a stable `code`, a tester-readable message, the location and a hint                                                                                        |
 
 The engine has no knowledge of any UI. Everything a client needs to show is in
 protocol events; everything a client can ask for is a protocol request.
