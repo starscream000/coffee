@@ -26,6 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A step list beside the text of test and flow files (instruction D0003,
+  tasks 14 and 16): the sections and their steps with action, main value,
+  name and problem marks; selecting a step shows its line; add a step from
+  the engine's actions (with search), remove, duplicate, move up and down,
+  and move to another section. The step list and the text editor show the
+  same text at once, the editor's undo covers both, and a file the list
+  cannot read says why and shows the text only.
+
 - Reading test and flow files as sections of steps, and changing them on
   the text (instruction D0003, task 14, first part): each step's lines and
   form (bare, shorthand, long), and adding, removing, duplicating and moving

@@ -1,0 +1,114 @@
+<!-- The step list of a test or flow file: its sections and steps, the buttons that change them, and the action picker for adding a step. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:steps="using:Desktop.App.ViewModels.Steps"
+             x:Class="Desktop.App.Views.StepListView"
+             x:DataType="steps:StepListViewModel">
+  <UserControl.Styles>
+    <Style Selector="Button.stepRow">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Padding" Value="6,3" />
+    </Style>
+    <Style Selector="Button.stepRow.selected">
+      <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}" />
+    </Style>
+    <Style Selector="Button.tool">
+      <Setter Property="Padding" Value="8,2" />
+      <Setter Property="Margin" Value="0,0,4,4" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <!-- Text only, with the reason -->
+    <TextBlock x:Name="StepListProblem" DockPanel.Dock="Top" Margin="10" Text="{Binding Problem}" TextWrapping="Wrap"
+               IsVisible="{Binding !IsAvailable}" />
+
+    <!-- Tools -->
+    <StackPanel DockPanel.Dock="Top" Margin="8,6,8,0" IsVisible="{Binding IsAvailable}">
+      <WrapPanel>
+        <Button x:Name="AddStepButton" Classes="tool accent" Content="Add step" Command="{Binding StartAddingCommand}"
+                ToolTip.Tip="Add a step after the selected one, or at the end of the steps." />
+        <Button Classes="tool" Content="Duplicate" Command="{Binding DuplicateCommand}" />
+        <Button Classes="tool" Content="Up" Command="{Binding MoveUpCommand}" />
+        <Button Classes="tool" Content="Down" Command="{Binding MoveDownCommand}" />
+        <Button Classes="tool" Content="Remove" Command="{Binding RemoveCommand}" />
+      </WrapPanel>
+      <ItemsControl ItemsSource="{Binding MoveTargets}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Button Classes="tool" Content="{Binding StringFormat='Move to {0}'}"
+                    Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).MoveToSectionCommand}" CommandParameter="{Binding}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+
+    <!-- Action picker -->
+    <Border DockPanel.Dock="Top" Margin="8,0,8,6" Padding="8" BorderThickness="1" CornerRadius="4"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" IsVisible="{Binding IsPicking}">
+      <DockPanel>
+        <DockPanel DockPanel.Dock="Top">
+          <Button DockPanel.Dock="Right" Content="Cancel" Command="{Binding CancelAddingCommand}" Margin="6,0,0,0" />
+          <TextBox x:Name="PickerSearch" Text="{Binding PickerSearch}" PlaceholderText="Search actions" />
+        </DockPanel>
+        <ScrollViewer MaxHeight="260" Margin="0,6,0,0">
+          <ItemsControl x:Name="PickerList" ItemsSource="{Binding PickerItems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="steps:StepActionChoice">
+                <Button Classes="stepRow" Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).AddCommand}" CommandParameter="{Binding}">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Name}" Classes="code" />
+                    <TextBlock Text="{Binding Description}" Classes="muted small" TextWrapping="Wrap" />
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+
+    <!-- Sections and steps -->
+    <ScrollViewer IsVisible="{Binding IsAvailable}">
+      <ItemsControl x:Name="StepSections" ItemsSource="{Binding Sections}" Margin="6,0,6,6">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="steps:StepSectionViewModel">
+            <StackPanel Margin="0,4">
+              <TextBlock Text="{Binding Name}" Classes="heading muted" Margin="4,4" />
+              <TextBlock Text="No steps" Classes="muted small" Margin="8,0" IsVisible="{Binding IsEmpty}" />
+              <ItemsControl ItemsSource="{Binding Steps}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="steps:StepItemViewModel">
+                    <Button Classes="stepRow" Classes.selected="{Binding IsSelected}" ToolTip.Tip="{Binding LinesText}"
+                            Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).SelectCommand}" CommandParameter="{Binding}">
+                      <DockPanel>
+                        <Ellipse DockPanel.Dock="Right" Width="8" Height="8" Margin="6,0,0,0" VerticalAlignment="Center"
+                                 Fill="{StaticResource ErrorBrush}" IsVisible="{Binding HasError}" ToolTip.Tip="This step has errors" />
+                        <Ellipse DockPanel.Dock="Right" Width="8" Height="8" Margin="6,0,0,0" VerticalAlignment="Center"
+                                 Fill="{StaticResource WarningBrush}" IsVisible="{Binding HasWarningOnly}" ToolTip.Tip="This step has warnings" />
+                        <StackPanel>
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" IsVisible="{Binding HasName}" TextTrimming="CharacterEllipsis" />
+                          <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="{Binding Action}" Classes="code" Margin="0,0,8,0" />
+                            <TextBlock Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                          </DockPanel>
+                        </StackPanel>
+                      </DockPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

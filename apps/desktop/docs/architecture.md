@@ -125,6 +125,33 @@ types are written by hand and how they are kept honest:
 - **Settings**: Node path, engine path and recent projects, stored as JSON in
   the user's application data folder under the product's display name.
 
+## The step list
+
+- A test or flow file's tab shows a **step list** beside the text editor: the
+  file's sections (`before`, `steps`, `after` for a test; `steps` for a flow)
+  with their steps, each with its action, main value (the shorthand value or
+  the parameters in short), its `name`, and a mark when the engine reported
+  a problem on its lines. Selecting a step shows its line in the text editor.
+- The app reads the YAML itself, with YamlDotNet's parser
+  ([ADR D0007](adr/0007-yamldotnet-for-the-step-list.md)): `StepFiles/YamlTree`
+  gives every node's position, `StepFiles/StepOutline` finds each step's lines
+  and its form (bare, shorthand or long, as in the step format).
+- **One text, two views.** The step list is read again from the document on
+  every change, so typing in the text editor changes it at once. A change made
+  in the step list (add, remove, duplicate, move up or down, move to another
+  section) is computed on the text by `StepFiles/StepEdits`, which touches only
+  the lines of the steps concerned, and applied to the document as one
+  replacement of the part that differs: the text editor shows it at once and
+  its undo takes it back in one step. Comments and layout elsewhere stay as
+  they were.
+- **Adding a step**: an action picked from the engine's `listActions` (with a
+  search) is inserted after the selected step, or at the end of the steps. It
+  is written as the action alone when it needs nothing, with its shorthand and
+  an empty value when it has one, else in the long form with its required
+  parameters empty; the engine then reports what is still missing.
+- A file the step list cannot read (invalid YAML, anchors, sections written
+  as `[ … ]`, …) shows a line saying why, and the text editor alone.
+
 ## Runs
 
 - **Starting**: Run all, Run selected (a test, or every test shown in a
