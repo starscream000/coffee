@@ -68,6 +68,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Verify (ADR 0022, R6): a recorded file runs with the normal runner and
+  each step is reported; a failed step comes with its error and every
+  candidate's match count. `pnpm record` tries the recorder from a terminal
+  (a temporary developer command, documented in `CONTRIBUTING.md`).
+- Recorder integration tests that drive the browser with real mouse and key
+  input on the demo app, including a login whose password is searched for in
+  the file, the events, the output and the run folder. Demo page `/details`
+  and a "Delivery" radio group on `/form` for them.
+
 - A recording session (`packages/engine/src/recorder/`, ADR 0022): a
   recording session opens a visible Chromium with a run's context settings
   (and an optional saved login), starts with the `goto`, and maps clicks,

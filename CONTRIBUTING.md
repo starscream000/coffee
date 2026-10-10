@@ -21,12 +21,43 @@ summarises the day-to-day workflow.
 | `pnpm verify`           | Everything above; must pass before any merge                                                    |
 | `pnpm test:integration` | Build, then run the browser tests (`*.integration.test.ts`); needs Chromium, see below          |
 | `pnpm generate:schemas` | Regenerate the protocol's JSON Schema files after changing a protocol schema; commit the result |
+| `pnpm record`           | Try the recorder from a terminal (temporary; see [Trying the recorder](#trying-the-recorder))   |
 
 `pnpm verify` needs no browser. The browser tests need Playwright's headless
 Chromium, installed once with
 `pnpm --filter @cfe/engine exec playwright install --only-shell chromium`
 (on Linux, also `... playwright install-deps chromium-headless-shell`). CI runs
 them in the `integration` job.
+
+## Trying the recorder
+
+`pnpm record` is a temporary developer command; the desktop app's Record
+screen replaces it. It opens a **visible** Chromium, so it needs the full
+browser once: `pnpm --filter @cfe/engine exec playwright install chromium`.
+To record on the demo app, start the demo server in one terminal:
+
+```
+node examples/demo-app/server/server.ts
+```
+
+and record in another:
+
+```
+pnpm record --project examples/demo-app --url /todos --file tests/recorded/add-todo.test.yaml
+```
+
+`--url` takes a path relative to the environment's base URL (`/todos`) or a
+full URL. Git Bash on Windows turns a value starting with `/` into a Windows
+path, so give the full URL there (`--url http://localhost:4310/todos`); the
+file still gets `goto: /todos`.
+
+Use the page in the browser that opens. Each recorded step (`+`), changed step
+(`~`) and notice (`!`) is printed as it happens. Close the browser to stop: the
+command then plays the recording back with the normal runner ("verify") and
+prints each step's result. Options: `--env <name>`, and `--login <name>` to
+start signed in with a saved login. The file must not exist yet; delete
+`examples/demo-app/tests/recorded/` afterwards, it is not part of the demo
+project. How recording works: [docs/recording.md](docs/recording.md).
 
 ## Branches and commits
 

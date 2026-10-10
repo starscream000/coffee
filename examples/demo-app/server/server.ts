@@ -14,6 +14,7 @@ import type { AddressInfo } from 'node:net';
 import {
   accountPage,
   checkoutFramePage,
+  detailsPage,
   fallbackPage,
   formPage,
   framesPage,
@@ -90,6 +91,7 @@ const PAGES: Readonly<Record<string, string>> = {
   '/orders': ordersPage,
   '/notes': notesPage,
   '/token': tokenPage,
+  '/details': detailsPage,
 };
 
 /** The orders `GET /api/orders` answers with (S4). */

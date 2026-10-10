@@ -7,7 +7,7 @@
 // of any user interface: it tells a listener about recorded steps, changed
 // steps and notices.
 
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { PRODUCT } from '@cfe/protocol';
 import type { Browser, BrowserContext, Frame, Page } from 'playwright';
@@ -389,6 +389,8 @@ export class RecordingSession {
       return session;
     } catch (error) {
       await browser.close().catch(() => undefined);
+      // A session that did not start leaves no file behind.
+      rmSync(join(project.root, options.file), { force: true });
       throw error;
     }
   }
