@@ -43,6 +43,7 @@ export function pageScript(options: PageScriptOptions): string {
 
   const TEXT_TYPES = new Set(['', 'text', 'email', 'password', 'search', 'tel', 'url', 'number', 'date', 'time', 'datetime-local', 'month', 'week']);
   const ACTIVE = 'a[href], button, summary, [role=button], [role=link], [role=menuitem], [role=menuitemcheckbox], [role=menuitemradio], [role=tab], [role=option], [role=treeitem], [role=switch], input[type=submit], input[type=button], input[type=reset], input[type=image]';
+  const CONTAINERS = 'li, tr, [role=listitem], [role=row], form, dialog, [role=dialog], [role=alertdialog], section, [role=region], fieldset, article';
   const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock', 'NumLock', 'ScrollLock', 'Fn', 'OS']);
   let counter = 0;
   let enterAt = -Infinity;
@@ -92,9 +93,33 @@ export function pageScript(options: PageScriptOptions): string {
   const isFile = (element) => element instanceof HTMLInputElement && element.type === 'file';
   const isField = (element) => isTextField(element) || isToggle(element) || isSelect(element) || isFile(element);
   const describe = (element) => norm(element.getAttribute('aria-label') || element.innerText || element.value || element.localName).slice(0, 60);
+  // The first piece of text in a container that is not inside the element, such as a row's first cell.
+  const labelOf = (container, element) => {
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (element.contains(node)) continue;
+      const parent = node.parentElement;
+      if (parent && (parent.closest('script, style') || !parent.checkVisibility())) continue;
+      const text = norm(node.textContent);
+      if (text) return text.slice(0, 80);
+    }
+    return undefined;
+  };
+  const containerOf = (element) => {
+    const container = element.parentElement && element.parentElement.closest(CONTAINERS);
+    if (!container) return undefined;
+    return {
+      mark: markOf(container),
+      tag: container.localName,
+      label: labelOf(container, element),
+      text: norm(container.innerText).slice(0, 200) || undefined,
+      testId: container.getAttribute(TEST_ID) || undefined,
+    };
+  };
   const factsOf = (element) => {
     const attr = (name) => element.getAttribute(name) || undefined;
     return {
+      container: containerOf(element),
       tag: element.localName,
       type: attr('type'),
       id: element.id || undefined,
@@ -144,6 +169,10 @@ export function pageScript(options: PageScriptOptions): string {
     if (event.detail === 0 && performance.now() - enterAt < 1000) return;
     element = origin.closest(ACTIVE) || origin;
     if (element.isContentEditable) return;
+    if (element === document.documentElement || element === document.body) {
+      notice('background', 'A click on the page background (on no element) is not recorded.');
+      return;
+    }
     event.preventDefault();
     event.stopImmediatePropagation();
     flushActive();
