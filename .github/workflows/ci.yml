@@ -88,8 +88,11 @@ jobs:
     env:
       ContinuousIntegrationBuild: true
       DOTNET_NOLOGO: true
-      # Real-engine tests fail instead of skipping when the engine is missing.
+      # Real-engine tests fail instead of skipping when the engine is missing,
+      # and real-browser tests when the engine reports no browser.
       DESKTOP_TESTS_REQUIRE_ENGINE: 1
+      DESKTOP_TESTS_REQUIRE_BROWSER: 1
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.playwright-browsers
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -104,6 +107,24 @@ jobs:
           cache-dependency-path: apps/desktop/**/packages.lock.json
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      # The browser for the desktop tests that run real tests through the
+      # engine; the same cache as the integration job.
+      - name: Read the Playwright version
+        id: playwright
+        shell: bash
+        run: echo "version=$(node -p "require('./packages/engine/package.json').dependencies.playwright")" >> "$GITHUB_OUTPUT"
+      - name: Cache the browser
+        id: browser-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @cfe/engine exec playwright install --only-shell chromium
+      - name: Install Chromium's system libraries
+        if: runner.os == 'Linux'
+        run: pnpm --filter @cfe/engine exec playwright install-deps chromium-headless-shell
       - run: dotnet restore apps/desktop/Desktop.slnx --locked-mode
       - run: dotnet format apps/desktop/Desktop.slnx --verify-no-changes --no-restore
       - run: dotnet build apps/desktop/Desktop.slnx --no-restore -c Release
