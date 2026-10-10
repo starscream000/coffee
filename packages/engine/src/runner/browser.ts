@@ -71,10 +71,11 @@ export function availableBrowsers(): string[] {
  * Starts the browser for one run.
  *
  * @param headed - Show the browser window (`options.headed`).
+ * @param args - Extra command-line arguments for the browser.
  * @returns The running browser.
  * @throws Error from Playwright when the browser cannot start, for example a
  *   headed run with only the headless shell installed.
  */
-export function launchBrowser(headed: boolean): Promise<Browser> {
-  return chromium.launch({ headless: !headed });
+export function launchBrowser(headed: boolean, args: readonly string[] = []): Promise<Browser> {
+  return chromium.launch({ headless: !headed, args: [...args] });
 }

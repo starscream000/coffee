@@ -96,6 +96,8 @@ export interface RecordingOptions {
   readonly name?: string | undefined;
   /** Run the browser without a window (for tests); default false. */
   readonly headless?: boolean | undefined;
+  /** Open the browser's remote debugging port (for tests that drive it from another process). */
+  readonly debugPort?: number | undefined;
 }
 
 /** How a session ended. */
@@ -355,7 +357,12 @@ export class RecordingSession {
       config.secrets ?? [],
       testIdAttribute,
     );
-    const browser = await launchBrowser(options.headless !== true);
+    const browser = await launchBrowser(
+      options.headless !== true,
+      options.debugPort === undefined
+        ? []
+        : [`--remote-debugging-port=${String(options.debugPort)}`],
+    );
     session.browser = browser;
     try {
       const storageState =

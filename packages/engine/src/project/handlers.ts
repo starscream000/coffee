@@ -1,13 +1,15 @@
 // Registers the project requests on a session: `openProject` opens (or
 // replaces) the one project of this engine process, `validate` checks files in
-// it, `listTests` and `listActions` describe tests and actions, and `startRun` runs tests
-// (docs/protocol.md, "Requests").
+// it, `listTests` and `listActions` describe tests and actions, `startRun` runs tests,
+// and `startRecording`, `stopRecording` and `verifyRecording` record them
+// (docs/protocol.md, "Requests"). A run and a recording never overlap.
 
 import type { ActionSummary } from '@cfe/protocol';
 import { z } from 'zod';
 import type { SecretRegistry } from '../context/mask.js';
 import { ActionRegistry, type BuiltinAction, type RegisteredAction } from '../actions/registry.js';
 import { RpcError } from '../rpc/rpc-error.js';
+import type { RecordingManager } from '../recorder/manager.js';
 import type { RunManager } from '../runner/run.js';
 import type { Session } from '../rpc/session.js';
 import { Project } from './project.js';
@@ -46,6 +48,7 @@ export function summariseAction(action: RegisteredAction): ActionSummary {
  * @param builtins - The built-in action specs.
  * @param secrets - The engine-wide secret registry the message writer masks with.
  * @param runs - Starts runs; with it, `startRun` is handled too.
+ * @param recordings - Starts recordings; with it, the recording requests are handled too.
  *
  * @example
  * ```ts
@@ -57,10 +60,20 @@ export function registerProjectHandlers(
   builtins: readonly BuiltinAction[],
   secrets: SecretRegistry,
   runs?: RunManager,
+  recordings?: RecordingManager,
 ): void {
   let project: Project | undefined;
+  const refuseWhileRecording = (what: string): void => {
+    if (recordings?.recording === true) {
+      throw new RpcError(
+        'RecordingInProgress',
+        `A recording is in progress; ${what} once it has been stopped.`,
+      );
+    }
+  };
 
   session.register('openProject', async (params) => {
+    refuseWhileRecording('open another project');
     if (runs?.running === true) {
       throw new RpcError(
         'RunInProgress',
@@ -87,6 +100,7 @@ export function registerProjectHandlers(
 
   if (runs !== undefined) {
     session.register('startRun', (params) => {
+      refuseWhileRecording('start a run');
       if (project === undefined) {
         return Promise.reject(
           new RpcError(
@@ -101,6 +115,22 @@ export function registerProjectHandlers(
       runs.cancel(params.runId);
       return Promise.resolve(null);
     });
+  }
+
+  if (recordings !== undefined) {
+    session.register('startRecording', (params) => {
+      if (project === undefined) {
+        return Promise.reject(
+          new RpcError(
+            'ProjectNotOpen',
+            'Open a project with "openProject" before starting a recording.',
+          ),
+        );
+      }
+      return recordings.start(project, params);
+    });
+    session.register('stopRecording', (params) => recordings.stop(params.recordingId));
+    session.register('verifyRecording', (params) => recordings.verify(params.recordingId));
   }
 
   session.register('listTests', (params) => {

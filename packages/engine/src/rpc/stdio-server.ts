@@ -10,6 +10,7 @@ import { BUILTIN_ACTIONS } from '../actions/builtins/index.js';
 import { SecretRegistry } from '../context/mask.js';
 import { getEngineInfo } from '../engine-info.js';
 import { registerProjectHandlers } from '../project/handlers.js';
+import { RecordingManager } from '../recorder/manager.js';
 import { RunManager } from '../runner/run.js';
 import { availableBrowsers } from '../runner/browser.js';
 import { redirectConsoleToStderr } from './console.js';
@@ -76,6 +77,15 @@ export function runStdioServer(): StdioServer {
     },
     { engineVersion: engineInfo.version, protocolVersion: engineInfo.protocolVersion },
   );
+  const recordings = new RecordingManager(
+    {
+      render: (method, params): string => session.renderNotification(method, params),
+      send: (line): void => {
+        session.sendLine(line);
+      },
+    },
+    runs,
+  );
   const session: Session = new Session(writer, {
     engineInfo,
     browsers: availableBrowsers(),
@@ -83,9 +93,11 @@ export function runStdioServer(): StdioServer {
       process.exit(code);
     },
     logError,
-    beforeShutdown: () => runs.stop(),
+    beforeShutdown: async () => {
+      await Promise.all([runs.stop(), recordings.stopAll()]);
+    },
   });
-  registerProjectHandlers(session, BUILTIN_ACTIONS, secrets, runs);
+  registerProjectHandlers(session, BUILTIN_ACTIONS, secrets, runs, recordings);
 
   const reader = new LineReader();
   process.stdin.on('data', (chunk: Buffer) => {
@@ -97,10 +109,10 @@ export function runStdioServer(): StdioServer {
     for (const item of reader.end()) {
       void session.receive(item);
     }
-    // Answer every request already received, cancel any run, then exit.
+    // Answer every request already received, cancel any run, stop any recording, then exit.
     void session
       .idle()
-      .then(() => runs.stop())
+      .then(() => Promise.all([runs.stop(), recordings.stopAll()]))
       .finally(() => {
         process.exit(EXIT_OK);
       });
