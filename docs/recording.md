@@ -222,14 +222,14 @@ events, followed by `recordingVerified`.
 
 ### Events
 
-| Event               | Params                                                                                                                                                             |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `recordingStarted`  | `recordingId`, `file`, `startUrl`                                                                                                                                  |
-| `stepRecorded`      | `recordingId`, `index`, `step` (as written, canonical long form), `targets` (new targets), `review?`                                                               |
-| `stepChanged`       | `recordingId`, `index`, `step`, `review?`: a `fill` whose text changed, or a step that got `opens`                                                                 |
-| `recordingNotice`   | `recordingId`, `kind` (`drag`, `fileChooser`, `contextMenu`, `doubleClick`, `shortcut`, `key`, `history`, `contentEditable`, `unmapped`), `message`, `page`, `url` |
-| `recordingStopped`  | `recordingId`, `file`, `reason` (`stopped`, `browserClosed`), `steps`                                                                                              |
-| `recordingVerified` | `recordingId`, `runId`, `status` (`passed`, `failed`)                                                                                                              |
+| Event               | Params                                                                                                                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `recordingStarted`  | `recordingId`, `file`, `startUrl`                                                                                                                                                 |
+| `stepRecorded`      | `recordingId`, `index`, `step` (as written, canonical long form), `targets` (new targets), `review?`                                                                              |
+| `stepChanged`       | `recordingId`, `index`, `step`, `review?`: a `fill` whose text changed, or a step that got `opens`                                                                                |
+| `recordingNotice`   | `recordingId`, `kind` (`drag`, `fileChooser`, `contextMenu`, `doubleClick`, `shortcut`, `key`, `history`, `contentEditable`, `unmapped`, `writeFailed`), `message`, `page`, `url` |
+| `recordingStopped`  | `recordingId`, `file`, `reason` (`stopped`, `browserClosed`), `steps`                                                                                                             |
+| `recordingVerified` | `recordingId`, `runId`, `status` (`passed`, `failed`)                                                                                                                             |
 
 Every message is masked like every other message of the engine; a recorded
 `fill` never carries a typed password in the first place.

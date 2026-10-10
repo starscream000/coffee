@@ -68,6 +68,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A recording session (`packages/engine/src/recorder/`, ADR 0022): a
+  recording session opens a visible Chromium with a run's context settings
+  (and an optional saved login), starts with the `goto`, and maps clicks,
+  typing (one `fill` per field), Enter/Tab/Escape, selects, checkboxes and
+  radios to steps, in every frame and in tabs a step opens (`opens`, `page`).
+  Each target's candidates are checked with the runner's own rule at the
+  moment of the interaction (clicks are held until then); CSS-only targets
+  and unmatched passwords are marked for review; typed values equal to a
+  declared secret become `${secrets.NAME}`. The file is validated and written
+  after every change. Interactions that are not recorded yet give notices.
+
 - The recorder's building blocks (`packages/engine/src/recorder/`, ADR 0022):
   candidates proposed in the order of R5 and checked with the locator
   `ctx.locate` builds, readable target names, and the recorded test file
