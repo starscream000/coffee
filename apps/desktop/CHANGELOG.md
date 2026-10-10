@@ -26,6 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Reading test and flow files as sections of steps, and changing them on
+  the text (instruction D0003, task 14, first part): each step's lines and
+  form (bare, shorthand, long), and adding, removing, duplicating and moving
+  steps so that only the lines of the steps concerned change, comments and
+  Windows line breaks included. A file that cannot be read as steps says why.
+  Reads YAML with YamlDotNet 18.1.0 (ADR D0007, proposed). The step list that
+  uses it follows in the next branch.
+
 - Run history (instruction D0003, tasks 12 and 13): the bottom panel lists
   the project's earlier runs, newest first, with start time, environment,
   result and totals, read only from each run's `events.ndjson`; opening one
