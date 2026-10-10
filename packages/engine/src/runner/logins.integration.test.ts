@@ -38,6 +38,12 @@ function stateFiles(app: DemoApp): string[] {
     .sort();
 }
 
+/** Matches a value only where no letter or digit touches it. */
+function wholeWord(value: string): RegExp {
+  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?<![0-9A-Za-z])${escaped}(?![0-9A-Za-z])`);
+}
+
 function status(collected: CollectedRun): unknown {
   return eventsOf(collected.events, 'runFinished')[0]?.status;
 }
@@ -84,7 +90,9 @@ describe('saved logins', () => {
     for (const name of names) {
       const text = readFileSync(join(loginsDir(app), name), 'utf8');
       for (const value of ['alice', 'ada', PASSWORD]) {
-        expect(text, `${name} holds "${value}"`).not.toContain(value);
+        // As a whole word: "ada" is also three hex digits, which random hex
+        // (the key, hashes, session ids) holds now and then (review 0008, finding 1).
+        expect(text, `${name} holds "${value}"`).not.toMatch(wholeWord(value));
       }
     }
   });
