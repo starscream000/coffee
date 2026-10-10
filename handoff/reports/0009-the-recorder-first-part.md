@@ -140,6 +140,11 @@ Enter is no problem.
 - **Generated ids** (`#ember123`, `#radix-:r1:`) become CSS candidates that
   break on the next load. They are the last candidate, but a CSS-only target
   with one is fragile.
+- **Keyboard use of a native `<select>` differs by system.** On macOS, arrow
+  keys open its popup instead of changing it, and Enter submits the form;
+  the recorder then records the browser's click on the submit button, not a
+  `select`. The first macOS run of #52 showed this; the test now chooses the
+  option by typing, which works the same everywhere.
 - **Text that changes while typing.** A field whose accessible name changes
   as one types (a floating label) is checked at focus time and may keep the
   old name.

@@ -171,9 +171,11 @@ describe('recording on the demo app', () => {
   it('the form page: a select, a checkbox, a radio and the submit button', async () => {
     const recorded = await record('/form');
     const page = pageOf(recorded, 0);
-    await clickAt(page, page.getByLabel('Country'));
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('Enter');
+    // The label focuses the select without opening its popup; typing chooses
+    // an option the same way on every system (arrow keys open the popup on macOS).
+    await clickAt(page, page.locator('label[for="country"]'));
+    await page.keyboard.type('Germany');
+    await expect.poll(() => recorded.session.recorded.length).toBe(2);
     await clickAt(page, page.getByLabel('Subscribe to the newsletter'));
     await clickAt(page, page.getByLabel('Express'));
     await clickAt(page, page.getByRole('button', { name: 'Send order' }));
