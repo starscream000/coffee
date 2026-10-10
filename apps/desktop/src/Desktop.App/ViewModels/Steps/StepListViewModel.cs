@@ -323,29 +323,13 @@ public sealed partial class StepListViewModel : ObservableObject
     /// </summary>
     private void Apply(string text, string section, int index)
     {
-        var old = _document.Text;
-        if (text == old)
-        {
-            return;
-        }
-
-        var prefix = 0;
-        var max = Math.Min(old.Length, text.Length);
-        while (prefix < max && old[prefix] == text[prefix])
-        {
-            prefix++;
-        }
-
-        var suffix = 0;
-        while (suffix < max - prefix && old[old.Length - 1 - suffix] == text[text.Length - 1 - suffix])
-        {
-            suffix++;
-        }
-
         _editing = true;
         try
         {
-            _document.Replace(prefix, old.Length - prefix - suffix, text.Substring(prefix, text.Length - prefix - suffix));
+            if (!DocumentText.Replace(_document, text))
+            {
+                return;
+            }
         }
         finally
         {

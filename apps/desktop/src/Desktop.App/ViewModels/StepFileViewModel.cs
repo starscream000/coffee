@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using Desktop.App.Services;
 using Desktop.App.StepFiles;
 using Desktop.App.ViewModels.Steps;
+using Desktop.App.ViewModels.Targets;
 using Desktop.Protocol.Messages;
 
 namespace Desktop.App.ViewModels;
@@ -85,6 +86,12 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
             Steps.StepSelected += (_, line) => Reveal(line);
             DiagnosticsChanged += (_, _) => Steps.RefreshMarks();
         }
+
+        if (TargetsOutline.CanHaveTargets(file))
+        {
+            Targets = new TargetsEditorViewModel(Document, services.SharedTargets ?? (() => []));
+            IsTargetsShown = Steps is null;
+        }
     }
 
     /// <summary>The step list of a test or flow file; null for other files.</summary>
@@ -92,6 +99,50 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
 
     /// <summary>True for a test or flow file, which has a step list.</summary>
     public bool HasSteps => Steps is not null;
+
+    /// <summary>The targets editor of a test, flow or targets file; null for other files.</summary>
+    public TargetsEditorViewModel? Targets { get; }
+
+    /// <summary>True for a file with a targets editor.</summary>
+    public bool HasTargets => Targets is not null;
+
+    /// <summary>True for a test file, which can be run on its own.</summary>
+    public bool IsTest => NewFiles.KindOf(File) == NewFileKind.Test;
+
+    /// <summary>True when the side panel (step list or targets editor) is shown.</summary>
+    public bool HasSidePanel => HasSteps || HasTargets;
+
+    /// <summary>True when the side panel shows the targets editor rather than the step list.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SidePanelIndex))]
+    private bool _isTargetsShown;
+
+    /// <summary>The side panel's tab: 0 for the step list, 1 for the targets editor.</summary>
+    public int SidePanelIndex
+    {
+        get => IsTargetsShown ? 1 : 0;
+        set => IsTargetsShown = value == 1 || !HasSteps;
+    }
+
+    /// <summary>Shows a target in the targets editor, with a failure's match counts beside its candidates.</summary>
+    /// <param name="name">The target's name.</param>
+    /// <param name="counts">The failure's candidates and counts, or null.</param>
+    /// <returns>False when the file does not declare the target.</returns>
+    public bool ShowTarget(string name, IReadOnlyList<CandidateMatches>? counts)
+    {
+        if (Targets?.Select(name, counts) != true)
+        {
+            return false;
+        }
+
+        IsTargetsShown = true;
+        if (Targets.Outline.Targets.FirstOrDefault(t => t.Name == name) is { } target)
+        {
+            Reveal(target.Line);
+        }
+
+        return true;
+    }
 
     /// <summary>
     /// Raised with the problems of the text being edited, or with null when the
