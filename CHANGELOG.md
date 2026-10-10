@@ -71,6 +71,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The recorder scopes a target `within` its nearest list item, table row,
+  form, dialog, section, fieldset or article when nothing but CSS identifies
+  the element, so a repeated button is recorded as "Delete within the row
+  Office chair" instead of by position (review 0009, finding 1). A click on
+  the page background gives a clear `background` notice, and `pnpm record`
+  names an argument it does not know.
+
 - Verify (ADR 0022, R6): a recorded file runs with the normal runner and
   each step is reported; a failed step comes with its error and every
   candidate's match count. `pnpm record` tries the recorder from a terminal
