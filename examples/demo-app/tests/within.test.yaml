@@ -1,0 +1,23 @@
+# S16: with 3 data rows, the Delete button in the row named ${row.product},
+# found through within and interpolation.
+version: 1
+name: Delete ${row.product}
+targets:
+  productRow:
+    - role: row
+      name: '${row.product}'
+      exact: false
+  deleteProduct:
+    within: productRow
+    candidates:
+      - role: button
+        name: Delete
+steps:
+  - goto: /products
+  - click: deleteProduct
+  - expect.text: { target: products.count, equals: 2 }
+  - expect.visible: { target: productRow, visible: false }
+data:
+  - { product: Desk lamp }
+  - { product: Office chair }
+  - { product: Notebook }
