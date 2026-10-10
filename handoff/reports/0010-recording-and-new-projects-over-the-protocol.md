@@ -29,7 +29,7 @@ makes those tests pass.
 
 | Branch                      | Based on                  | Last commit | Pull request | Pushed | Changed lines (against its base)                     |
 | --------------------------- | ------------------------- | ----------- | ------------ | ------ | ---------------------------------------------------- |
-| `chore/one-implementer`     | `main`                    | `3b097e4`   | #53          | yes    | +36 / −15                                            |
+| `chore/one-implementer`     | `main`                    | `3b097e4`   | #53          | yes    | +47 / −13                                            |
 | `feat/recorder-scoping`     | `chore/one-implementer`   | `e852505`   | #54          | yes    | +423 / −44                                           |
 | `feat/protocol-recording`   | `feat/recorder-scoping`   | `66297ca`   | #55          | yes    | about +1,050 / −80, plus 56 regenerated schema files |
 | `feat/protocol-new-project` | `feat/protocol-recording` | this report | #56          | yes    | +558 / −42 before this report, plus 58 schema files  |
