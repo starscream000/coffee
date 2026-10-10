@@ -130,7 +130,8 @@ describe('I3: message size', () => {
       'steps:',
       `  - goto: '${page}'`,
       "  - expect.text: { target: [{ css: '#big' }], equals: small }",
-      '    timeout: 3s',
+      // Reading 10 MB of text takes seconds on a slow CI machine (seen on macOS).
+      '    timeout: 10s',
     ]);
     const collected = await run({ files: [file] });
     const failed = eventsOf(collected.events, 'stepFailed')[0];
