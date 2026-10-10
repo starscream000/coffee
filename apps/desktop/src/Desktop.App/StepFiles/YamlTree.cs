@@ -141,39 +141,39 @@ public static class YamlTree
                 parser.MoveNext();
                 return new YamlScalar(Offset(scalar.Start), Offset(scalar.End), Line(scalar.Start), scalar.Value, scalar.Style == ScalarStyle.Plain);
             case SequenceStart start:
-            {
-                parser.MoveNext();
-                var items = new List<YamlNode>();
-                while (!parser.Accept<SequenceEnd>(out _))
                 {
-                    items.Add(ReadNode(parser, text));
-                }
-
-                var end = parser.Consume<SequenceEnd>();
-                var isFlow = start.Style == SequenceStyle.Flow;
-                return new YamlSequence(Offset(start.Start), isFlow ? FlowEnd(text, end, ']') : BlockEnd(items, start), Line(start.Start), isFlow, items);
-            }
-
-            case MappingStart start:
-            {
-                parser.MoveNext();
-                var entries = new List<KeyValuePair<YamlScalar, YamlNode>>();
-                while (!parser.Accept<MappingEnd>(out _))
-                {
-                    if (parser.Current is not Scalar)
+                    parser.MoveNext();
+                    var items = new List<YamlNode>();
+                    while (!parser.Accept<SequenceEnd>(out _))
                     {
-                        throw new YamlTreeException("The file uses a complex mapping key, which the step list cannot show.", Line(parser.Current!.Start));
+                        items.Add(ReadNode(parser, text));
                     }
 
-                    var key = (YamlScalar)ReadNode(parser, text);
-                    entries.Add(new(key, ReadNode(parser, text)));
+                    var end = parser.Consume<SequenceEnd>();
+                    var isFlow = start.Style == SequenceStyle.Flow;
+                    return new YamlSequence(Offset(start.Start), isFlow ? FlowEnd(text, end, ']') : BlockEnd(items, start), Line(start.Start), isFlow, items);
                 }
 
-                var end = parser.Consume<MappingEnd>();
-                var isFlow = start.Style == MappingStyle.Flow;
-                var ends = entries.Count == 0 ? [] : new List<YamlNode> { entries[^1].Value.End >= entries[^1].Key.End ? entries[^1].Value : entries[^1].Key };
-                return new YamlMapping(Offset(start.Start), isFlow ? FlowEnd(text, end, '}') : BlockEnd(ends, start), Line(start.Start), isFlow, entries);
-            }
+            case MappingStart start:
+                {
+                    parser.MoveNext();
+                    var entries = new List<KeyValuePair<YamlScalar, YamlNode>>();
+                    while (!parser.Accept<MappingEnd>(out _))
+                    {
+                        if (parser.Current is not Scalar)
+                        {
+                            throw new YamlTreeException("The file uses a complex mapping key, which the step list cannot show.", Line(parser.Current!.Start));
+                        }
+
+                        var key = (YamlScalar)ReadNode(parser, text);
+                        entries.Add(new(key, ReadNode(parser, text)));
+                    }
+
+                    var end = parser.Consume<MappingEnd>();
+                    var isFlow = start.Style == MappingStyle.Flow;
+                    var ends = entries.Count == 0 ? [] : new List<YamlNode> { entries[^1].Value.End >= entries[^1].Key.End ? entries[^1].Value : entries[^1].Key };
+                    return new YamlMapping(Offset(start.Start), isFlow ? FlowEnd(text, end, '}') : BlockEnd(ends, start), Line(start.Start), isFlow, entries);
+                }
 
             default:
                 throw new YamlTreeException($"Unexpected YAML ({current.GetType().Name}).", Line(current.Start));
