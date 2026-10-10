@@ -55,7 +55,7 @@ export default [
 `;
 
 const TESTS: Record<string, string> = {
-  'not-implemented': '  - goto: /todos\n  - hover: todos.add\n',
+  'not-implemented': '  - goto: /todos\n  - reload\n',
   'plain-error': '  - test.throwPlain\n',
   'page-closed': '  - goto: /todos\n  - test.closePage\n',
   'invalid-selector':
@@ -98,7 +98,7 @@ describe('step errors a tester can read', () => {
   it('a built-in action without an implementation fails its step with NotImplemented', async () => {
     expect(await failureOf('not-implemented')).toMatchObject({
       code: 'NotImplemented',
-      message: 'The built-in action "hover" cannot run yet in this engine version.',
+      message: 'The built-in action "reload" cannot run yet in this engine version.',
       location: { file: 'tests/errors/not-implemented.test.yaml', line: 5, column: 5 },
     });
     // The engine is still there.
