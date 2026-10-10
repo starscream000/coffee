@@ -331,6 +331,15 @@ each cookie's value), so it is masked wherever the engine writes it out
 ([ADR 0014](adr/0014-secret-masking.md)). `expect.response` does the same for
 the headers it reads.
 
+Header names in a stored response are in lower case
+(`${vars.issued.headers.authorization}`). For `Authorization`, both the whole
+value and the credential after its scheme (`Bearer …`) are masked. A browser
+never finishes loading the body of a `fetch` the page does not read, so
+Playwright cannot give it: `wait.response … as` then waits for the body until
+the step's time is almost up, logs a `warn` and stores the response with an
+empty `text` and a `null` `json`; `expect.response` with `json` or `contains`
+fails, saying so.
+
 ### Assertions
 
 All `expect.*` actions retry until they pass or the step times out, then fail
@@ -371,8 +380,13 @@ expected).
 | `api`  | –     | `method` (default `GET`), `url`, `headers`, `query`; one of `json`, `form`, `body`; `as`; `status`: expected status (default: any 2xx or 3xx)  |
 | `mock` | –     | `url` pattern, `method`; `status` (default 200), `headers`; one of `json`, `body`, `file`; `times`: how many requests to answer (default: all) |
 
-`api` uses `ctx.request`, so it is signed in exactly like the page. `mock`
-applies to every page in the step's browser context until the test ends.
+`api` uses `ctx.request`, so it is signed in exactly like the page; a URL
+that starts with `/` is relative to the environment's `baseUrl`. With `as`, the
+response is stored before its status is checked, so a failing step still
+leaves it for later steps of an `after` section. `mock` applies to every page
+in the step's browser context until the test ends; `file` is relative to the
+step file. A request `mock` does not answer (another method, or after `times`)
+goes on to the next handler or the network.
 
 ### Flows
 

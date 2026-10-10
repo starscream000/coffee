@@ -118,3 +118,30 @@ targets:
   # S16: the products table.
   products.count:
     - testId: product-count
+  # S4: the orders page.
+  orders.load:
+    - role: button
+      name: Load orders
+  orders.list:
+    - role: list
+      name: Orders
+  orders.items:
+    within: orders.list
+    candidates:
+      - role: listitem
+  orders.summary:
+    - testId: order-summary
+  # S9: the notes page.
+  notes.note:
+    - label: Note
+  notes.show:
+    - role: button
+      name: Show note
+  notes.shown:
+    - testId: note-shown
+  # S19: the token page.
+  token.get:
+    - role: button
+      name: Get token
+  token.status:
+    - testId: token-status

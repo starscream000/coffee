@@ -1,0 +1,14 @@
+# S19: a token arrives in a response's Authorization header; wait.response
+# stores it and a later api request sends it. The engine masks the token from
+# then on, so it appears nowhere in the output (A9).
+version: 1
+name: A token from a response header
+steps:
+  - goto: /token
+  - click: token.get
+  - wait.response: { url: /api/token, method: POST, as: issued }
+  - expect.text: { target: token.status, equals: Token received }
+  - api:
+      url: /api/protected
+      headers: { Authorization: '${vars.issued.headers.authorization}' }
+      status: 200

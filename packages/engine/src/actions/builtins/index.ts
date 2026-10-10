@@ -8,6 +8,8 @@ import type { RunnableAction } from '../../sdk/define-action.js';
 import type { ActionSpec } from '../action-spec.js';
 import { BUILTIN_SPECS } from '../builtin-specs.js';
 import { expectCount, expectText, expectUrl, expectValue, expectVisible } from './assertions.js';
+import { extract, set } from './data.js';
+import { api, expectResponse, mock, waitResponse } from './http.js';
 import { check, click, drag, fill, hover, press, select, upload } from './interaction.js';
 import { back, goto, reload } from './navigation.js';
 import { waitElement, waitUrl } from './waiting.js';
@@ -28,11 +30,17 @@ const IMPLEMENTED: ReadonlyMap<string, RunnableAction> = new Map(
     drag,
     waitElement,
     waitUrl,
+    waitResponse,
     expectVisible,
     expectText,
     expectValue,
     expectUrl,
     expectCount,
+    expectResponse,
+    set,
+    extract,
+    api,
+    mock,
   ].map((action) => [action.name, action as RunnableAction]),
 );
 

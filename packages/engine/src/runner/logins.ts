@@ -382,6 +382,7 @@ export class LoginStore {
           stepId: `${stepId}/login.${String(index)}`,
           location: locationOf(validation.source, definition.flow, step),
           root: this.options.project.root,
+          registerSecret: (value) => this.options.project.registerSecret(value),
           timeoutMs: durationToMs(step.timeout ?? this.options.profile.settings.timeout),
           emit: forward,
         });

@@ -378,6 +378,18 @@ export class Project {
   }
 
   /**
+   * Registers a value found while a test runs (such as an `Authorization`
+   * header) as a secret, so it is masked wherever the engine writes it out
+   * (ADR 0014).
+   *
+   * @param value - The value.
+   * @returns False when it is shorter than 4 characters and was not registered.
+   */
+  registerSecret(value: string): boolean {
+    return this.secretRegistry.register(value);
+  }
+
+  /**
    * Reads a project file's text.
    *
    * @param file - Project-relative path.

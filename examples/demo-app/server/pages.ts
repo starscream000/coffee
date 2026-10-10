@@ -33,6 +33,9 @@ export const homePage = document(
     <li><a href="/form">Order form</a></li>
     <li><a href="/interactions">Interactions</a></li>
     <li><a href="/products">Products</a></li>
+    <li><a href="/orders">Orders</a></li>
+    <li><a href="/notes">Notes</a></li>
+    <li><a href="/token">Token</a></li>
   </ul>
 </nav>`,
 );
@@ -364,6 +367,68 @@ export const productsPage = document(
     if (!button) return;
     button.closest('tr').remove();
     document.querySelector('[data-testid="product-count"]').textContent = String(body.rows.length);
+  });
+</script>`,
+);
+
+/**
+ * `/orders`: a button that loads the orders from `GET /api/orders` (S4), so a
+ * test can mock that request and wait for its response.
+ */
+export const ordersPage = document(
+  'Orders',
+  `<h1>Orders</h1>
+<button type="button">Load orders</button>
+<ul aria-label="Orders"></ul>
+<p data-testid="order-summary">No orders loaded</p>
+<script>
+  const list = document.querySelector('ul');
+  const summary = document.querySelector('[data-testid="order-summary"]');
+  document.querySelector('button').addEventListener('click', async () => {
+    const orders = await (await fetch('/api/orders')).json();
+    list.replaceChildren(
+      ...orders.map((order) => {
+        const item = document.createElement('li');
+        item.textContent = order.item;
+        return item;
+      }),
+    );
+    summary.textContent = orders.length + ' orders loaded';
+  });
+</script>`,
+);
+
+/** `/notes`: a field whose text a button shows on the page (S9). */
+export const notesPage = document(
+  'Notes',
+  `<h1>Notes</h1>
+<p><label for="note">Note</label> <input id="note"></p>
+<button type="button">Show note</button>
+<p>Shown: <span data-testid="note-shown"></span></p>
+<script>
+  document.querySelector('button').addEventListener('click', () => {
+    document.querySelector('[data-testid="note-shown"]').textContent =
+      document.getElementById('note').value;
+  });
+</script>`,
+);
+
+/**
+ * `/token`: a button that asks `POST /api/token` for a token, which arrives in
+ * the response's Authorization header (S19).
+ */
+export const tokenPage = document(
+  'Token',
+  `<h1>Token</h1>
+<button type="button">Get token</button>
+<p data-testid="token-status">No token yet</p>
+<script>
+  document.querySelector('button').addEventListener('click', async () => {
+    const response = await fetch('/api/token', { method: 'POST' });
+    const answer = await response.json();
+    document.querySelector('[data-testid="token-status"]').textContent = answer.issued
+      ? 'Token received'
+      : 'No token';
   });
 </script>`,
 );
