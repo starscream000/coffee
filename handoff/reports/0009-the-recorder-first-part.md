@@ -26,10 +26,10 @@ Departures):
 Part C passed the line limit, so there are five stacked pull requests
 (#48 to #52), not four.
 
-**One done-when item is not done by me:** a hand-made session with
-`pnpm record`. I cannot use a mouse and keyboard on a visible window. The
-command is proven to start and record its first step; the owner's own session
-is the remaining check (see "Not done").
+The hand-made `pnpm record` session was done by the owner on 2026-10-10:
+a to-do added and a login, in a visible browser. Both recordings passed
+verify, and the password was written as `${secrets.DEMO_PASSWORD}` (see "The
+hand-made session").
 
 ## Branches and pull requests
 
@@ -164,11 +164,88 @@ The recorder integration tests, as summed from the session statistics:
 | text        | 8        | 3        | "Details" (twice), "Delete" (three times), "Sign in" (the heading and the button share it) |
 | css         | 17       | 0        |                                                                                            |
 
-## The recorded files
+## The hand-made session
 
-The hand-made session is not done (see below). These are the files the
-integration tests recorded, as written. They are the same interactions the
-hand-made session asks for, made with real mouse and key input.
+The owner ran `pnpm record` on the demo app, in a visible Chromium on
+Windows. The commands were:
+
+```
+node examples/demo-app/server/server.ts
+corepack pnpm record --project examples/demo-app --url http://localhost:4310/todos --file tests/recorded/add-todo.test.yaml
+corepack pnpm record --project examples/demo-app --url http://localhost:4310/login --file tests/recorded/some-login-test.test.yaml
+```
+
+**A to-do added.** Verify passed, 3 of 3 steps:
+
+```yaml
+version: 1
+name: Add todo
+targets:
+  todos.newTodo:
+    - role: textbox
+      name: New to-do
+    - label: New to-do
+    - css: '#new-todo'
+  todos.add2:
+    - role: button
+      name: Add
+    - text: Add
+    - css: '#add-form > button'
+steps:
+  - goto: /todos
+  - fill: { target: todos.newTodo, value: test11 }
+  - click: todos.add2
+```
+
+**A login.** The owner moved from Username to Password with Tab, signed in,
+then clicked and double-clicked the "Account" heading. Verify passed, 7 of 7
+steps:
+
+```yaml
+version: 1
+name: Some login test
+targets:
+  login.username2:
+    - role: textbox
+      name: Username
+    - label: Username
+    - css: '#username'
+  login.password2:
+    - role: textbox
+      name: Password
+    - label: Password
+    - css: '#password'
+  login.signIn:
+    - role: button
+      name: Sign in
+    - css: '#login-form > button'
+  account.account:
+    - role: heading
+      name: Account
+    - text: Account
+    - css: body > h1
+steps:
+  - goto: /login
+  - fill: { target: login.username2, value: alice }
+  - press: { target: login.username2, key: Tab }
+  - fill: { target: login.password2, value: '${secrets.DEMO_PASSWORD}' }
+  - click: login.signIn
+  - click: account.account
+  - click: account.account
+```
+
+The printed output showed the password nowhere. It also showed two notices:
+
+- **The double-click** gave the expected `doubleClick` notice.
+- **A click on the page background** gave `! unmapped (main): No candidate
+identifies the html exactly, so the interaction with it is not recorded.`
+  That is right by R8 (a click on no element is reported, not recorded), but
+  the message is unclear. See Suggestions.
+
+## The recorded files of the integration tests
+
+As written by the integration tests, which make the same interactions with
+real mouse and key input.
 
 A to-do added (click into the field, type, Enter; again, then the Add
 button):
@@ -302,26 +379,18 @@ finds it nowhere.
 
 ## Not done, not pushed, not verified
 
-- **The hand-made `pnpm record` session** (done-when: "a to-do added and a
-  login, then the recorded test passes verify"). I cannot use the visible
-  browser by hand. I ran `pnpm record` on the demo app: it opened the browser
-  and wrote the `goto`. The same interactions, made with real mouse and key
-  input, are recorded and verified in the integration tests (files above).
-  For the owner, in two terminals:
-
-  ```
-  node examples/demo-app/server/server.ts
-  pnpm record --project examples/demo-app --url http://localhost:4310/todos --file tests/recorded/add-todo.test.yaml
-  ```
-
-  Add a to-do, close the browser, and read the verify result. Then the same
-  for a login, with `--url http://localhost:4310/login`, typing the password
-  `demo-only-not-a-secret`.
-
-- **No test drives a headed browser.** The tests run the recording browser
-  headless (`headless: true`); `pnpm record` runs it headed.
+- **No automated test drives a headed browser.** The tests run the recording
+  browser headless (`headless: true`). `pnpm record` runs it headed, as the
+  owner's session did.
 
 ## Suggestions
+
+- **A click on the page background** (the `html` or `body` element) should
+  give a clear notice, such as "A click on the page background is not
+  recorded", instead of "No candidate identifies the html exactly".
+- **`pnpm record` with an unexpected argument** prints only the usage line.
+  It should name the argument; the owner hit this by putting the password on
+  the command line.
 
 - The desktop app's Record screen can be built on `RecordingSession` and its
   listener as soon as the protocol proposal is accepted. The proposal maps
