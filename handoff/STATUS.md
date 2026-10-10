@@ -1,12 +1,22 @@
 # Status
 
-Written only by the reviewer. The engine implementer reads this first. The
-desktop implementer reads [apps/desktop/handoff/STATUS.md](../apps/desktop/handoff/STATUS.md)
-instead.
+Written only by the reviewer. The implementer reads this first, then
+[apps/desktop/handoff/STATUS.md](../apps/desktop/handoff/STATUS.md).
 
 - Updated: 2026-10-10
-- **Open instruction:** [0009: the recorder, first part](instructions/0009-the-recorder-first-part.md)
+- **Open instruction:** [0010: recording and new projects over the protocol](instructions/0010-recording-and-new-projects-over-the-protocol.md)
 - Waiting on: implementer
+
+## Order of work
+
+One implementer works on both tracks. Open instructions, in the order to carry
+them out:
+
+1. Engine: [0010](instructions/0010-recording-and-new-projects-over-the-protocol.md).
+2. Desktop: [D0004](../apps/desktop/handoff/instructions/D0004-recording-new-projects-and-a-clear-layout.md),
+   whose first branch sits on the last branch of 0010.
+
+Finish and report one before starting the other.
 
 ## Instructions
 
@@ -20,7 +30,8 @@ instead.
 | 0006 | Review fixes and the runner                         | merged | [0006](reports/0006-review-fixes-and-the-runner.md)             | [0006](reviews/0006-review-fixes-and-the-runner.md)             | #19, #21, #23, #25                                   |
 | 0007 | A build for the owner, then fixes, pages and logins | merged | [0007](reports/0007-a-build-then-fixes-and-pages-and-logins.md) | [0007](reviews/0007-a-build-then-fixes-and-pages-and-logins.md) | #25, #27, #28, #29                                   |
 | 0008 | The demo `.env` and the built-in actions            | merged | [0008](reports/0008-demo-env-and-the-built-in-actions.md)       | [0008](reviews/0008-demo-env-and-the-built-in-actions.md)       | #30, #43, #44, #45, #46                              |
-| 0009 | The recorder, first part                            | open   | –                                                               | –                                                               | –                                                    |
+| 0009 | The recorder, first part                            | merged | [0009](reports/0009-the-recorder-first-part.md)                 | [0009](reviews/0009-the-recorder-first-part.md)                 | #48 to #52                                           |
+| 0010 | Recording and new projects over the protocol        | open   | –                                                               | –                                                               | –                                                    |
 
 States: `open` (published, no review yet), `changes requested`, `approved`,
 `merged`, `replaced`.
@@ -28,25 +39,20 @@ States: `open` (published, no review yet), `changes requested`, `approved`,
 ## Where the plan stands
 
 Milestone 0 is finished. Of the 16 branches in
-[the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 13 are on `main`:
-the engine runs tests in a real browser with every built-in action, data rows,
-a run folder, several pages, saved logins, flows and cancelling.
+[the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 13 are on `main`,
+and so is the first part of the recorder: a person uses a page in the engine's
+browser, and the engine writes a test that runs.
 
-On the owner's word the recorder comes next (instruction 0009), ahead of plan
-branches 14 (page states), 15 (the command-line `run`) and 16 (the release),
-which follow it.
-
-A correction to review 0008: the demo project has 20 test files, not 19; the
-31 test instances it names are right.
+Instruction 0010 puts recording and "new project" on the protocol, for the
+desktop app. Plan branches 14 (page states), 15 (the command-line `run`) and
+16 (the release) follow later.
 
 ## The desktop track
 
-The Avalonia app is built by a second implementer under `apps/desktop/`, with
-its own instructions, reports and reviews in
-[apps/desktop/handoff/](../apps/desktop/handoff/). Its instructions D0001 to
-D0003 are merged: the app is complete from editing to running. The `desktop`
-CI job builds and tests it on three systems for every pull request, engine
-ones included.
+The Avalonia app lives under `apps/desktop/`, with its own instructions,
+reports and reviews in [apps/desktop/handoff/](../apps/desktop/handoff/). Its
+instructions D0001 to D0003 are merged. Since 2026-10-10 the same implementer
+works on it, as a separate track with its own scope.
 
 ## Owner decisions on record
 
@@ -74,6 +80,12 @@ ones included.
   commit `.env` files" (review 0007, question 1). It goes into instruction 0008.
 - 2026-10-10: the recorder is built now, ahead of plan branches 14 to 16;
   "it is the main bit".
+- 2026-10-10: the separate desktop implementer is let go. The engine
+  implementer carries on the desktop work. The two tracks stay separate:
+  separate instructions, reports, branches and scopes.
+- 2026-10-10, during instruction 0009, to the implementer: test ID comes
+  before text in the order of candidates; a typed password that matches no
+  declared secret becomes a placeholder variable marked for review.
 
 ## Owner's notes (ideas, not decisions)
 

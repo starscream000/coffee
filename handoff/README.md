@@ -13,17 +13,25 @@ lost.
 | Reviewer    | Claude in the owner's chat session        | Instructions, reviews, `STATUS.md`             |
 | Implementer | Claude Code agent on the owner's computer | Code, docs and one report per instruction      |
 
-There are two implementers, each with its own track:
+There are two tracks, and since 2026-10-10 **one implementer works on both**:
 
-- the **engine implementer** works on everything except `apps/desktop/` and is
-  directed through this folder;
-- the **desktop implementer** works only under `apps/desktop/` and is directed
-  through [apps/desktop/handoff/](../apps/desktop/handoff/), which follows this
-  page except where its own README says otherwise. Its files carry a `D`
-  (`D0002`), and it asks for changes outside its folder with requests (`R0001`).
+- the **engine track** is everything except `apps/desktop/` and is directed
+  through this folder (instructions `0010`, …);
+- the **desktop track** is `apps/desktop/` only and is directed through
+  [apps/desktop/handoff/](../apps/desktop/handoff/), which follows this page
+  except where its own README says otherwise. Its files carry a `D` (`D0004`),
+  and it asks for changes outside its folder with requests (`R0001`).
 
-Neither implementer changes the other's files. The reviewer serves both and
-carries needs from one track to the other.
+The tracks stay separate even with one implementer. An engine instruction
+changes nothing under `apps/desktop/`; a desktop instruction changes nothing
+outside it. Each instruction gets its own report, in its own track's folder,
+and its own branches (`desktop/<type>/<name>` for the desktop). When both
+tracks have an open instruction, `STATUS.md` in this folder says which comes
+first; the implementer finishes and reports one before starting the other.
+
+A change to the protocol touches both tracks. It is made as stacked pull
+requests, the engine's first and the desktop's on top, and the reviewer merges
+them together.
 
 The owner decides. The reviewer and the implementer never talk to each other
 directly: the reviewer writes an instruction, the implementer answers with a
