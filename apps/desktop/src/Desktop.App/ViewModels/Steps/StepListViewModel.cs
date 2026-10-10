@@ -9,6 +9,7 @@ using AvaloniaEdit.Document;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Desktop.App.StepFiles;
+using Desktop.Protocol.Messages;
 
 namespace Desktop.App.ViewModels.Steps;
 
@@ -28,7 +29,8 @@ public sealed record StepSectionViewModel(string Name)
 /// <param name="Description">What it does.</param>
 /// <param name="Shorthand">Its shorthand parameter, if it has one.</param>
 /// <param name="Required">The parameters its long form requires.</param>
-public sealed record StepActionChoice(string Name, string Description, string? Shorthand, IReadOnlyList<string> Required);
+/// <param name="Schema">Its <c>paramsSchema</c>, for the step's form.</param>
+public sealed record StepActionChoice(string Name, string Description, string? Shorthand, IReadOnlyList<string> Required, System.Text.Json.JsonElement Schema = default);
 
 /// <summary>The step list of a test or flow file.</summary>
 public sealed partial class StepListViewModel : ObservableObject
@@ -37,6 +39,8 @@ public sealed partial class StepListViewModel : ObservableObject
     private readonly TextDocument _document;
     private readonly Func<IReadOnlyList<StepActionChoice>> _actions;
     private readonly Func<IReadOnlyDictionary<int, LineMark>> _marks;
+    private readonly Func<IReadOnlyList<string>> _sharedTargets;
+    private readonly Func<IReadOnlyList<Diagnostic>> _diagnostics;
     private bool _editing;
 
     /// <summary>Creates the list and reads the document.</summary>
@@ -44,8 +48,18 @@ public sealed partial class StepListViewModel : ObservableObject
     /// <param name="document">The text, shared with the text editor.</param>
     /// <param name="actions">The actions the engine knows, for adding steps and for shorthand names.</param>
     /// <param name="marks">The file's problem lines.</param>
-    public StepListViewModel(string file, TextDocument document, Func<IReadOnlyList<StepActionChoice>> actions, Func<IReadOnlyDictionary<int, LineMark>> marks)
+    /// <param name="sharedTargets">The names of the shared targets, for the target picker.</param>
+    /// <param name="diagnostics">The file's problems, for the step's form.</param>
+    public StepListViewModel(
+        string file,
+        TextDocument document,
+        Func<IReadOnlyList<StepActionChoice>> actions,
+        Func<IReadOnlyDictionary<int, LineMark>> marks,
+        Func<IReadOnlyList<string>>? sharedTargets = null,
+        Func<IReadOnlyList<Diagnostic>>? diagnostics = null)
     {
+        _sharedTargets = sharedTargets ?? (() => []);
+        _diagnostics = diagnostics ?? (() => []);
         ArgumentNullException.ThrowIfNull(document);
         _file = file;
         _document = document;
@@ -84,6 +98,10 @@ public sealed partial class StepListViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RemoveCommand), nameof(DuplicateCommand), nameof(MoveUpCommand), nameof(MoveDownCommand), nameof(MoveToSectionCommand))]
     private StepItemViewModel? _selected;
+
+    /// <summary>The selected step's form; null when no step is selected.</summary>
+    [ObservableProperty]
+    private StepFormViewModel? _form;
 
     /// <summary>True while the action picker is open.</summary>
     [ObservableProperty]
@@ -139,7 +157,7 @@ public sealed partial class StepListViewModel : ObservableObject
         OnPropertyChanged(nameof(Problem));
     }
 
-    /// <summary>Marks the steps again after the file's problems changed.</summary>
+    /// <summary>Marks the steps again after the file's problems changed, and shows them in the form.</summary>
     public void RefreshMarks()
     {
         var marks = _marks();
@@ -147,6 +165,8 @@ public sealed partial class StepListViewModel : ObservableObject
         {
             step.ApplyMarks(marks);
         }
+
+        BuildForm();
     }
 
     /// <summary>Opens the action picker.</summary>
@@ -250,6 +270,27 @@ public sealed partial class StepListViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(MoveTargets));
+        BuildForm();
+    }
+
+    private void BuildForm()
+    {
+        if (Selected is not { } step)
+        {
+            Form = null;
+            return;
+        }
+
+        var action = _actions().FirstOrDefault(a => a.Name == step.Outline.Action);
+        var targets = TargetNames.Of(Outline.Text).Concat(_sharedTargets()).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        var outline = Outline;
+        Form = new StepFormViewModel(outline, step.Outline, action, targets, _diagnostics(), text =>
+        {
+            if (ReferenceEquals(outline, Outline))
+            {
+                Apply(StepEdits.Replace(outline, step.Outline, text), step.Section, step.Outline.Index);
+            }
+        });
     }
 
     private bool HasSelection() => Selected is not null;

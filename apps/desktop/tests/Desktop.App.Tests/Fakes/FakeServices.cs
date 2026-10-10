@@ -47,6 +47,9 @@ internal sealed class FakeProjectFiles : IProjectFiles
 
     public string? TryReadText(string root, string relativePath) => Files.GetValueOrDefault(relativePath);
 
+    public IReadOnlyList<string> FindFiles(string root, string ending) =>
+        [.. Files.Keys.Where(f => f.EndsWith(ending, StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal)];
+
     public void WriteText(string root, string relativePath, string text)
     {
         if (WriteFailures.TryGetValue(relativePath, out var failure))

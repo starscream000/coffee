@@ -26,6 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A form for each step (instruction D0003, task 15): fields from the action's
+  parameter schema (text, number, yes/no, a choice, a target picker with the
+  file's and the shared targets, YAML text for the rest) and the step's name,
+  page and timeout; the engine's problems next to their field; a valid change
+  rewrites only the step's lines and keeps the form it was written in. A test
+  built this way runs and passes in a real browser (tested).
+
 - A step list beside the text of test and flow files (instruction D0003,
   tasks 14 and 16): the sections and their steps with action, main value,
   name and problem marks; selecting a step shows its line; add a step from

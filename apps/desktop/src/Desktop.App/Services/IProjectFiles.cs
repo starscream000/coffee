@@ -1,5 +1,6 @@
-// Access to the files of an open project: reading a step file, the fallback
-// search for test files, and watching for changes. Paths given to and returned
+// Access to the files of an open project: reading and writing a step file,
+// finding files by their ending (such as the shared targets files), and
+// watching for changes. Paths given to and returned
 // by this service are relative to the project root, with forward slashes, as
 // the protocol writes them.
 
@@ -44,6 +45,15 @@ public interface IProjectFiles
     /// <param name="changed">Called with the relative paths that changed, were created, deleted or renamed.</param>
     /// <returns>Stops watching when disposed.</returns>
     IDisposable Watch(string root, Action<IReadOnlyCollection<string>> changed);
+
+    /// <summary>
+    /// Finds the files under the root whose names end with a text, leaving out
+    /// the data folder, <c>node_modules</c> and folders whose names start with a dot.
+    /// </summary>
+    /// <param name="root">The project root.</param>
+    /// <param name="ending">The end of the file name, such as <c>.targets.yaml</c>; compared without regard to case.</param>
+    /// <returns>Relative paths, sorted; empty when the root cannot be read.</returns>
+    IReadOnlyList<string> FindFiles(string root, string ending);
 }
 
 /// <summary>The project files on disk.</summary>
@@ -98,6 +108,35 @@ public sealed class DiskProjectFiles : IProjectFiles
 
     /// <inheritdoc />
     public IDisposable Watch(string root, Action<IReadOnlyCollection<string>> changed) => new Watcher(root, changed);
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> FindFiles(string root, string ending)
+    {
+        var found = new List<string>();
+        var folders = new Stack<string>([root]);
+        while (folders.TryPop(out var folder))
+        {
+            try
+            {
+                found.AddRange(Directory.EnumerateFiles(folder).Where(f => Path.GetFileName(f).EndsWith(ending, StringComparison.OrdinalIgnoreCase)).Select(f => ToRelative(root, f)));
+                foreach (var sub in Directory.EnumerateDirectories(folder))
+                {
+                    var name = Path.GetFileName(sub);
+                    if (!name.StartsWith('.') && name != "node_modules")
+                    {
+                        folders.Push(sub);
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // A folder that vanished or may not be read has nothing to offer.
+            }
+        }
+
+        found.Sort(StringComparer.Ordinal);
+        return found;
+    }
 
     private sealed class Watcher : IDisposable
     {

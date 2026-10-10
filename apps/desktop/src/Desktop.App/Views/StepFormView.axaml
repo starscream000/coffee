@@ -1,0 +1,44 @@
+<!-- The form of the selected step: its action, a field per parameter and setting with the engine's problems next to them, and the step's other problems. Text fields write back when they lose focus. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:steps="using:Desktop.App.ViewModels.Steps"
+             x:Class="Desktop.App.Views.StepFormView"
+             x:DataType="steps:StepFormViewModel">
+  <UserControl.DataTemplates>
+    <DataTemplate DataType="steps:StepFieldViewModel">
+      <StackPanel Margin="0,4" Spacing="2">
+        <TextBlock Text="{Binding Label}" Classes="small" FontWeight="SemiBold" />
+        <TextBox Text="{Binding Value, UpdateSourceTrigger=LostFocus}" IsVisible="{Binding IsLine}" />
+        <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Value}" IsVisible="{Binding IsChoice}" HorizontalAlignment="Stretch" />
+        <AutoCompleteBox Text="{Binding Value, UpdateSourceTrigger=LostFocus}" ItemsSource="{Binding TargetNames}" FilterMode="ContainsOrdinal"
+                         IsVisible="{Binding IsTarget}" PlaceholderText="A target name" />
+        <TextBox Text="{Binding Value, UpdateSourceTrigger=LostFocus}" IsVisible="{Binding IsYaml}" AcceptsReturn="True" TextWrapping="NoWrap"
+                 FontFamily="{StaticResource CodeFont}" FontSize="12" MinHeight="48" />
+        <TextBlock Text="{Binding Note}" Classes="muted small" TextWrapping="Wrap" IsVisible="{Binding Note, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <TextBlock Text="{Binding Description}" Classes="muted small" TextWrapping="Wrap" IsVisible="{Binding Description, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <TextBlock Text="{Binding Error}" Classes="small" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap"
+                   IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <TextBlock Text="{Binding Problem}" Classes="small" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap"
+                   IsVisible="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <ScrollViewer>
+    <StackPanel Margin="10,6" Spacing="4">
+      <TextBlock x:Name="FormAction" Text="{Binding Action}" Classes="code" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding Description}" Classes="muted small" TextWrapping="Wrap" IsVisible="{Binding Description, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <ItemsControl ItemsSource="{Binding Problems}" IsVisible="{Binding HasProblems}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <TextBlock Text="{Binding}" Classes="small" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <ItemsControl x:Name="FormParameters" ItemsSource="{Binding Parameters}" />
+      <TextBlock Text="Step" Classes="heading muted" Margin="0,8,0,0" />
+      <ItemsControl x:Name="FormSettings" ItemsSource="{Binding Settings}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
