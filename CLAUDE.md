@@ -58,8 +58,8 @@ packages/protocol   message and event types shared by engine and clients
 packages/engine     core: step file parsing, validation, action registry,
                     context, runner, recorder (later)
 packages/cli        headless command-line client
-apps/desktop        Avalonia app; its own implementer and handoff folder
-                    (apps/desktop/handoff/)
+apps/desktop        Avalonia app; its own track, with its own handoff
+                    folder (apps/desktop/handoff/)
 examples/demo-app   a tiny local web app used by integration tests
 docs/               architecture, step format, actions, protocol, ADRs
 ```
@@ -128,12 +128,28 @@ Work is passed through files in `handoff/`. Read
 4. Write the report in `handoff/reports/` on the work branch, run
    `pnpm verify`, push, open the pull request, and stop.
 
+One implementer works on two tracks, which stay separate (owner decision of
+2026-10-10, [handoff/README.md](handoff/README.md)):
+
+- **Engine track:** everything except `apps/desktop/`, directed through
+  `handoff/` (instructions `0010`, …). An engine instruction changes nothing
+  under `apps/desktop/`; its report goes in `handoff/reports/`.
+- **Desktop track:** `apps/desktop/` only, directed through
+  `apps/desktop/handoff/` (instructions `D0004`, …). A desktop instruction
+  changes nothing outside `apps/desktop/`; its report goes in
+  `apps/desktop/handoff/reports/`, and its branches are named
+  `desktop/<type>/<name>`.
+- When both tracks have an open instruction, `handoff/STATUS.md` says which
+  comes first. Finish one, with its report and pull requests, before starting
+  the other.
+
 Also:
 
 - Before each milestone, give the owner a short plan and wait for the go-ahead.
 - If anything is unclear or seems wrong, ask instead of guessing.
-- Do not change files under `apps/desktop/`; that folder has its own
-  implementer. Ask through the report instead.
+- Keep the tracks apart: during an engine instruction, do not change files
+  under `apps/desktop/`; during a desktop instruction, do not change files
+  outside it. Ask through the report for anything the other track needs.
 - At the end of each working session, report what was merged, what is in
   progress, and what you need from the owner.
 
