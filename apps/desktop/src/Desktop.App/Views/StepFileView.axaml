@@ -11,6 +11,8 @@
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
           <TextBlock Text="{Binding ProblemSummary}" Classes="small" Foreground="{StaticResource ErrorBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+          <Button Content="Rename" Command="{Binding RenameCommand}" Padding="8,2" />
+          <Button Content="Delete" Command="{Binding DeleteCommand}" Padding="8,2" Margin="0,0,8,0" />
           <Button x:Name="RunButton" Content="Run" Command="{Binding RunCommand}" Padding="8,2" Margin="0,0,8,0"
                   ToolTip.Tip="Run this test (asks about unsaved changes first)." />
           <Button Content="Undo" Command="{Binding UndoCommand}" Padding="8,2" />

@@ -34,6 +34,23 @@ public interface IDialogService
     /// <returns><see cref="UnsavedChangesChoice.Save"/> to save and run, <see cref="UnsavedChangesChoice.Discard"/> to run what is on disk, <see cref="UnsavedChangesChoice.Cancel"/> not to run.</returns>
     Task<UnsavedChangesChoice> AskSaveBeforeRunAsync(IReadOnlyList<string> files);
 
+    /// <summary>Asks for the folder and name of a new file.</summary>
+    /// <param name="what">What is created, for people, such as "test".</param>
+    /// <param name="folder">The folder offered, relative to the project root.</param>
+    /// <param name="ending">The ending the name gets, such as <c>.test.yaml</c>, shown as a hint.</param>
+    /// <returns>The folder and name typed; null when cancelled.</returns>
+    Task<(string Folder, string Name)?> AskNewFileAsync(string what, string folder, string ending);
+
+    /// <summary>Asks for a file's new name.</summary>
+    /// <param name="file">The file, relative to the project root.</param>
+    /// <returns>The name typed; null when cancelled.</returns>
+    Task<string?> AskRenameAsync(string file);
+
+    /// <summary>Asks whether to delete a file.</summary>
+    /// <param name="file">The file, relative to the project root.</param>
+    /// <returns>True to delete it.</returns>
+    Task<bool> AskDeleteAsync(string file);
+
     /// <summary>Asks whether to overwrite a file that changed on disk since it was opened.</summary>
     /// <param name="file">The file, relative to the project root.</param>
     /// <returns>True to overwrite.</returns>
@@ -73,6 +90,69 @@ public sealed class AvaloniaDialogService(Func<Window?> owner) : IDialogService
             $"{file} changed on disk since it was opened. Overwrite it with your version?",
             [("Overwrite", true), ("Cancel", false)]);
         return answer ?? false;
+    }
+
+    /// <inheritdoc />
+    public async Task<(string Folder, string Name)?> AskNewFileAsync(string what, string folder, string ending)
+    {
+        var values = await AskTextsAsync($"New {what}", $"The file is created in the project with \"{ending}\" at the end of its name.", [("Folder", folder), ("Name", string.Empty)], "Create");
+        return values is [var f, var n] ? (f, n) : null;
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> AskRenameAsync(string file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        var values = await AskTextsAsync($"Rename {file}", "The file stays in its folder.", [("New name", file[(file.LastIndexOf('/') + 1)..])], "Rename");
+        return values is [var name] ? name : null;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> AskDeleteAsync(string file)
+    {
+        var answer = await AskAsync("Delete file", $"Delete {file}? This cannot be undone in the app.", [("Delete", true), ("Cancel", false)]);
+        return answer ?? false;
+    }
+
+    private async Task<IReadOnlyList<string>?> AskTextsAsync(string title, string text, IReadOnlyList<(string Label, string Value)> fields, string confirm)
+    {
+        if (owner() is not { } parent)
+        {
+            return null;
+        }
+
+        IReadOnlyList<string>? result = null;
+        var dialog = new Window
+        {
+            Title = title,
+            SizeToContent = SizeToContent.WidthAndHeight,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            MinWidth = 420,
+            MaxWidth = 560,
+        };
+        var boxes = fields.Select(f => new TextBox { Text = f.Value }).ToList();
+        var ok = new Button { Content = confirm, IsDefault = true };
+        var cancel = new Button { Content = "Cancel", IsCancel = true };
+        ok.Click += (_, _) =>
+        {
+            result = [.. boxes.Select(b => b.Text ?? string.Empty)];
+            dialog.Close();
+        };
+        cancel.Click += (_, _) => dialog.Close();
+        var panel = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 8 };
+        panel.Children.Add(new TextBlock { Text = text, TextWrapping = Avalonia.Media.TextWrapping.Wrap });
+        for (var i = 0; i < fields.Count; i++)
+        {
+            panel.Children.Add(new TextBlock { Text = fields[i].Label, FontWeight = Avalonia.Media.FontWeight.SemiBold });
+            panel.Children.Add(boxes[i]);
+        }
+
+        panel.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Avalonia.Thickness(0, 8, 0, 0), Children = { ok, cancel } });
+        dialog.Content = panel;
+        dialog.Opened += (_, _) => boxes[^1].Focus();
+        await dialog.ShowDialog(parent);
+        return result;
     }
 
     private async Task<T?> AskAsync<T>(string title, string text, IReadOnlyList<(string Label, T Value)> buttons)

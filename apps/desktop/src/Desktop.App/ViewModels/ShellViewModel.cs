@@ -300,6 +300,12 @@ public sealed partial class ShellViewModel : ObservableObject
         public Task<bool> AskOverwriteAsync(string file) => Task.FromResult(false);
 
         public Task<UnsavedChangesChoice> AskSaveBeforeRunAsync(IReadOnlyList<string> files) => Task.FromResult(UnsavedChangesChoice.Cancel);
+
+        public Task<(string Folder, string Name)?> AskNewFileAsync(string what, string folder, string ending) => Task.FromResult<(string, string)?>(null);
+
+        public Task<string?> AskRenameAsync(string file) => Task.FromResult<string?>(null);
+
+        public Task<bool> AskDeleteAsync(string file) => Task.FromResult(false);
     }
 
     private void ShowError(string message)

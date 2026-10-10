@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- New files (instruction D0003, task 17): New test, New flow and New targets
+  file ask for a folder and name, write a minimal file the engine reads
+  without problems, and open it; Rename and Delete in a file's tab, with a
+  question before deleting. Existing files are never overwritten, and paths
+  outside the project are refused with the reason.
+
 - A form for each step (instruction D0003, task 15): fields from the action's
   parameter schema (text, number, yes/no, a choice, a target picker with the
   file's and the shared targets, YAML text for the rest) and the step's name,

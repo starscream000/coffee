@@ -170,6 +170,19 @@ types are written by hand and how they are kept honest:
   parameter, are listed at the top of the form. An action the engine does not
   know keeps its values as YAML.
 
+## Files
+
+- **New test, New flow, New targets file** (in the explorer) ask for a folder
+  and a name (a test goes to the folder selected in the explorer by default;
+  flows to `flows`, targets files to `targets`), add the kind's ending, refuse
+  paths outside the project and existing files, write a minimal file the
+  engine reads without problems (a test or flow with one `goto: /` step,
+  since `steps` needs at least one; a targets file with `targets: {}`), and
+  open it. The test list and problems are read again at once.
+- **Rename** (in a file's tab) keeps the file in its folder and its kind's
+  ending; a tab with unsaved changes is saved or reverted first. **Delete**
+  asks first, then deletes the file and closes its tab.
+
 ## Runs
 
 - **Starting**: Run all, Run selected (a test, or every test shown in a
