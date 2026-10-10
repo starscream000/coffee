@@ -36,34 +36,36 @@ is the remaining check (see "Not done").
 Each branch sits on the one above it; every pull request targets `main` and
 names its base.
 
-| Branch                     | Based on                   | Last commit | Pull request | Pushed | Changed lines (against its base) |
-| -------------------------- | -------------------------- | ----------- | ------------ | ------ | -------------------------------- |
-| `fix/review-0008-findings` | `main`                     | `bf3fc86`   | #48          | yes    | +80 / −10                        |
-| `docs/recorder-design`     | `fix/review-0008-findings` | `c12a8d6`   | #49          | yes    | +496 / −40                       |
-| `feat/recorder-core`       | `docs/recorder-design`     | `c500a60`   | #50          | yes    | +664 / −12                       |
-| `feat/recorder-session`    | `feat/recorder-core`       | `58df1b0`   | #51          | yes    | +1,134 / −8                      |
-| `feat/recorder-verify`     | `feat/recorder-session`    | this report | #52          | yes    | about +1,250, with this report   |
+| Branch                     | Based on                   | Last commit | Pull request | Pushed | Changed lines (against its base, first push) |
+| -------------------------- | -------------------------- | ----------- | ------------ | ------ | -------------------------------------------- |
+| `fix/review-0008-findings` | `main`                     | `7863602`   | #48          | yes    | +80 / −10                                    |
+| `docs/recorder-design`     | `fix/review-0008-findings` | `6c02fce`   | #49          | yes    | +496 / −40                                   |
+| `feat/recorder-core`       | `docs/recorder-design`     | `01a31df`   | #50          | yes    | +664 / −12                                   |
+| `feat/recorder-session`    | `feat/recorder-core`       | `7e63f4b`   | #51          | yes    | +1,134 / −8                                  |
+| `feat/recorder-verify`     | `feat/recorder-session`    | this report | #52          | yes    | about +1,300, with this report               |
+
+The I3 fix (below) was cherry-picked onto `fix/review-0008-findings` and then
+merged up the stack with merge commits, so every branch has it; no pushed
+history was rewritten.
 
 ### CI (verify, integration, desktop; each on Linux, Windows, macOS)
 
-| Pull request | First run                                                         | Second run          |
-| ------------ | ----------------------------------------------------------------- | ------------------- |
-| #48          | all 9 jobs pass                                                   | in the pull request |
-| #49          | all 9 jobs pass                                                   | in the pull request |
-| #50          | all 9 jobs pass                                                   | in the pull request |
-| #51          | 8 pass; `integration` on macOS failed in I3 (an 0008 test), below | in the pull request |
-| #52          | in the pull request                                               | in the pull request |
+At the last commits above, **every pull request passed all 9 jobs twice in a
+row** (runs 38060330337, 38060654377, 38060657245, 38060662723, 38060665240,
+attempts 1 and 2). The commit that adds this report changes no code; its run
+is in #52. The `desktop` job passed on every run.
 
-**The macOS failure on #51.** The failing test was I3, "an assertion whose
-actual value is 10 MB", from instruction 0008. On that runner, reading 10 MB
-of text did not finish within the step's 3 seconds, so the failure had no
-`actual` to truncate. The engine's message ("could not be read") was right;
-the test's time budget was too tight. On #52 the step gets 10 seconds
-(`4b11c05`). The failed job of #51 is re-run.
+Two failures on the way, both `integration` on macOS, both fixed:
 
-I re-run each pull request until its `integration` job has passed twice in a
-row; the results are in each pull request. The `desktop` job passed
-everywhere.
+- **I3, "an assertion whose actual value is 10 MB"** (instruction 0008's
+  test), on #48 and #51. On slow macOS runners, reading 10 MB of text did not
+  finish within the step's 3 seconds, so the failure had no `actual` to
+  truncate. The engine's message ("could not be read") was right; the test's
+  budget was too tight. The step now gets 10 seconds.
+- **The recorder's form test** on #52. On macOS, ArrowDown on a closed
+  `<select>` opens its popup instead of changing the value, and Enter then
+  submits the form. The test now clicks the label and types the option's
+  name, which works the same on every system (see the weak spots).
 
 ## Tasks
 
