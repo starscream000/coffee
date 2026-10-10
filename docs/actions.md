@@ -311,6 +311,11 @@ Any step, whatever its action, may also use the common keys `name`, `page`,
 | `upload` | –        | `target`, `files`: a path or list of paths relative to the step file; `[]` clears                                 |
 | `drag`   | –        | `from`, `to`: targets                                                                                             |
 
+`select` waits for the options it is given, as Playwright does. When the step
+runs out of time and an option it asked for is not on the element, it fails
+with `OptionNotFound`, naming the missing option and every option the element
+has (value and label).
+
 ### Waiting
 
 | Action          | Short    | Parameters                                                                                        |

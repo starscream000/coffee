@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Review 0008 findings: `select` with an option the element does not have
+  fails with `OptionNotFound`, naming the option asked for and the options
+  the element has, instead of a plain `ActionTimeout`; the saved-login test
+  I11 looks for login values as whole words, so it no longer fails when random
+  hex happens to hold `ada`. ADR 0014 records that the credential inside an
+  `Authorization` value is masked as well as the whole value.
 - Review 0006 findings: every event is written to the run folder before it
   is sent, so a client that reads the folder on any event (including
   `runFinished`) finds it complete; `demo.addTodo` returns only once its item

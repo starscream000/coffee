@@ -86,6 +86,10 @@ describe('interaction actions', () => {
       '    timeout: 1s',
     ]);
     const [error] = failures(await run(file));
-    expect(error).toMatchObject({ code: 'ActionTimeout' });
+    expect(error).toMatchObject({
+      code: 'OptionNotFound',
+      message:
+        '"form.country" has no option "Atlantis". Its options: "" (Choose…), "de" (Germany), "fr" (France).',
+    });
   });
 });
