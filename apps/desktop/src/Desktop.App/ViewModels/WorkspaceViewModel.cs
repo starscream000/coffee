@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Desktop.App.Services;
 using Desktop.App.StepFiles;
+using Desktop.App.ViewModels.Recording;
 using Desktop.App.ViewModels.Runs;
 using Desktop.App.ViewModels.Steps;
 using Desktop.Engine;
@@ -32,6 +33,8 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     private readonly IDelay _delay;
     private readonly HashSet<string> _pendingChanges = new(StringComparer.Ordinal);
     private readonly Dictionary<StepFileViewModel, Action> _detach = [];
+    private readonly List<RecordingEvent> _earlyRecording = [];
+    private bool _recordingStarting;
     private IDisposable? _watch;
     private Task _refresh = Task.CompletedTask;
     private bool _refreshing;
@@ -81,13 +84,16 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
             SaveAllAsync,
             ShowRun,
             Problems.SetValidationDiagnostics,
-            EngineStatus.Report));
+            EngineStatus.Report,
+            () => IsRecording ? "Runs wait until the recording stops." : null));
         History = new RunHistoryViewModel(runRecords ?? new DiskRunRecords(), new RunHistoryHost(
             project.Root,
             () => Runs.IsRunning ? Runs.Current?.RunId : null,
             TrySelectRun,
             run => ShowRun(run, live: false),
             EngineStatus.Report));
+        _engine.RecordingEventReceived += OnRecordingEvent;
+        _engine.StateChanged += OnEngineStateChanged;
         Runs.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(RunControlViewModel.IsRunning) && Runs.Current is { } current && _historyRunId != (current.IsActive ? current.RunId : null))
@@ -165,6 +171,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     {
         StepFileViewModel tab => tab.DetailsHint,
         RunTabViewModel => "A run shows the details of its steps in its own tab. Hide this panel to give the run more room.",
+        RecordingTabViewModel => "A recording shows its steps in its tab. Open the test afterwards to edit a step here.",
         _ => "Open a test from the project panel. Its selected step or target is edited here.",
     };
 
@@ -405,14 +412,93 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private Task NewTargetsAsync() => NewFileAsync(NewFileKind.Targets);
 
-    /// <summary>Opens the recorder's tab, or selects it when it is open.</summary>
+    /// <summary>The form Record opens while it is shown, else null.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRecordStartOpen))]
+    private RecordStartViewModel? _recordStart;
+
+    /// <summary>True while the form Record opens is shown.</summary>
+    public bool IsRecordStartOpen => RecordStart is not null;
+
+    /// <summary>The recording going on, if any: one at a time.</summary>
+    public RecordingTabViewModel? ActiveRecording => Tabs.OfType<RecordingTabViewModel>().FirstOrDefault(t => t.IsRecording);
+
+    /// <summary>True while a recording is going on.</summary>
+    public bool IsRecording => ActiveRecording is not null;
+
+    /// <summary>
+    /// Opens the form that starts a recording. A recording that is going on is
+    /// shown instead, and none starts during a run; both are said in the run
+    /// notice (instruction D0004, task 17).
+    /// </summary>
     [RelayCommand]
     private void Record()
     {
-        var tab = Tabs.OfType<RecorderTabViewModel>().FirstOrDefault();
-        if (tab is null)
+        if (ActiveRecording is { } recording)
         {
-            tab = new RecorderTabViewModel();
+            SelectedTab = recording;
+            Runs.Notice = "A recording is already going on: here it is. Stop it before recording another test.";
+            return;
+        }
+
+        if (Runs.IsRunning)
+        {
+            Runs.Notice = "Tests are running. Record once the run has ended, or cancel it.";
+            return;
+        }
+
+        var browsers = _engine.State == EngineState.Ready ? _engine.Info?.Capabilities.Browsers ?? [] : [];
+        var noBrowser = _engine.State != EngineState.Ready
+            ? "Recording needs the engine, which is not running. Restart it from the engine's menu at the top right."
+            : browsers.Count == 0
+                ? $"Recording needs a browser, and the engine cannot start one. Install Chromium for the engine with: {Runs.InstallCommand}"
+                : null;
+        var form = new RecordStartViewModel(Environments, SelectedEnvironment, Project.Logins, noBrowser, file => _files.Exists(Root, file), StartRecordingAsync);
+        form.Closed += (_, _) =>
+        {
+            if (RecordStart == form)
+            {
+                RecordStart = null;
+            }
+        };
+        RecordStart = form;
+    }
+
+    /// <summary>Starts a recording and opens its tab; the engine's refusals are thrown for the form.</summary>
+    /// <param name="parameters">The form's values.</param>
+    /// <returns>A task that completes when the recording browser is open.</returns>
+    /// <exception cref="EngineException">The engine refused or failed.</exception>
+    private async Task StartRecordingAsync(StartRecordingParams parameters)
+    {
+        _recordingStarting = true;
+        _earlyRecording.Clear();
+        try
+        {
+            var started = await _engine.StartRecordingAsync(parameters);
+            EngineStatus.Report($"Recording {started.File} ({started.RecordingId}).");
+            var tab = new RecordingTabViewModel(started.RecordingId, started.File, new RecordingHost(
+                id => _engine.StopRecordingAsync(id),
+                (file, line) =>
+                {
+                    if (line is { } n)
+                    {
+                        OpenStep(file, n);
+                    }
+                    else
+                    {
+                        OpenFile(file);
+                    }
+                },
+                EngineStatus.Report));
+            tab.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(RecordingTabViewModel.IsRecording))
+                {
+                    OnPropertyChanged(nameof(IsRecording));
+                    OnPropertyChanged(nameof(ActiveRecording));
+                    Runs.Update();
+                }
+            };
             tab.CloseRequested += (_, _) =>
             {
                 var index = Tabs.IndexOf(tab);
@@ -423,9 +509,57 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
                 }
             };
             Tabs.Add(tab);
+            SelectedTab = tab;
+            OnPropertyChanged(nameof(IsRecording));
+            OnPropertyChanged(nameof(ActiveRecording));
+            Runs.Update();
+            foreach (var early in _earlyRecording)
+            {
+                ApplyRecordingEvent(early);
+            }
+        }
+        finally
+        {
+            _recordingStarting = false;
+            _earlyRecording.Clear();
+        }
+    }
+
+    private void OnRecordingEvent(object? sender, RecordingEvent recordingEvent)
+    {
+        if (Tabs.OfType<RecordingTabViewModel>().Any(t => t.RecordingId == recordingEvent.RecordingId))
+        {
+            ApplyRecordingEvent(recordingEvent);
+        }
+        else if (_recordingStarting)
+        {
+            // Events can overtake the answer to startRecording on their way to the UI thread.
+            _earlyRecording.Add(recordingEvent);
+        }
+    }
+
+    private void ApplyRecordingEvent(RecordingEvent recordingEvent)
+    {
+        var tab = Tabs.OfType<RecordingTabViewModel>().FirstOrDefault(t => t.RecordingId == recordingEvent.RecordingId);
+        tab?.Apply(recordingEvent);
+        // The recorded test belongs in the project tree at once, not only when the folder watcher notices it.
+        if (tab is not null && recordingEvent is StepRecordedEvent { Index: 0 } or RecordingStoppedEvent)
+        {
+            _ = OnFilesChangedAsync([tab.File]);
+        }
+    }
+
+    private void OnEngineStateChanged(object? sender, EventArgs e)
+    {
+        if (_engine.State is EngineState.Ready or EngineState.Starting)
+        {
+            return;
         }
 
-        SelectedTab = tab;
+        foreach (var tab in Tabs.OfType<RecordingTabViewModel>())
+        {
+            tab.EngineStopped(_engine.Failure?.Message);
+        }
     }
 
     /// <summary>Takes up the offer of a new project: records its first test.</summary>
@@ -651,6 +785,8 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        _engine.RecordingEventReceived -= OnRecordingEvent;
+        _engine.StateChanged -= OnEngineStateChanged;
         Runs.Dispose();
         foreach (var tab in Tabs.OfType<StepFileViewModel>())
         {

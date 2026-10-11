@@ -1,0 +1,63 @@
+<!--
+  The form Record opens (instruction D0004, task 14): the test's name and the
+  file made from it, the start address, the environment and an optional saved
+  login. Without a browser it shows the engine's install command instead.
+-->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:rec="using:Desktop.App.ViewModels.Recording"
+             x:Class="Desktop.App.Views.RecordStartView"
+             x:DataType="rec:RecordStartViewModel"
+             Width="{StaticResource DialogWidth}">
+  <Border Classes="dialog">
+    <StackPanel Spacing="{StaticResource Space4}">
+      <StackPanel Spacing="{StaticResource Space1}">
+        <TextBlock Text="Record a test" Classes="page" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="The engine opens a browser at the start address. Use the application there as a person would; each click, entry and choice becomes a step." />
+      </StackPanel>
+
+      <Border x:Name="NoBrowser" Classes="notice warning" IsVisible="{Binding !HasBrowser}">
+        <SelectableTextBlock Text="{Binding NoBrowser}" TextWrapping="Wrap" />
+      </Border>
+
+      <StackPanel Spacing="{StaticResource Space1}">
+        <TextBlock Classes="heading" Text="Test name" />
+        <TextBox x:Name="TestNameBox" Text="{Binding TestName}" PlaceholderText="Add a to-do" />
+        <TextBlock x:Name="FileText" Text="{Binding FileText}" Classes="label" TextWrapping="Wrap" />
+        <TextBlock x:Name="NameError" Text="{Binding NameError}" Classes="small failed" TextWrapping="Wrap"
+                   IsVisible="{Binding NameError, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+
+      <StackPanel Spacing="{StaticResource Space1}">
+        <TextBlock Classes="heading" Text="Start at" />
+        <TextBox x:Name="StartUrlBox" Text="{Binding StartUrl}" PlaceholderText="/" />
+        <TextBlock Text="A path under the environment's address, such as /login, or a full address." Classes="label" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding StartUrlError}" Classes="small failed" TextWrapping="Wrap"
+                   IsVisible="{Binding StartUrlError, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource Space3}">
+        <StackPanel Grid.Column="0" Spacing="{StaticResource Space1}" IsVisible="{Binding HasEnvironments}">
+          <TextBlock Classes="heading" Text="Environment" />
+          <ComboBox x:Name="RecordEnvironment" ItemsSource="{Binding Environments}" SelectedItem="{Binding Environment}" HorizontalAlignment="Stretch" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Spacing="{StaticResource Space1}" IsVisible="{Binding HasLogins}">
+          <TextBlock Classes="heading" Text="Saved login" />
+          <ComboBox x:Name="RecordLogin" ItemsSource="{Binding Logins}" SelectedItem="{Binding Login}" HorizontalAlignment="Stretch"
+                    ToolTip.Tip="Start already signed in with a saved login of the config." />
+        </StackPanel>
+      </Grid>
+
+      <TextBlock x:Name="RecordError" Text="{Binding Error}" Classes="failed" TextWrapping="Wrap"
+                 IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <DockPanel>
+        <ProgressBar DockPanel.Dock="Left" IsIndeterminate="True" Width="{StaticResource BusyBarWidth}" IsVisible="{Binding IsStarting}" VerticalAlignment="Center" />
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" HorizontalAlignment="Right">
+          <Button Content="Cancel" Command="{Binding CancelCommand}" />
+          <Button x:Name="StartRecordingButton" Content="Start recording" Classes="main" Command="{Binding StartCommand}" IsDefault="True" />
+        </StackPanel>
+      </DockPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

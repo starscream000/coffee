@@ -130,6 +130,9 @@
     <Panel Grid.Row="2">
       <views:StartPageView x:Name="StartPage" IsVisible="{Binding !IsProjectOpen}" />
       <views:WorkspaceView x:Name="WorkspacePanel" DataContext="{Binding Workspace}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsProjectOpen, FallbackValue=False}" />
+      <Border IsVisible="{Binding Workspace.IsRecordStartOpen, FallbackValue=False}" Classes="overlay">
+        <views:RecordStartView x:Name="RecordStartForm" DataContext="{Binding Workspace.RecordStart}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
       <Border IsVisible="{Binding IsNewProjectOpen}" Classes="overlay">
         <views:NewProjectView x:Name="NewProjectForm" DataContext="{Binding NewProject}" HorizontalAlignment="Center" VerticalAlignment="Center" />
       </Border>

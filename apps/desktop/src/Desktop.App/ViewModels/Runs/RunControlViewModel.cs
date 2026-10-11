@@ -18,13 +18,15 @@ namespace Desktop.App.ViewModels.Runs;
 /// <param name="ShowRun">Opens a run's tab.</param>
 /// <param name="ShowProblems">Shows the problems that stopped a run from starting.</param>
 /// <param name="Report">Writes a line into the engine log.</param>
+/// <param name="Blocked">Why runs wait, such as a recording going on; null when they need not.</param>
 public sealed record RunControlHost(
     Func<string?> Environment,
     Func<IReadOnlyList<string>> UnsavedFiles,
     Func<Task<bool>> SaveAll,
     Action<RunViewModel> ShowRun,
     Action<IReadOnlyList<Diagnostic>> ShowProblems,
-    Action<string> Report);
+    Action<string> Report,
+    Func<string?>? Blocked = null);
 
 /// <summary>Starts, follows and cancels runs.</summary>
 public sealed partial class RunControlViewModel : ObservableObject, IDisposable
@@ -150,6 +152,9 @@ public sealed partial class RunControlViewModel : ObservableObject, IDisposable
         _engine.StateChanged -= OnEngineStateChanged;
     }
 
+    /// <summary>Says again whether runs can start, after something the host decides on changed (see <see cref="RunControlHost.Blocked"/>).</summary>
+    public void Update() => Refresh();
+
     private async Task StartAsync(StartRunParams parameters, string what)
     {
         if (IsRunning)
@@ -273,7 +278,7 @@ public sealed partial class RunControlViewModel : ObservableObject, IDisposable
             ? "Running is off because the engine is not running."
             : browsers.Count == 0
                 ? $"Running is off because the engine cannot start a browser. Install Chromium for the engine with: {InstallCommand}"
-                : null;
+                : _host.Blocked?.Invoke();
         CanRun = UnavailableReason is null && !IsRunning;
         OnPropertyChanged(nameof(IsRunning));
         CancelCommand.NotifyCanExecuteChanged();

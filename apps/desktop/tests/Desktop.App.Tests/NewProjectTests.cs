@@ -114,7 +114,7 @@ public sealed class NewProjectTests
 
         workspace.RecordFirstTestCommand.Execute(null);
         Assert.False(workspace.OffersFirstRecording);
-        Assert.IsType<RecorderTabViewModel>(workspace.SelectedTab);
+        Assert.True(workspace.IsRecordStartOpen);
 
         // The next new project is offered beside this one.
         shell.ShowNewProjectCommand.Execute(null);

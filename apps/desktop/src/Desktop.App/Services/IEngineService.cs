@@ -85,6 +85,18 @@ public interface IEngineService
     /// <exception cref="EngineRequestException"><c>StepFilesInvalid</c>, <c>RunInProgress</c>, or invalid params (no browser).</exception>
     Task<StartRunResult> StartRunAsync(StartRunParams parameters, CancellationToken cancellationToken = default);
 
+    /// <summary>Sends <c>startRecording</c>; the steps arrive as recording events.</summary>
+    /// <param name="parameters">The file, start address, environment, login and name.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>The recording's id and file.</returns>
+    Task<StartRecordingResult> StartRecordingAsync(StartRecordingParams parameters, CancellationToken cancellationToken = default);
+
+    /// <summary>Sends <c>stopRecording</c>.</summary>
+    /// <param name="recordingId">The recording.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>The file and its number of steps.</returns>
+    Task<StopRecordingResult> StopRecordingAsync(string recordingId, CancellationToken cancellationToken = default);
+
     /// <summary>Sends <c>cancelRun</c>.</summary>
     /// <param name="runId">The run.</param>
     /// <param name="cancellationToken">Stops waiting.</param>

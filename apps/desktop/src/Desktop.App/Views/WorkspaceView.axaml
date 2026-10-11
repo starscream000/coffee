@@ -12,6 +12,7 @@
              xmlns:services="using:Desktop.App.Services"
              xmlns:views="using:Desktop.App.Views"
              xmlns:runs="using:Desktop.App.ViewModels.Runs"
+             xmlns:rec="using:Desktop.App.ViewModels.Recording"
              xmlns:steps="using:Desktop.App.ViewModels.Steps"
              xmlns:targets="using:Desktop.App.ViewModels.Targets"
              x:Class="Desktop.App.Views.WorkspaceView"
@@ -26,8 +27,8 @@
     <DataTemplate DataType="runs:RunTabViewModel">
       <views:RunTabView />
     </DataTemplate>
-    <DataTemplate DataType="vm:RecorderTabViewModel">
-      <views:RecorderTabView />
+    <DataTemplate DataType="rec:RecordingTabViewModel">
+      <views:RecordingTabView />
     </DataTemplate>
     <DataTemplate DataType="steps:StepFormViewModel">
       <views:StepFormView x:Name="StepForm" />

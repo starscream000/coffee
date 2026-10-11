@@ -240,6 +240,33 @@ types are written by hand and how they are kept honest:
 - The created project opens like any other and is added to the recent
   projects. A bar offers "Record your first test".
 
+## Recording
+
+- **Record** (top bar, and "Record your first test" for a new project) opens
+  a form: the test's name (its file is made from it, under `tests/`), where
+  the browser starts (a path under the environment's address, `/` by default,
+  or a full address; the protocol does not give the app the environments'
+  addresses), the environment, and a saved login. Without a browser it shows
+  the engine's install command instead of starting. A name whose file exists
+  is refused before asking; the engine's `FileExists` is shown by the name,
+  its other refusals below the form.
+- `startRecording` opens the engine's own visible browser; the app opens a
+  **Record tab** for the recording. `stepRecorded` adds a step card (action,
+  values in short, page), `stepChanged` replaces the card at its index (a
+  `fill` whose text grew), a step marked for review shows a mark and its
+  reason, and `recordingNotice`s are listed beside the steps under "Not
+  recorded". Events that overtake the answer to `startRecording` are kept and
+  applied once the tab exists. The recorded test is listed in the project
+  panel as soon as its first step is written.
+- **Stop** sends `stopRecording`; closing the browser ends the recording too.
+  On `recordingStopped` the tab says that the file holds what was recorded,
+  and offers Open test.
+- **Rules**: one recording at a time (Record shows the recording going on and
+  says so); no recording during a run, and runs wait while recording (the
+  reason is the bar above the panels); a recording's tab cannot be closed
+  while it records. If the engine stops mid-recording, the tab says that what
+  was recorded is kept in the file, with the number of steps.
+
 ## Files
 
 - **New ▾ → Test, Flow, Targets file** (in the project panel) ask for a folder

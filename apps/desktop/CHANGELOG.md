@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Recording (instruction D0004, tasks 14, 15 and 17). Record asks for the
+  test's name, start address, environment and saved login, or shows the
+  engine's install command when there is no browser. The Record tab shows the
+  steps as cards as they arrive, a step that changes updated in place, review
+  marks with their reason, and what was not recorded beside them. Stop, or
+  closing the browser, ends the recording. One recording at a time, none
+  during a run, and runs wait while recording; if the engine stops, the tab
+  says what was kept.
 - New projects (instruction D0004, tasks 12 and 13): the start page offers New
   project and Open project beside the recent projects and the engine's state.
   The New project form asks for the name, the folder, the address of the
@@ -52,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Record replaces the placeholder tab that said recording would come later.
 - New test, New flow and New targets file are in the Project panel's New ▾
   menu; Validate and Save all are in the project ▾ menu.
 - Revert, Rename and Delete of a file are in its tab's File ▾ menu.
