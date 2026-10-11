@@ -38,6 +38,8 @@ public static class ProtocolTypes
             ["request.shutdown.result"] = typeof(NullResult),
             ["request.openProject.params"] = typeof(OpenProjectParams),
             ["request.openProject.result"] = typeof(OpenProjectResult),
+            ["request.createProject.params"] = typeof(CreateProjectParams),
+            ["request.createProject.result"] = typeof(OpenProjectResult),
             ["request.listTests.params"] = typeof(ListTestsParams),
             ["request.listTests.result"] = typeof(ListTestsResult),
             ["request.listActions.params"] = typeof(EmptyParams),
@@ -50,6 +52,12 @@ public static class ProtocolTypes
             ["request.cancelRun.result"] = typeof(NullResult),
             ["request.openSnapshot.params"] = typeof(OpenSnapshotParams),
             ["request.openSnapshot.result"] = typeof(NullResult),
+            ["request.startRecording.params"] = typeof(StartRecordingParams),
+            ["request.startRecording.result"] = typeof(StartRecordingResult),
+            ["request.stopRecording.params"] = typeof(RecordingParams),
+            ["request.stopRecording.result"] = typeof(StopRecordingResult),
+            ["request.verifyRecording.params"] = typeof(RecordingParams),
+            ["request.verifyRecording.result"] = typeof(StartRunResult),
         };
         foreach (var (method, type) in EngineEvents.ByMethod)
         {

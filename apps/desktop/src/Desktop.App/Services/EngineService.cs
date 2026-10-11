@@ -38,6 +38,7 @@ public sealed class EngineService : IEngineService, IAsyncDisposable
         _session.ProblemReported += (_, problem) =>
             Log(EngineLogSource.Protocol, problem.Excerpt is null ? problem.Message : $"{problem.Message} [{problem.Excerpt}]");
         _session.EventReceived += (_, e) => _dispatcher.Post(() => EventReceived?.Invoke(this, e));
+        _session.RecordingEventReceived += (_, e) => _dispatcher.Post(() => RecordingEventReceived?.Invoke(this, e));
     }
 
     /// <inheritdoc />
@@ -48,6 +49,9 @@ public sealed class EngineService : IEngineService, IAsyncDisposable
 
     /// <inheritdoc />
     public event EventHandler<EngineEvent>? EventReceived;
+
+    /// <inheritdoc/>
+    public event EventHandler<RecordingEvent>? RecordingEventReceived;
 
     /// <summary>This app's version, sent to the engine in <c>initialize</c>.</summary>
     public static string AppVersion =>

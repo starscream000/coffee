@@ -16,6 +16,8 @@ public static class Methods
     public const string Shutdown = "shutdown";
     /// <summary>Opens a project folder.</summary>
     public const string OpenProject = "openProject";
+    /// <summary>Creates a project in an empty or new folder and opens it.</summary>
+    public const string CreateProject = "createProject";
     /// <summary>Lists the project's tests.</summary>
     public const string ListTests = "listTests";
     /// <summary>Lists built-in and user actions.</summary>
@@ -28,10 +30,19 @@ public static class Methods
     public const string CancelRun = "cancelRun";
     /// <summary>Shows a step's saved page state in a test browser.</summary>
     public const string OpenSnapshot = "openSnapshot";
+    /// <summary>Opens the recording browser and records a new test.</summary>
+    public const string StartRecording = "startRecording";
+    /// <summary>Stops a recording.</summary>
+    public const string StopRecording = "stopRecording";
+    /// <summary>Runs a stopped recording with the normal runner.</summary>
+    public const string VerifyRecording = "verifyRecording";
 
-    /// <summary>Every method, in the order of docs/protocol.md.</summary>
+    /// <summary>Every method, in the order of the protocol's schemas.</summary>
     public static IReadOnlyList<string> All { get; } =
-        [Initialize, Shutdown, OpenProject, ListTests, ListActions, Validate, StartRun, CancelRun, OpenSnapshot];
+    [
+        Initialize, Shutdown, OpenProject, CreateProject, ListTests, ListActions, Validate, StartRun, CancelRun,
+        OpenSnapshot, StartRecording, StopRecording, VerifyRecording,
+    ];
 }
 
 /// <summary>Parameters of a request that takes none (<c>shutdown</c>, <c>listActions</c>).</summary>
@@ -71,6 +82,8 @@ public sealed record EngineCapabilities
 {
     /// <summary>Browsers the engine can run; empty when it cannot launch any yet.</summary>
     public required IReadOnlyList<string> Browsers { get; init; }
+    /// <summary>The command that installs the browser; present only while <see cref="Browsers"/> is empty.</summary>
+    public string? InstallCommand { get; init; }
 }
 
 /// <summary>Result of <c>initialize</c>.</summary>
@@ -106,6 +119,19 @@ public sealed record OpenProjectResult
     public required IReadOnlyList<string> Logins { get; init; }
     /// <summary>Config and user-action problems.</summary>
     public required IReadOnlyList<Diagnostic> Diagnostics { get; init; }
+}
+
+/// <summary>Parameters of <c>createProject</c>; its result is an <see cref="OpenProjectResult"/>.</summary>
+public sealed record CreateProjectParams
+{
+    /// <summary>The folder to create the project in: empty, or not there yet.</summary>
+    public required string Root { get; init; }
+    /// <summary>The project's name.</summary>
+    public required string Name { get; init; }
+    /// <summary>The first environment's base address, such as <c>http://localhost:5173</c>.</summary>
+    public required string BaseUrl { get; init; }
+    /// <summary>The first environment's name; <c>local</c> when absent.</summary>
+    public string? Environment { get; init; }
 }
 
 /// <summary>Parameters of <c>listTests</c>.</summary>
@@ -241,4 +267,44 @@ public sealed record OpenSnapshotParams
     public required string TestId { get; init; }
     /// <summary>The step.</summary>
     public required string StepId { get; init; }
+}
+
+/// <summary>Parameters of <c>startRecording</c>.</summary>
+public sealed record StartRecordingParams
+{
+    /// <summary>The test file to write, relative to the project root; it must not exist.</summary>
+    public required string File { get; init; }
+    /// <summary>A path under the environment's base address, or a full address; <c>/</c> when absent.</summary>
+    public string? StartUrl { get; init; }
+    /// <summary>Environment name; the config's default when absent.</summary>
+    public string? Environment { get; init; }
+    /// <summary>A saved login for the main page.</summary>
+    public string? Login { get; init; }
+    /// <summary>The test's name; made from the file name when absent.</summary>
+    public string? Name { get; init; }
+}
+
+/// <summary>Result of <c>startRecording</c>, once the recording browser is open.</summary>
+public sealed record StartRecordingResult
+{
+    /// <summary>The recording's identifier.</summary>
+    public required string RecordingId { get; init; }
+    /// <summary>The test file, relative to the project root.</summary>
+    public required string File { get; init; }
+}
+
+/// <summary>Parameters of <c>stopRecording</c> and <c>verifyRecording</c>.</summary>
+public sealed record RecordingParams
+{
+    /// <summary>The recording.</summary>
+    public required string RecordingId { get; init; }
+}
+
+/// <summary>Result of <c>stopRecording</c>.</summary>
+public sealed record StopRecordingResult
+{
+    /// <summary>The test file, relative to the project root.</summary>
+    public required string File { get; init; }
+    /// <summary>How many steps it holds.</summary>
+    public required int Steps { get; init; }
 }

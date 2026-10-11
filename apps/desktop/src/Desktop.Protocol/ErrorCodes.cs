@@ -45,6 +45,14 @@ public static class ErrorCodes
     public const string MessageTooLarge = nameof(MessageTooLarge);
     /// <summary>A snapshot exists but cannot be shown; <c>data.screenshot</c> has the screenshot.</summary>
     public const string SnapshotUnavailable = nameof(SnapshotUnavailable);
+    /// <summary><c>startRecording</c>, <c>startRun</c>, <c>openProject</c>, <c>createProject</c> or <c>verifyRecording</c> during a recording.</summary>
+    public const string RecordingInProgress = nameof(RecordingInProgress);
+    /// <summary><c>stopRecording</c> or <c>verifyRecording</c> with an unknown recording.</summary>
+    public const string RecordingNotFound = nameof(RecordingNotFound);
+    /// <summary><c>startRecording</c> with a file that exists.</summary>
+    public const string FileExists = nameof(FileExists);
+    /// <summary><c>createProject</c> in a folder that is not empty; the message names what is in it.</summary>
+    public const string FolderNotEmpty = nameof(FolderNotEmpty);
 
     /// <summary>Every error, from name to numeric code, in the order of the protocol's table.</summary>
     public static IReadOnlyList<KeyValuePair<string, int>> All { get; } =
@@ -64,6 +72,10 @@ public static class ErrorCodes
         new(SnapshotNotFound, -32008),
         new(MessageTooLarge, -32009),
         new(SnapshotUnavailable, -32010),
+        new(RecordingInProgress, -32011),
+        new(RecordingNotFound, -32012),
+        new(FileExists, -32013),
+        new(FolderNotEmpty, -32014),
     ];
 
     /// <summary>Finds the name of a numeric error code.</summary>

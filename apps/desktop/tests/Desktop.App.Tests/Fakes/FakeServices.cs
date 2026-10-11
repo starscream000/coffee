@@ -97,6 +97,8 @@ internal sealed class FakeEngineService : IEngineService
 
     public event EventHandler<EngineEvent>? EventReceived;
 
+    public event EventHandler<RecordingEvent>? RecordingEventReceived;
+
     public EngineState State { get; set; } = EngineState.Stopped;
 
     public InitializeResult? Info { get; set; }
@@ -129,11 +131,19 @@ internal sealed class FakeEngineService : IEngineService
         Diagnostics = diagnostics,
     };
 
+    /// <summary>The install command the fake engine sends while no browser is installed.</summary>
+    public const string EngineInstallCommand = "npx playwright@1.64.0 install chromium";
+
     public static InitializeResult ReadyInfo(params string[] browsers) => new()
     {
         ProtocolVersion = Protocol.ProtocolVersion.Current,
         Engine = new SoftwareInfo { Name = "fake", Version = "1.0.0" },
-        Capabilities = new EngineCapabilities { Browsers = browsers },
+        // Like the engine (protocol 0.1.1), the install command comes only while no browser is installed.
+        Capabilities = new EngineCapabilities
+        {
+            Browsers = browsers,
+            InstallCommand = browsers.Length == 0 ? EngineInstallCommand : null,
+        },
     };
 
     public void SetState(EngineState state, Exception? failure = null)
@@ -147,6 +157,8 @@ internal sealed class FakeEngineService : IEngineService
     public void Log(string text) => LogLine?.Invoke(this, new EngineLogLine(DateTimeOffset.Now, EngineLogSource.Stderr, text));
 
     public void Raise(EngineEvent engineEvent) => EventReceived?.Invoke(this, engineEvent);
+
+    public void Raise(RecordingEvent recordingEvent) => RecordingEventReceived?.Invoke(this, recordingEvent);
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {

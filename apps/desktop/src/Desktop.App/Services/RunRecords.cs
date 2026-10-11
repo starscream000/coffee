@@ -187,7 +187,8 @@ public sealed class DiskRunRecords : IRunRecords
             return message.ValueKind == JsonValueKind.Object
                 && message.TryGetProperty("method", out var method) && method.ValueKind == JsonValueKind.String
                 && message.TryGetProperty("params", out var parameters) && parameters.ValueKind == JsonValueKind.Object
-                ? EngineEvents.Read(method.GetString()!, parameters.Clone())
+                // A run folder holds a run's events only.
+                ? EngineEvents.Read(method.GetString()!, parameters.Clone()) as EngineEvent
                 : null;
         }
         catch (JsonException)

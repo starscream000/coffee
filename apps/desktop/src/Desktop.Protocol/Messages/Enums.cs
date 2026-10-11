@@ -32,6 +32,30 @@ public enum StepSection
     After,
 }
 
+/// <summary>How a recording ended.</summary>
+[JsonConverter(typeof(ProtocolEnumConverter<RecordingStopReason>))]
+public enum RecordingStopReason
+{
+    /// <summary>A value this client does not know.</summary>
+    Unknown = 0,
+    /// <summary><c>stopRecording</c> stopped it.</summary>
+    Stopped,
+    /// <summary>The person closed the recording browser.</summary>
+    BrowserClosed,
+}
+
+/// <summary>Outcome of a recording's verify run.</summary>
+[JsonConverter(typeof(ProtocolEnumConverter<VerifyOutcome>))]
+public enum VerifyOutcome
+{
+    /// <summary>A value this client does not know.</summary>
+    Unknown = 0,
+    /// <summary>Every step passed: the recording runs.</summary>
+    Passed,
+    /// <summary>A step failed.</summary>
+    Failed,
+}
+
 /// <summary>Outcome of a test or of a whole run.</summary>
 [JsonConverter(typeof(ProtocolEnumConverter<RunOutcome>))]
 public enum RunOutcome

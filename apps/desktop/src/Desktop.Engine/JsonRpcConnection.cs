@@ -45,8 +45,11 @@ public sealed class JsonRpcConnection : IAsyncDisposable
         _writer = new MessageLineWriter(transport.Output);
     }
 
-    /// <summary>An event (a notification) arrived.</summary>
+    /// <summary>A run's event (a notification) arrived.</summary>
     public event EventHandler<EngineEvent>? EventReceived;
+
+    /// <summary>A recording's event (a notification) arrived.</summary>
+    public event EventHandler<RecordingEvent>? RecordingEventReceived;
 
     /// <summary>The engine sent something the connection could not use; the session goes on.</summary>
     public event EventHandler<ProtocolProblem>? ProblemReported;
@@ -260,11 +263,11 @@ public sealed class JsonRpcConnection : IAsyncDisposable
 
     private void HandleNotification(JsonRpcNotification notification, byte[] bytes)
     {
-        EngineEvent engineEvent;
+        ProtocolEvent protocolEvent;
         try
         {
             var parameters = notification.Params ?? ProtocolJson.ToElement(EmptyParams.Instance);
-            engineEvent = EngineEvents.Read(notification.Method, parameters);
+            protocolEvent = EngineEvents.Read(notification.Method, parameters);
         }
         catch (JsonException ex)
         {
@@ -274,7 +277,15 @@ public sealed class JsonRpcConnection : IAsyncDisposable
 
         try
         {
-            EventReceived?.Invoke(this, engineEvent);
+            switch (protocolEvent)
+            {
+                case RecordingEvent recordingEvent:
+                    RecordingEventReceived?.Invoke(this, recordingEvent);
+                    break;
+                case EngineEvent engineEvent:
+                    EventReceived?.Invoke(this, engineEvent);
+                    break;
+            }
         }
         catch (Exception ex)
         {

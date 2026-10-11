@@ -22,7 +22,7 @@ public static partial class ProtocolVersion
     /// <c>initialize</c>; must equal the version in the titles of the JSON
     /// Schema files (a contract test checks it).
     /// </summary>
-    public const string Current = "0.1.0";
+    public const string Current = "0.1.1";
 
     /// <summary>
     /// Splits a version of the form <c>major.minor.patch</c>.

@@ -1,12 +1,16 @@
-// The events the engine sends during a run (docs/protocol.md, "Events"). Every
-// event carries runId and seq; seq grows by one per event within a run.
+// The events the engine sends (docs/protocol.md, "Events"). A run's events
+// carry runId and seq (seq grows by one per event within a run); a
+// recording's events carry recordingId instead.
 
 using System.Text.Json;
 
 namespace Desktop.Protocol.Messages;
 
-/// <summary>Base of every engine event.</summary>
-public abstract record EngineEvent
+/// <summary>Base of every event the engine sends: a run's, or a recording's.</summary>
+public abstract record ProtocolEvent;
+
+/// <summary>Base of every event of a run.</summary>
+public abstract record EngineEvent : ProtocolEvent
 {
     /// <summary>The run the event belongs to.</summary>
     public required string RunId { get; init; }
@@ -141,6 +145,14 @@ public sealed record StepSkippedEvent : EngineEvent
     public required string Message { get; init; }
     /// <summary>The variable that was never set, for <see cref="StepSkipReason.VariableNotSet"/>.</summary>
     public string? Variable { get; init; }
+    /// <summary>The step's section, when no <c>stepStarted</c> was sent for it.</summary>
+    public StepSection? Section { get; init; }
+    /// <summary>The action, when no <c>stepStarted</c> was sent for the step.</summary>
+    public string? Action { get; init; }
+    /// <summary>The step's title, when no <c>stepStarted</c> was sent for it.</summary>
+    public string? Title { get; init; }
+    /// <summary>The step's place in its file, when no <c>stepStarted</c> was sent for it.</summary>
+    public Location? Location { get; init; }
 }
 
 /// <summary><c>screenshotReady</c>: a step's screenshot was saved.</summary>
@@ -247,6 +259,92 @@ public sealed record RunFinishedEvent : EngineEvent
     public required RunTotals Totals { get; init; }
 }
 
+/// <summary>Base of every event of a recording.</summary>
+public abstract record RecordingEvent : ProtocolEvent
+{
+    /// <summary>The recording the event belongs to.</summary>
+    public required string RecordingId { get; init; }
+}
+
+/// <summary>A recorded step in the canonical long form, as the file holds it.</summary>
+public sealed record RecordedStep
+{
+    /// <summary>The action, such as <c>click</c>.</summary>
+    public required string Action { get; init; }
+    /// <summary>The step's parameters in the long form.</summary>
+    public required JsonElement Params { get; init; }
+    /// <summary>The page it acts on, when not <c>main</c>.</summary>
+    public string? Page { get; init; }
+    /// <summary>The name of the tab it opens.</summary>
+    public string? Opens { get; init; }
+}
+
+/// <summary><c>recordingStarted</c>: the recording browser is open at the start address.</summary>
+public sealed record RecordingStartedEvent : RecordingEvent
+{
+    /// <summary>The test file, relative to the project root.</summary>
+    public required string File { get; init; }
+    /// <summary>The start address as given.</summary>
+    public required string StartUrl { get; init; }
+}
+
+/// <summary><c>stepRecorded</c>: a step was added.</summary>
+public sealed record StepRecordedEvent : RecordingEvent
+{
+    /// <summary>The step's place in the file's <c>steps</c> (0 is the first <c>goto</c>).</summary>
+    public required int Index { get; init; }
+    /// <summary>The step.</summary>
+    public required RecordedStep Step { get; init; }
+    /// <summary>The targets the step made, by name, as the file holds them.</summary>
+    public required IReadOnlyDictionary<string, JsonElement> Targets { get; init; }
+    /// <summary>Why the step is marked for review, when it is.</summary>
+    public string? Review { get; init; }
+}
+
+/// <summary><c>stepChanged</c>: a step changed (a fill's text, or <c>opens</c> added).</summary>
+public sealed record StepChangedEvent : RecordingEvent
+{
+    /// <summary>The step's place in the file's <c>steps</c>.</summary>
+    public required int Index { get; init; }
+    /// <summary>The step as it is now.</summary>
+    public required RecordedStep Step { get; init; }
+    /// <summary>Why the step is marked for review, when it is.</summary>
+    public string? Review { get; init; }
+}
+
+/// <summary><c>recordingNotice</c>: something the recorder saw and did not record.</summary>
+public sealed record RecordingNoticeEvent : RecordingEvent
+{
+    /// <summary>What kind of thing it was, such as <c>drag</c>; an open set.</summary>
+    public required string Kind { get; init; }
+    /// <summary>What it saw, for people.</summary>
+    public required string Message { get; init; }
+    /// <summary>The page it happened on.</summary>
+    public required string Page { get; init; }
+    /// <summary>The page's address.</summary>
+    public required string Url { get; init; }
+}
+
+/// <summary><c>recordingStopped</c>: the recording ended; the file holds what was recorded.</summary>
+public sealed record RecordingStoppedEvent : RecordingEvent
+{
+    /// <summary>The test file, relative to the project root.</summary>
+    public required string File { get; init; }
+    /// <summary>How it ended.</summary>
+    public required RecordingStopReason Reason { get; init; }
+    /// <summary>How many steps the file holds.</summary>
+    public required int Steps { get; init; }
+}
+
+/// <summary><c>recordingVerified</c>: the verify run of a recording ended.</summary>
+public sealed record RecordingVerifiedEvent : RecordingEvent
+{
+    /// <summary>The verify run.</summary>
+    public required string RunId { get; init; }
+    /// <summary>Whether every step passed.</summary>
+    public required VerifyOutcome Status { get; init; }
+}
+
 /// <summary>
 /// An event this client does not know, from a newer engine. Clients must
 /// ignore unknown events; it is passed on so that it can be logged.
@@ -278,6 +376,12 @@ public static class EngineEvents
         ["testSkipped"] = typeof(TestSkippedEvent),
         ["testFinished"] = typeof(TestFinishedEvent),
         ["runFinished"] = typeof(RunFinishedEvent),
+        ["recordingStarted"] = typeof(RecordingStartedEvent),
+        ["stepRecorded"] = typeof(StepRecordedEvent),
+        ["stepChanged"] = typeof(StepChangedEvent),
+        ["recordingNotice"] = typeof(RecordingNoticeEvent),
+        ["recordingStopped"] = typeof(RecordingStoppedEvent),
+        ["recordingVerified"] = typeof(RecordingVerifiedEvent),
     };
 
     /// <summary>
@@ -288,11 +392,11 @@ public static class EngineEvents
     /// <param name="parameters">The notification's params.</param>
     /// <returns>The event.</returns>
     /// <exception cref="JsonException">A known event whose fields do not fit its type.</exception>
-    public static EngineEvent Read(string method, JsonElement parameters)
+    public static ProtocolEvent Read(string method, JsonElement parameters)
     {
         if (ByMethod.TryGetValue(method, out var type))
         {
-            return (EngineEvent)(parameters.Deserialize(type, Json.ProtocolJson.Options)
+            return (ProtocolEvent)(parameters.Deserialize(type, Json.ProtocolJson.Options)
                 ?? throw new JsonException($"Event {method} has null params."));
         }
 

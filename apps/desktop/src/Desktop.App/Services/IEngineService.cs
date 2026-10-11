@@ -19,6 +19,9 @@ public interface IEngineService
     /// <summary>The engine sent a run event.</summary>
     event EventHandler<EngineEvent>? EventReceived;
 
+    /// <summary>A recording's event arrived, on the user-interface thread.</summary>
+    event EventHandler<RecordingEvent>? RecordingEventReceived;
+
     /// <summary>The engine's state.</summary>
     EngineState State { get; }
 
