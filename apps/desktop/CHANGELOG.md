@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The project panel lists everything in the project, in groups (instruction
+  D0004, task 18): tests, flows, shared targets files and the config file.
+  Each group but the config has "+ New"; selecting a file in any group opens
+  it, and a bar at the bottom of the panel renames or deletes it.
 - The check of a recording (instruction D0004, task 16): when a recording
   ends, the app runs the test once by itself (`verifyRecording`) and follows
   it as a run, kept in the run history. The Record tab says "This test runs",
@@ -67,8 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Record replaces the placeholder tab that said recording would come later.
-- New test, New flow and New targets file are in the Project panel's New ▾
-  menu; Validate and Save all are in the project ▾ menu.
+- New test, New flow and New targets file are each group's "+ New" in the
+  Project panel; Validate and Save all are in the project ▾ menu.
 - Revert, Rename and Delete of a file are in its tab's File ▾ menu.
 - The reason runs are off (no engine, no browser) is a bar above the regions.
 

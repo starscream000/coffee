@@ -103,8 +103,12 @@ types are written by hand and how they are kept honest:
     test, the selected tests, a tag, all tests; "Show the browser"; off until
     the engine reports a browser in `capabilities.browsers`), and the engine's
     state ● (its detail and Restart engine);
-  - left, **Project**: the test explorer (folders and test files; search;
-    tags) and New ▾ (test, flow, targets file);
+  - left, **Project**: everything in the project, in groups: **Tests** (the
+    test explorer: folders and test files; search; tags), **Flows**,
+    **Targets** (the shared targets files, found on disk) and **Config**.
+    Each group but Config has "+ New". Selecting a file in any group opens it
+    and makes it the panel's one selection, which a bar at the bottom of the
+    panel offers to rename or delete; the config file keeps its name;
   - centre: tabs for open step files, runs and the action catalogue. A step
     file's tab switches between three views of the same file: **Steps**,
     **Targets** and **Text**. The text view is an editor
@@ -277,7 +281,7 @@ types are written by hand and how they are kept honest:
 
 ## Files
 
-- **New ▾ → Test, Flow, Targets file** (in the project panel) ask for a folder
+- **+ New** in the project panel's Tests, Flows and Targets groups asks for a folder
   and a name (a test goes to the folder selected in the explorer by default;
   flows to `flows`, targets files to `targets`), add the kind's ending, refuse
   paths outside the project and existing files, write a minimal file the
