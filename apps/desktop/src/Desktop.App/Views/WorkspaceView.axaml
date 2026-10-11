@@ -33,6 +33,9 @@
     <DataTemplate DataType="steps:StepFormViewModel">
       <views:StepFormView x:Name="StepForm" />
     </DataTemplate>
+    <DataTemplate DataType="steps:TestSettingsViewModel">
+      <views:TestSettingsView x:Name="TestSettings" />
+    </DataTemplate>
     <DataTemplate DataType="targets:TargetsEditorViewModel">
       <views:TargetFormView x:Name="TargetForm" />
     </DataTemplate>

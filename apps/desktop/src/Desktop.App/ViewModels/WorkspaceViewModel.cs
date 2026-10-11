@@ -281,7 +281,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         var tab = Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == file);
         if (tab is null)
         {
-            tab = new StepFileViewModel(file, new StepFileServices(Root, _files, _engine, _dialogs, _delay, EngineStatus.Report, RunFileAsync, ActionChoices, SharedTargets, RenameFileAsync, DeleteFileAsync));
+            tab = new StepFileViewModel(file, new StepFileServices(Root, _files, _engine, _dialogs, _delay, EngineStatus.Report, RunFileAsync, ActionChoices, SharedTargets, RenameFileAsync, DeleteFileAsync, Flows));
             tab.LoadFromDisk();
             Attach(tab);
         }
@@ -1041,6 +1041,11 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         [.. Actions.All.Select(a => new StepActionChoice(a.Name, a.Description, a.Action.Shorthand, [.. a.Parameters.Where(p => p.IsRequired).Select(p => p.Name)], a.Action.ParamsSchema))];
 
     /// <summary>The names of the targets in the project's shared targets files, as the files are now (open tabs included).</summary>
+    /// <summary>The project's flows, each read from its open tab when it has one (unsaved text included), else from disk.</summary>
+    private FlowSource Flows() => new(
+        _files.FindFiles(Root, NewFiles.Ending(NewFileKind.Flow)),
+        path => FlowParams.Read(Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == path)?.Document.Text ?? _files.TryReadText(Root, path)));
+
     private IReadOnlyList<string> SharedTargets() =>
         [.. _files.FindFiles(Root, TargetNames.SharedFileEnding)
             .SelectMany(f => TargetNames.Of(Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == f)?.Document.Text ?? _files.TryReadText(Root, f) ?? string.Empty))];

@@ -66,9 +66,37 @@
                IsVisible="{Binding LoadError, Converter={x:Static ObjectConverters.IsNotNull}}" />
 
     <Panel>
-      <Panel IsVisible="{Binding IsStepsShown}">
+      <DockPanel IsVisible="{Binding IsStepsShown}">
+        <!-- The test itself: selecting it shows its name, tags and skip reason in the details panel -->
+        <Border x:Name="TestCard" DockPanel.Dock="Top" Classes="card step" Classes.selected="{Binding IsTestSelected}" Margin="{StaticResource InsetX3Y2}"
+                IsVisible="{Binding HasTestSettings}">
+          <Button x:Name="TestCardButton" Classes="row" Command="{Binding SelectTestCommand}" ToolTip.Tip="Edit the test's name, tags and skip reason">
+            <StackPanel Spacing="{StaticResource Space1}">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Left" Text="test" Classes="label" Margin="{StaticResource InsetRight2}" VerticalAlignment="Center" />
+                <ItemsControl DockPanel.Dock="Right" ItemsSource="{Binding TestSettings.TagList, FallbackValue={x:Null}}" VerticalAlignment="Center">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space1}" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <Border Classes="badge">
+                        <TextBlock Classes="small" Text="{Binding}" />
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding TestSettings.Name, FallbackValue=''}" Classes="strong" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+              </DockPanel>
+              <TextBlock Text="{Binding TestSettings.Skip, StringFormat='Skipped: {0}', FallbackValue=''}" Classes="small warning" TextWrapping="Wrap"
+                         IsVisible="{Binding TestSettings.IsSkipped, FallbackValue=False}" />
+            </StackPanel>
+          </Button>
+        </Border>
         <views:StepListView x:Name="StepList" DataContext="{Binding Steps}" />
-      </Panel>
+      </DockPanel>
       <Panel IsVisible="{Binding IsTargetsShown}">
         <views:TargetsEditorView x:Name="TargetsEditor" DataContext="{Binding Targets}" />
       </Panel>

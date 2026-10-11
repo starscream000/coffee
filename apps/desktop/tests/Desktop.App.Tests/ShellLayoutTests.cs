@@ -129,7 +129,7 @@ public sealed class ShellLayoutTests
 
         Assert.Equal(StepFileMode.Steps, tab.View);
         Assert.Null(workspace.Details);
-        Assert.Equal("Select a step to edit it here.", workspace.DetailsHint);
+        Assert.Equal("Select a step to edit it here, or the test itself for its name, tags and skip reason.", workspace.DetailsHint);
 
         tab.Steps!.SelectCommand.Execute(tab.Steps.Sections[1].Steps[3]);
         Assert.Contains(nameof(WorkspaceViewModel.Details), raised);

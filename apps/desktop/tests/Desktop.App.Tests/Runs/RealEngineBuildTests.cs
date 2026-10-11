@@ -111,8 +111,10 @@ public sealed class RealEngineBuildTests
             Assert.Equal("\"1\"", failed.ActualText);
             Assert.All(failing.Tests.Single().Sections.Single(s => s.Name == "after").Steps, s => Assert.Equal(StepRunState.Passed, s.State));
 
-            // Step 11: both runs are in the history.
-            for (var i = 0; i < 200 && workspace.History.Items.Count < 2; i++)
+            // Step 11: both runs are in the history. The history is read again when a run
+            // starts and when it ends; wait for the read after the end, not the one that
+            // still shows the second run going.
+            for (var i = 0; i < 200 && (workspace.History.Items.Count < 2 || workspace.History.Items.Any(h => h.IsLive)); i++)
             {
                 await Task.Delay(50);
             }

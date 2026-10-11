@@ -193,10 +193,32 @@ types are written by hand and how they are kept honest:
   changed keep their text, strings are quoted only when they must be, and
   emptying an optional field removes its key. A value that does not fit its
   field says why and writes nothing.
+- **A `call` step** picks its flow from the project's flows (the flow field
+  is a choice; a flow named that is not in the project is offered as well),
+  and shows the flow's declared parameters (`params`, read by
+  `StepFiles/FlowParams` from the flow's open tab or from disk) as fields
+  for `with`: text, number or yes/no, required when the flow gives no
+  default. The values are written back as one `with` mapping; choosing
+  another flow keeps only the new flow's parameters. A flow that cannot be
+  read, or a `with` that is not a mapping, leaves `with` as YAML and says
+  why.
 - The engine's problems on the step show next to the field whose key or value
   they point at (by line and column); the others, such as a missing
   parameter, are listed at the top of the form. An action the engine does not
   know keeps its values as YAML.
+
+## A test's settings
+
+- A test's steps view starts with a card for **the test itself**: its name,
+  tags and skip reason. Selecting it shows them as fields in the details panel
+  (`TestSettingsViewModel`); a field writes back when it loses focus.
+- Each change rewrites only its own top-level key (`StepFiles/RootKeys`): the
+  name keeps a comment at the end of its line, tags are written as
+  `[smoke, checkout]` (a list written one per line becomes one line), an empty
+  tags or skip field removes the key, and a new key goes after the name. The
+  text view's undo takes each change back in one step. An empty name is
+  refused and the old one kept.
+- Data rows, variables, pages and logins are edited in the Text view.
 
 ## The targets editor
 

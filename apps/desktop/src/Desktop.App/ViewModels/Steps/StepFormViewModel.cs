@@ -1,7 +1,9 @@
 // The form of the selected step: a field per parameter of its action (from the
 // action's parameter schema), its name, page and timeout, and the engine's
 // problems on its lines, next to the field they are about where possible. A
-// valid change rewrites the step's own lines at once.
+// valid change rewrites the step's own lines at once. A call step picks its
+// flow from the project's flows and shows the flow's parameters as fields
+// (instruction D0004, task 20).
 
 using System.Collections.ObjectModel;
 using Desktop.App.StepFiles;
@@ -22,6 +24,8 @@ public sealed class StepFormViewModel
     private readonly IReadOnlyList<KeyValuePair<YamlScalar, YamlNode>> _otherSettings;
     private readonly string _text;
     private readonly Action<string> _apply;
+    private readonly FlowSource? _flows;
+    private bool _withFromFlow;
 
     /// <summary>Creates the form.</summary>
     /// <param name="outline">The file.</param>
@@ -30,8 +34,10 @@ public sealed class StepFormViewModel
     /// <param name="targetNames">The targets the picker offers.</param>
     /// <param name="diagnostics">The file's problems.</param>
     /// <param name="apply">Puts the step's new text (without indentation) in place of its lines.</param>
-    public StepFormViewModel(StepOutline outline, StepOutlineItem step, StepActionChoice? action, IReadOnlyList<string> targetNames, IReadOnlyList<Diagnostic> diagnostics, Action<string> apply)
+    /// <param name="flows">The project's flows, for a <c>call</c> step; null to edit its parameters as the schema says.</param>
+    public StepFormViewModel(StepOutline outline, StepOutlineItem step, StepActionChoice? action, IReadOnlyList<string> targetNames, IReadOnlyList<Diagnostic> diagnostics, Action<string> apply, FlowSource? flows = null)
     {
+        _flows = flows;
         ArgumentNullException.ThrowIfNull(outline);
         ArgumentNullException.ThrowIfNull(step);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -65,7 +71,7 @@ public sealed class StepFormViewModel
         // which); the others, such as a missing parameter, are listed for the step.
         var lineStarts = LineStarts(outline.Text);
         var inStep = diagnostics.Where(d => d.Line >= step.Line && d.Line <= step.EndLine).ToList();
-        foreach (var field in Parameters.Concat(Settings))
+        foreach (var field in Parameters.Concat(FlowParameters).Concat(Settings))
         {
             var mine = inStep.Where(d => Offset(lineStarts, d) is var at && at >= field.Span.Start && at < Math.Max(field.Span.End, field.Span.Start + 1)).ToList();
             field.Problem = mine.Count == 0 ? null : string.Join(Environment.NewLine, mine.Select(Describe));
@@ -90,6 +96,15 @@ public sealed class StepFormViewModel
     /// <summary>The action's parameters.</summary>
     public ObservableCollection<StepFieldViewModel> Parameters { get; } = [];
 
+    /// <summary>A call step's <c>with</c>: a field per parameter of the chosen flow.</summary>
+    public ObservableCollection<StepFieldViewModel> FlowParameters { get; } = [];
+
+    /// <summary>True when the form shows a flow's parameters.</summary>
+    public bool HasFlowParameters => _withFromFlow;
+
+    /// <summary>What the form says about a call step's flow: none chosen, one that cannot be read, or one without parameters; null otherwise.</summary>
+    public string? FlowNote { get; private set; }
+
     /// <summary>The step's name, page and timeout.</summary>
     public ObservableCollection<StepFieldViewModel> Settings { get; } = [];
 
@@ -105,6 +120,12 @@ public sealed class StepFormViewModel
     public string Write()
     {
         var parameters = Parameters.Select(f => new StepValue(f.Name, f.ToYaml())).ToList();
+        if (_withFromFlow)
+        {
+            var at = parameters.FindIndex(p => p.Name == "flow");
+            parameters.Insert(at + 1, new StepValue("with", WriteWith()));
+        }
+
         var settings = _step.Settings.Select(s => s.Key.Value)
             .Concat(ShownSettings.Where(n => _step.Settings.All(s => s.Key.Value != n)))
             .Select(name => Settings.FirstOrDefault(f => f.Name == name) is { } field
@@ -158,6 +179,96 @@ public sealed class StepFormViewModel
         {
             Parameters.Add(Field(field, null, None, true, targetNames));
         }
+
+        if (_step.Action == "call" && _flows is not null)
+        {
+            BuildCall(_flows);
+        }
+    }
+
+    /// <summary>A call step: its flow picked from the project's flows, and the flow's parameters as fields for <c>with</c>.</summary>
+    private void BuildCall(FlowSource flows)
+    {
+        var at = Parameters.ToList().FindIndex(f => f.Name == "flow");
+        var flowSpan = at >= 0 ? Parameters[at].Span : None;
+        var current = (_step.Value as YamlMapping)?.Get("flow") as YamlScalar ?? (_step.Value as YamlScalar);
+        var path = current?.Value ?? string.Empty;
+        var choices = path.Length > 0 && !flows.Flows.Contains(path, StringComparer.Ordinal) ? [.. flows.Flows, path] : flows.Flows;
+        var flowField = Field(
+            new ParamField("flow", FieldKind.Choice, true, choices, "The flow to run, from the project's flows."),
+            current,
+            flowSpan,
+            true);
+        if (at >= 0)
+        {
+            Parameters[at] = flowField;
+        }
+        else
+        {
+            Parameters.Insert(0, flowField);
+        }
+
+        if (path.Length == 0)
+        {
+            FlowNote = "Choose a flow; its parameters then show here.";
+            return;
+        }
+
+        if (flows.ParamsOf(path) is not { } declared)
+        {
+            FlowNote = $"{path} cannot be read, so \"with\" is edited as YAML.";
+            return;
+        }
+
+        var withField = Parameters.FirstOrDefault(f => f.Name == "with");
+        var with = (_step.Value as YamlMapping)?.Get("with");
+        if (with is not (null or YamlMapping or YamlScalar { IsNull: true }))
+        {
+            FlowNote = "\"with\" is not a mapping of names and values, so it is edited as YAML.";
+            return;
+        }
+
+        if (withField is not null)
+        {
+            Parameters.Remove(withField);
+        }
+
+        _withFromFlow = true;
+        var entries = (with as YamlMapping)?.Entries ?? [];
+        foreach (var parameter in declared)
+        {
+            var entry = entries.FirstOrDefault(e => e.Key.Value == parameter.Name);
+            FlowParameters.Add(Field(parameter, entry.Value, entry.Key is { } key ? (key.Start, entry.Value.End) : None, true));
+        }
+
+        foreach (var extra in entries.Where(e => declared.All(d => d.Name != e.Key.Value)))
+        {
+            FlowParameters.Add(Field(new ParamField(extra.Key.Value, FieldKind.Yaml, false, [], "The flow does not declare this parameter."), extra.Value, (extra.Key.Start, extra.Value.End), false));
+        }
+
+        FlowNote = declared.Count == 0 ? "The flow has no parameters." : null;
+    }
+
+    /// <summary>The <c>with</c> of a call step from its fields, keeping only the chosen flow's parameters when the flow changed; null when nothing is given.</summary>
+    private string? WriteWith()
+    {
+        var flowField = Parameters.First(f => f.Name == "flow");
+        var keep = flowField.IsChanged && _flows?.ParamsOf(flowField.Value) is { } declared
+            ? declared.Select(d => d.Name).ToHashSet(StringComparer.Ordinal)
+            : null;
+        var values = FlowParameters
+            .Where(f => keep is null || keep.Contains(f.Name))
+            .Select(f => (f.Name, Yaml: f.ToYaml()))
+            .Where(v => v.Yaml is not null)
+            .ToList();
+        if (values.Count == 0)
+        {
+            return null;
+        }
+
+        return values.All(v => !v.Yaml!.Contains('\n'))
+            ? "{ " + string.Join(", ", values.Select(v => $"{v.Name}: {v.Yaml}")) + " }"
+            : string.Join('\n', values.Select(v => v.Yaml!.Contains('\n') ? $"{v.Name}:\n  " + v.Yaml.Replace("\n", "\n  ", StringComparison.Ordinal) : $"{v.Name}: {v.Yaml}"));
     }
 
     private StepFieldViewModel Field(ParamField field, YamlNode? node, (int Start, int End) span, bool isKnown, IReadOnlyList<string>? targetNames = null) =>
