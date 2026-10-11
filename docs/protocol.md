@@ -61,8 +61,11 @@
 - `1.0.0` is planned for the desktop app release (v0.3.0).
 - While the version is `0.x`, **compatible additions raise the patch number**
   ([ADR 0011](adr/0011-protocol-versioning.md), R11). The current version is
-  `0.1.1`: it adds recording (`startRecording`, `stopRecording`,
-  `verifyRecording` and their events) to `0.1.0`.
+  `0.1.1`. It adds to `0.1.0`: recording (`startRecording`, `stopRecording`,
+  `verifyRecording` and their events), `createProject`,
+  `capabilities.installCommand`, the optional `section`, `action`, `title` and
+  `location` of `stepSkipped`, and the error names `RecordingInProgress`,
+  `RecordingNotFound`, `FileExists` and `FolderNotEmpty`.
 
 Machine-readable definitions: every message is defined once, as a Zod schema in
 `@cfe/protocol` ([ADR 0020](adr/0020-protocol-as-zod-schemas.md)). The
@@ -146,6 +149,9 @@ client                                   engine
 must not assume any particular browser; they offer what is listed. An engine
 whose browser is not installed reports `[]`; `startRun` then fails with
 invalid params and a message that gives the command that installs it.
+`capabilities.installCommand` (since `0.1.1`) is that command, present only
+while `browsers` is empty, so a client can show it before any run:
+`{ "browsers": [], "installCommand": "npx playwright@1.64.0 install chromium" }`.
 
 ### `shutdown`
 
@@ -173,6 +179,38 @@ no environments. Opening a project loads user actions; naming and loading
 problems arrive as diagnostics. Only one project is open per engine process; opening another
 replaces it. Fails with `ProjectInvalid` if no config file is found, and with
 `RunInProgress` while a run is going: a run keeps its project until it ends.
+
+### `createProject`
+
+```jsonc
+// params
+{
+  "root": "C:/work/shop-tests",          // empty, or not there yet
+  "name": "Shop tests",
+  "baseUrl": "http://localhost:5173",
+  "environment": "local"                  // optional: the first environment's name, default "local"
+}
+// result: the same as openProject's, for the new project
+{
+  "root": "C:/work/shop-tests",
+  "configFile": "C:/work/shop-tests/cfe.config.yaml",
+  "environments": ["local"],
+  "defaultEnvironment": "local",
+  "logins": [],
+  "diagnostics": []
+}
+```
+
+Creates a project in a folder that is empty or does not exist yet, then opens
+it as `openProject` does. It writes a minimal valid config (the project's name
+in its first comment line, the default globs, one environment), creates the
+folders the config's globs name (`tests/`, `flows/`, `targets/`, `actions/`),
+and writes a `.gitignore` that leaves out the data folder and `.env`
+([step-format.md](step-format.md#a-new-project)). Fails with `FolderNotEmpty`,
+whose message names what is in the folder; with `-32602` invalid params for an
+empty name, a root that is a file, or a base URL or environment name the
+config would not accept; and, like `openProject`, with `RunInProgress` or
+`RecordingInProgress`.
 
 ### `listTests`
 
@@ -317,21 +355,21 @@ and `seq`, a number that increases by one per event within a run, so a client
 can detect gaps. Recording events carry `recordingId` instead, and arrive in
 order. Times are ISO 8601 UTC strings; durations are milliseconds.
 
-| Event             | Extra fields                                                                                                                  |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `runStarted`      | `env`, `browser`, `settings`: `{ viewport, locale, timezone }`, `startedAt`, `tests`: `{ testId, file, name, row?, skip? }[]` |
-| `testStarted`     | `testId`, `startedAt`                                                                                                         |
-| `stepStarted`     | `testId`, `stepId`, `parentStepId?`, `section` (`before`, `steps`, `after`), `action`, `params`, `page`, `title`, `location`  |
-| `stepPassed`      | `testId`, `stepId`, `durationMs`, `locators`: `LocatorUse[]`, `snapshot`: `SnapshotStatus`                                    |
-| `stepFailed`      | `testId`, `stepId`, `durationMs`, `error`: `ErrorInfo`, `locators`: `LocatorUse[]`, `snapshot`: `SnapshotStatus`              |
-| `stepSkipped`     | `testId`, `stepId`, `reason` (`previousFailure`, `cancelled`, `variableNotSet`), `message`, `variable?`                       |
-| `screenshotReady` | `testId`, `stepId`, `page`, `path`, `width`, `height`                                                                         |
-| `snapshotReady`   | `testId`, `stepId`, `page`                                                                                                    |
-| `pageOpened`      | `testId`, `stepId`, `page`, `automatic` (`true` when no step named it)                                                        |
-| `log`             | `level` (`debug`, `info`, `warn`, `error`), `message`, `code?`, `testId?`, `stepId?`, `location?`, `data?`                    |
-| `testSkipped`     | `testId`, `reason`: the test's `skip` text (sent instead of `testStarted` … `testFinished`)                                   |
-| `testFinished`    | `testId`, `status` (`passed`, `failed`, `cancelled`), `durationMs`                                                            |
-| `runFinished`     | `status`, `durationMs`, `totals`: `{ passed, failed, cancelled, skipped }`                                                    |
+| Event             | Extra fields                                                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `runStarted`      | `env`, `browser`, `settings`: `{ viewport, locale, timezone }`, `startedAt`, `tests`: `{ testId, file, name, row?, skip? }[]`                         |
+| `testStarted`     | `testId`, `startedAt`                                                                                                                                 |
+| `stepStarted`     | `testId`, `stepId`, `parentStepId?`, `section` (`before`, `steps`, `after`), `action`, `params`, `page`, `title`, `location`                          |
+| `stepPassed`      | `testId`, `stepId`, `durationMs`, `locators`: `LocatorUse[]`, `snapshot`: `SnapshotStatus`                                                            |
+| `stepFailed`      | `testId`, `stepId`, `durationMs`, `error`: `ErrorInfo`, `locators`: `LocatorUse[]`, `snapshot`: `SnapshotStatus`                                      |
+| `stepSkipped`     | `testId`, `stepId`, `reason` (`previousFailure`, `cancelled`, `variableNotSet`), `message`, `variable?`, `section?`, `action?`, `title?`, `location?` |
+| `screenshotReady` | `testId`, `stepId`, `page`, `path`, `width`, `height`                                                                                                 |
+| `snapshotReady`   | `testId`, `stepId`, `page`                                                                                                                            |
+| `pageOpened`      | `testId`, `stepId`, `page`, `automatic` (`true` when no step named it)                                                                                |
+| `log`             | `level` (`debug`, `info`, `warn`, `error`), `message`, `code?`, `testId?`, `stepId?`, `location?`, `data?`                                            |
+| `testSkipped`     | `testId`, `reason`: the test's `skip` text (sent instead of `testStarted` … `testFinished`)                                                           |
+| `testFinished`    | `testId`, `status` (`passed`, `failed`, `cancelled`), `durationMs`                                                                                    |
+| `runFinished`     | `status`, `durationMs`, `totals`: `{ passed, failed, cancelled, skipped }`                                                                            |
 
 Recording events:
 
@@ -360,6 +398,10 @@ Recording events:
   candidates no longer match; clients can show this as a target to refresh.
 - An unnamed new page produces `pageOpened` with `automatic: true` and a `log`
   event with level `warn`, code `UnnamedPage` and the step's `location`.
+- A step skipped **without a `stepStarted`** (after a failure, after a
+  cancellation, or an `after` step whose variable was never set) carries its
+  `section`, `action`, `title` and `location` in `stepSkipped`, so a client can
+  show it in its place.
 - An `after` step that uses a variable that was never set produces
   `stepSkipped` with reason `variableNotSet`, `variable` (the name) and
   `message` "skipped: orderNumber was never set". It is not a failure.
@@ -480,21 +522,22 @@ Standard JSON-RPC codes (`-32700` parse error, `-32600` invalid request,
 `-32601` method not found, `-32602` invalid params, `-32603` internal error)
 plus:
 
-| Code     | Name                   | When                                                                                |
-| -------- | ---------------------- | ----------------------------------------------------------------------------------- |
-| `-32001` | `NotInitialized`       | Any request before a successful `initialize`                                        |
-| `-32002` | `IncompatibleProtocol` | `initialize` with an incompatible version (then exit)                               |
-| `-32003` | `ProjectNotOpen`       | A project request before `openProject`                                              |
-| `-32004` | `ProjectInvalid`       | No or unreadable config file                                                        |
-| `-32005` | `StepFilesInvalid`     | `startRun` with validation errors (`data.diagnostics`)                              |
-| `-32006` | `RunInProgress`        | `startRun`, `openProject` or `startRecording` while a run is active                 |
-| `-32007` | `RunNotFound`          | `cancelRun` / `openSnapshot` with an unknown `runId`                                |
-| `-32008` | `SnapshotNotFound`     | `openSnapshot` for a step without a snapshot                                        |
-| `-32009` | `MessageTooLarge`      | A message over 4 MiB (see [Transport](#transport))                                  |
-| `-32010` | `SnapshotUnavailable`  | Snapshot exists but cannot be shown; `data.screenshot`                              |
-| `-32011` | `RecordingInProgress`  | `startRecording`, `startRun`, `openProject` or `verifyRecording` during a recording |
-| `-32012` | `RecordingNotFound`    | `stopRecording` / `verifyRecording` with an unknown `recordingId`                   |
-| `-32013` | `FileExists`           | `startRecording` with a file that exists                                            |
+| Code     | Name                   | When                                                                                 |
+| -------- | ---------------------- | ------------------------------------------------------------------------------------ |
+| `-32001` | `NotInitialized`       | Any request before a successful `initialize`                                         |
+| `-32002` | `IncompatibleProtocol` | `initialize` with an incompatible version (then exit)                                |
+| `-32003` | `ProjectNotOpen`       | A project request before `openProject`                                               |
+| `-32004` | `ProjectInvalid`       | No or unreadable config file                                                         |
+| `-32005` | `StepFilesInvalid`     | `startRun` with validation errors (`data.diagnostics`)                               |
+| `-32006` | `RunInProgress`        | `startRun`, `openProject`, `createProject` or `startRecording` while a run is active |
+| `-32007` | `RunNotFound`          | `cancelRun` / `openSnapshot` with an unknown `runId`                                 |
+| `-32008` | `SnapshotNotFound`     | `openSnapshot` for a step without a snapshot                                         |
+| `-32009` | `MessageTooLarge`      | A message over 4 MiB (see [Transport](#transport))                                   |
+| `-32010` | `SnapshotUnavailable`  | Snapshot exists but cannot be shown; `data.screenshot`                               |
+| `-32011` | `RecordingInProgress`  | `startRecording`, `startRun`, `openProject` or `verifyRecording` during a recording  |
+| `-32012` | `RecordingNotFound`    | `stopRecording` / `verifyRecording` with an unknown `recordingId`                    |
+| `-32013` | `FileExists`           | `startRecording` with a file that exists                                             |
+| `-32014` | `FolderNotEmpty`       | `createProject` in a folder that is not empty; the message names what is in it       |
 
 Error responses carry `error.data.name` (the name above) so clients can switch on
 names instead of numbers.

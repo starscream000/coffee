@@ -30,6 +30,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "installCommand": {
+          "type": "string"
         }
       },
       "required": [

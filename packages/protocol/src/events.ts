@@ -92,11 +92,18 @@ export const StepFailedEventSchema = stepScoped.extend({
 /** `stepFailed`. See {@link StepFailedEventSchema}. */
 export type StepFailedEvent = z.infer<typeof StepFailedEventSchema>;
 
-/** `stepSkipped`: a step did not run, and why. */
+/**
+ * `stepSkipped`: a step did not run, and why. `section`, `action`, `title` and
+ * `location` are filled when no `stepStarted` was sent for the step.
+ */
 export const StepSkippedEventSchema = stepScoped.extend({
   reason: z.enum(['previousFailure', 'cancelled', 'variableNotSet']),
   message: z.string(),
   variable: z.string().optional(),
+  section: z.enum(['before', 'steps', 'after']).optional(),
+  action: z.string().optional(),
+  title: z.string().optional(),
+  location: LocationSchema.optional(),
 });
 
 /** `stepSkipped`. See {@link StepSkippedEventSchema}. */

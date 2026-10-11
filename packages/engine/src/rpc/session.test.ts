@@ -16,13 +16,14 @@ class MemorySink implements LineSink {
   }
 }
 
-function setup() {
+function setup(capabilities: { browsers?: string[]; installCommand?: string } = {}) {
   const sink = new MemorySink();
   const exits: number[] = [];
   const errors: string[] = [];
   const session = new Session(new MessageWriter(sink), {
     engineInfo: { name: '@cfe/engine', version: '9.9.9', protocolVersion: PROTOCOL_VERSION },
-    browsers: [],
+    browsers: capabilities.browsers ?? [],
+    installCommand: capabilities.installCommand,
     exit: (code) => exits.push(code),
     logError: (message) => errors.push(message),
   });
@@ -53,6 +54,27 @@ describe('Session handshake', () => {
         },
       },
     ]);
+  });
+
+  it('sends the install command only while no browser is installed (desktop request R0005)', async () => {
+    const without = setup({ installCommand: 'npx playwright@1.64.0 install chromium' });
+    await without.initialize();
+    expect(without.sink.lines[0]).toMatchObject({
+      result: {
+        capabilities: { browsers: [], installCommand: 'npx playwright@1.64.0 install chromium' },
+      },
+    });
+    const installed = setup({
+      browsers: ['chromium'],
+      installCommand: 'npx playwright@1.64.0 install chromium',
+    });
+    await installed.initialize();
+    expect(installed.sink.lines[0]).toMatchObject({
+      result: { capabilities: { browsers: ['chromium'] } },
+    });
+    expect(
+      (installed.sink.lines[0]?.result as { capabilities: Record<string, unknown> }).capabilities,
+    ).not.toHaveProperty('installCommand');
   });
 
   it('refuses any request before initialize with NotInitialized', async () => {

@@ -1,0 +1,6 @@
+{
+  "root": "C:/work/shop-tests",
+  "name": "Shop tests",
+  "baseUrl": "http://localhost:5173",
+  "environment": "local"
+}

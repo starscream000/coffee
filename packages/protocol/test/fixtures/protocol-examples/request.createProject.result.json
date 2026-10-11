@@ -1,0 +1,8 @@
+{
+  "root": "C:/work/shop-tests",
+  "configFile": "C:/work/shop-tests/cfe.config.yaml",
+  "environments": ["local"],
+  "defaultEnvironment": "local",
+  "logins": [],
+  "diagnostics": []
+}

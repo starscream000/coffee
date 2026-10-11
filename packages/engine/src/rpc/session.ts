@@ -40,6 +40,8 @@ export interface SessionOptions {
   readonly engineInfo: EngineInfo;
   /** Browser names this engine can run (`capabilities.browsers`). */
   readonly browsers: readonly string[];
+  /** The command that installs the browser, sent when `browsers` is empty (`capabilities.installCommand`). */
+  readonly installCommand?: string | undefined;
   /** Ends the process; called after the last response has been written. */
   readonly exit: (code: number) => void;
   /** Reports unexpected handler errors to developers (stderr). */
@@ -289,7 +291,12 @@ export class Session {
     const result: InitializeResult = {
       protocolVersion: engineInfo.protocolVersion,
       engine: { name: engineInfo.name, version: engineInfo.version },
-      capabilities: { browsers: [...this.options.browsers] },
+      capabilities: {
+        browsers: [...this.options.browsers],
+        ...(this.options.browsers.length === 0 && this.options.installCommand !== undefined
+          ? { installCommand: this.options.installCommand }
+          : {}),
+      },
     };
     await this.writer.send({ jsonrpc: '2.0', id, result });
   }

@@ -71,6 +71,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `createProject` (protocol `0.1.1`): creates a project in an empty or new
+  folder (a minimal valid config with the project's name in its first comment
+  line, the folders its globs name, and a `.gitignore` for the data folder and
+  `.env`) and opens it; a folder that is not empty is refused with
+  `FolderNotEmpty`, naming what is in it.
+- `capabilities.installCommand` in the answer to `initialize` while no browser
+  is installed (desktop request R0005), and `section`, `action`, `title` and
+  `location` on a `stepSkipped` sent without a `stepStarted` (desktop request
+  R0006).
+
 - Recording over the protocol, which is now version `0.1.1` (compatible
   additions raise the patch number while `0.x`; ADR 0011): `startRecording`,
   `stopRecording`, `verifyRecording` and the events `recordingStarted`,

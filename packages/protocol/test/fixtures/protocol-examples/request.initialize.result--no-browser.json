@@ -1,0 +1,11 @@
+{
+  "protocolVersion": "0.1.1",
+  "engine": {
+    "name": "@cfe/engine",
+    "version": "0.1.0"
+  },
+  "capabilities": {
+    "browsers": [],
+    "installCommand": "npx playwright@1.64.0 install chromium"
+  }
+}
