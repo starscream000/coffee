@@ -8,6 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Protocol `0.1.1` in the app's C# types: the recording requests and events
+  (`startRecording`, `stopRecording`, `verifyRecording`, `recordingStarted`,
+  `stepRecorded`, `stepChanged`, `recordingNotice`, `recordingStopped`,
+  `recordingVerified`), `createProject`, `capabilities.installCommand`, the new
+  `stepSkipped` fields and the four new error names. A recording's events
+  arrive on their own `RecordingEventReceived`, apart from a run's. The
+  contract tests pass again.
+
+### Changed
+
+- The browser install command shown when the engine has no browser is the
+  engine's own (`capabilities.installCommand`, request R0005); the command for
+  a checkout of the repository remains only for an engine that does not send it.
+- A step the engine skipped without starting it (after a failure) is listed in
+  its place in the run view, as skipped, instead of in the test's messages
+  (request R0006).
+- Avalonia's build telemetry is off for every build of the app: its target is
+  replaced by an empty one in `Directory.Build.targets`.
+- The folder's documents say that one implementer now works on both tracks,
+  which stay separate.
+
+### Fixed
+
+- Review D0003, finding 1: paths from the engine (the run folder, screenshot
+  paths) are made native where they arrive and compared as paths, so the
+  real-browser run test passes on Windows too.
+
 ### Fixed
 
 - Review D0002, findings 1 to 5: opening the same project again moves the
