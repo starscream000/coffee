@@ -1,0 +1,30 @@
+{
+  "title": "event.recordingNotice (protocol 0.1.1)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "recordingId": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "page": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "recordingId",
+    "kind",
+    "message",
+    "page",
+    "url"
+  ],
+  "additionalProperties": {}
+}

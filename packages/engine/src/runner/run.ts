@@ -36,6 +36,9 @@ export interface EventChannel {
   send(line: string): void;
 }
 
+/** How a run ended, as `runFinished.status` says. */
+export type RunStatus = 'passed' | 'failed' | 'cancelled';
+
 /** How long `after` steps may run once a run is cancelled (docs/architecture.md). */
 export const CANCEL_LIMIT_MS = 30_000;
 
@@ -101,12 +104,17 @@ export class RunManager {
    *
    * @param project - The open project.
    * @param params - The request's parameters.
+   * @param onFinished - Called with the run's status after `runFinished` was sent.
    * @returns The run's id and folder.
    * @throws RpcError `RunInProgress`, `StepFilesInvalid` (with
    *   `data.diagnostics`), or `InvalidParams` for an unknown environment or
    *   browser, or a browser that is not installed.
    */
-  start(project: Project, params: StartRunParams): Promise<StartRunResult> {
+  start(
+    project: Project,
+    params: StartRunParams,
+    onFinished?: (status: RunStatus) => void,
+  ): Promise<StartRunResult> {
     if (this.current !== undefined) {
       throw new RpcError(
         'RunInProgress',
@@ -203,10 +211,15 @@ export class RunManager {
           cleanupFailures: pruned.failed,
           loginCleanupFailures: prunedLogins.failed,
           refreshLogins: params.options?.refreshLogins === true,
-        }).finally(() => {
-          this.current = undefined;
-          resolve();
-        });
+        })
+          .then((status) => {
+            this.current = undefined;
+            onFinished?.(status);
+          })
+          .finally(() => {
+            this.current = undefined;
+            resolve();
+          });
       });
     });
     this.current = { runId, cancel, done };
@@ -328,7 +341,7 @@ export class RunManager {
       loginCleanupFailures: LoginPruneResult['failed'];
       refreshLogins: boolean;
     },
-  ): Promise<void> {
+  ): Promise<RunStatus> {
     const { emit, profile } = run;
     const started = performance.now();
     // A name may use ${row.…}, so each data row has its own name.
@@ -439,10 +452,16 @@ export class RunManager {
     } finally {
       await browser?.close().catch(() => undefined);
     }
+    const status: RunStatus = run.cancel.aborted
+      ? 'cancelled'
+      : totals.failed > 0
+        ? 'failed'
+        : 'passed';
     emit('runFinished', {
-      status: run.cancel.aborted ? 'cancelled' : totals.failed > 0 ? 'failed' : 'passed',
+      status,
       durationMs: Math.round(performance.now() - started),
       totals,
     });
+    return status;
   }
 }

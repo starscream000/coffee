@@ -1,5 +1,5 @@
 {
-  "title": "error-data.StepFilesInvalid (protocol 0.1.0)",
+  "title": "error-data.StepFilesInvalid (protocol 0.1.1)",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {

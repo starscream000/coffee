@@ -1,0 +1,7 @@
+{
+  "file": "tests/add-todo.test.yaml",
+  "startUrl": "/todos",
+  "environment": "local",
+  "login": "customer",
+  "name": "Add a to-do"
+}

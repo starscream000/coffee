@@ -78,8 +78,7 @@ describe('Session handshake', () => {
       id: 1,
       error: {
         code: -32002,
-        message:
-          'This client speaks protocol 0.2.0 but the engine speaks 0.1.0. Update the engine to a version that supports protocol 0.2.',
+        message: `This client speaks protocol 0.2.0 but the engine speaks ${PROTOCOL_VERSION}. Update the engine to a version that supports protocol 0.2.`,
         data: {
           name: 'IncompatibleProtocol',
           clientProtocolVersion: '0.2.0',

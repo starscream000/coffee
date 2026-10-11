@@ -1,5 +1,5 @@
 {
-  "protocolVersion": "0.1.0",
+  "protocolVersion": "0.1.1",
   "engine": { "name": "@cfe/engine", "version": "0.1.0" },
   "capabilities": { "browsers": ["chromium"] }
 }

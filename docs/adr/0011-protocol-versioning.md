@@ -21,6 +21,13 @@ it.
   ([protocol.md](../protocol.md#handshake)).
 - Every protocol change updates `docs/protocol.md`, the JSON Schemas and
   `CHANGELOG.md` in the same branch.
+- **Compatible additions raise the patch number while the protocol is `0.x`**
+  (reviewer decision R11, instruction 0010, 2026-10-10). New methods, events
+  and optional fields make, for example, `0.1.0` into `0.1.1`. The
+  compatibility rule is unchanged (major and minor equal), so a `0.1.0` client
+  keeps working with a `0.1.1` engine. A change that may break raises the
+  minor number. The first such addition is `0.1.1`: recording and
+  `createProject`.
 
 ## Alternatives rejected
 

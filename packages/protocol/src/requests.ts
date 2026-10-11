@@ -186,6 +186,48 @@ export const OpenSnapshotParamsSchema = z.looseObject({
 /** Parameters of `openSnapshot`. See {@link OpenSnapshotParamsSchema}. */
 export type OpenSnapshotParams = z.infer<typeof OpenSnapshotParamsSchema>;
 
+// startRecording
+
+/** Parameters of `startRecording`: the test file to write and where to start (docs/recording.md). */
+export const StartRecordingParamsSchema = z.looseObject({
+  file: z.string(),
+  startUrl: z.string().optional(),
+  environment: z.string().optional(),
+  login: z.string().optional(),
+  name: z.string().optional(),
+});
+
+/** Parameters of `startRecording`. See {@link StartRecordingParamsSchema}. */
+export type StartRecordingParams = z.infer<typeof StartRecordingParamsSchema>;
+
+/** Result of `startRecording`, returned once the recording browser is open. */
+export const StartRecordingResultSchema = z.looseObject({
+  recordingId: z.string(),
+  file: z.string(),
+});
+
+/** Result of `startRecording`. See {@link StartRecordingResultSchema}. */
+export type StartRecordingResult = z.infer<typeof StartRecordingResultSchema>;
+
+// stopRecording
+
+/** Parameters of `stopRecording` and `verifyRecording`: which recording. */
+export const RecordingParamsSchema = z.looseObject({
+  recordingId: z.string(),
+});
+
+/** Parameters of `stopRecording` and `verifyRecording`. See {@link RecordingParamsSchema}. */
+export type RecordingParams = z.infer<typeof RecordingParamsSchema>;
+
+/** Result of `stopRecording`: the file and how many steps it holds. */
+export const StopRecordingResultSchema = z.looseObject({
+  file: z.string(),
+  steps: z.number().int().min(0),
+});
+
+/** Result of `stopRecording`. See {@link StopRecordingResultSchema}. */
+export type StopRecordingResult = z.infer<typeof StopRecordingResultSchema>;
+
 /**
  * Every request method with the schemas of its parameters and result.
  *
@@ -204,6 +246,9 @@ export const REQUESTS = {
   startRun: { params: StartRunParamsSchema, result: StartRunResultSchema },
   cancelRun: { params: CancelRunParamsSchema, result: NullResultSchema },
   openSnapshot: { params: OpenSnapshotParamsSchema, result: NullResultSchema },
+  startRecording: { params: StartRecordingParamsSchema, result: StartRecordingResultSchema },
+  stopRecording: { params: RecordingParamsSchema, result: StopRecordingResultSchema },
+  verifyRecording: { params: RecordingParamsSchema, result: StartRunResultSchema },
 } as const;
 
 /** Name of a request method, such as `"initialize"`. */

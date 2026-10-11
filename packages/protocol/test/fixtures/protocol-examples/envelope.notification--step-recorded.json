@@ -1,0 +1,29 @@
+{
+  "jsonrpc": "2.0",
+  "method": "stepRecorded",
+  "params": {
+    "recordingId": "rec-20261010-101500-123-1a2b",
+    "index": 1,
+    "step": {
+      "action": "fill",
+      "params": {
+        "target": "todos.newTodo",
+        "value": "Buy milk"
+      }
+    },
+    "targets": {
+      "todos.newTodo": [
+        {
+          "role": "textbox",
+          "name": "New to-do"
+        },
+        {
+          "label": "New to-do"
+        },
+        {
+          "css": "#new-todo"
+        }
+      ]
+    }
+  }
+}

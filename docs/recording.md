@@ -1,8 +1,8 @@
 # Recording
 
 > Status: **Accepted design** (2026-10-10), decisions in
-> [ADR 0022](adr/0022-how-recording-works.md). The protocol messages at the end
-> are **Proposed, not built**.
+> [ADR 0022](adr/0022-how-recording-works.md). The protocol messages are part
+> of the protocol since `0.1.1` ([protocol.md](protocol.md#startrecording)).
 
 A person uses a web page in a browser the engine opened, and the engine writes
 what they did as a test file that runs. This document says what a recording
@@ -242,41 +242,13 @@ the usual events. It reports each step. After a failed verify, the report
 names the step that failed, its error, and the candidates that matched no
 element or several.
 
-## Protocol proposal
+## Over the protocol
 
-**Proposed, not built.** No schema file contains these messages yet; the
-engine does not answer them. They follow the conventions of
-[protocol.md](protocol.md).
-
-### Requests
-
-| Method            | Params                                                 | Result                  |
-| ----------------- | ------------------------------------------------------ | ----------------------- |
-| `startRecording`  | `file`, `startUrl?`, `environment?`, `login?`, `name?` | `{ recordingId, file }` |
-| `stopRecording`   | `recordingId`                                          | `{ file, steps }`       |
-| `verifyRecording` | `recordingId`                                          | `{ runId, resultsDir }` |
-
-`startRecording` is refused with `RecordingInProgress` while a recording or a
-run is going on, with `FileExists` when the file exists, and with the errors
-of `startRun` for the environment, the login and the browser. `verifyRecording`
-starts an ordinary run of the recorded file, whose events are the usual run
-events, followed by `recordingVerified`.
-
-### Events
-
-| Event               | Params                                                                                                                                                                                          |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `recordingStarted`  | `recordingId`, `file`, `startUrl`                                                                                                                                                               |
-| `stepRecorded`      | `recordingId`, `index`, `step` (as written, canonical long form), `targets` (new targets), `review?`                                                                                            |
-| `stepChanged`       | `recordingId`, `index`, `step`, `review?`: a `fill` whose text changed, or a step that got `opens`                                                                                              |
-| `recordingNotice`   | `recordingId`, `kind` (`drag`, `fileChooser`, `contextMenu`, `doubleClick`, `shortcut`, `key`, `history`, `contentEditable`, `background`, `unmapped`, `writeFailed`), `message`, `page`, `url` |
-| `recordingStopped`  | `recordingId`, `file`, `reason` (`stopped`, `browserClosed`), `steps`                                                                                                                           |
-| `recordingVerified` | `recordingId`, `runId`, `status` (`passed`, `failed`)                                                                                                                                           |
-
-Every message is masked like every other message of the engine; a recorded
-`fill` never carries a typed password in the first place.
-
-### Example messages
+Clients record with `startRecording`, `stopRecording` and `verifyRecording`
+and the events `recordingStarted`, `stepRecorded`, `stepChanged`,
+`recordingNotice`, `recordingStopped` and `recordingVerified`, defined in
+[protocol.md](protocol.md#startrecording) since protocol `0.1.1`. A whole
+session as a client sees it:
 
 ```json
 {"jsonrpc":"2.0","id":7,"method":"startRecording","params":{"file":"tests/add-todo.test.yaml","startUrl":"/todos"}}

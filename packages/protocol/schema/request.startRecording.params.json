@@ -1,0 +1,26 @@
+{
+  "title": "request.startRecording.params (protocol 0.1.1)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "file": {
+      "type": "string"
+    },
+    "startUrl": {
+      "type": "string"
+    },
+    "environment": {
+      "type": "string"
+    },
+    "login": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "file"
+  ],
+  "additionalProperties": {}
+}
