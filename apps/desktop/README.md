@@ -16,12 +16,14 @@ What it does today:
 - **Opens a project** and shows its tests (a folder tree with search and
   tags), every problem the engine finds (checked again when files change), the
   action catalogue, and the engine's log.
-- **Edits tests without YAML**: a step list beside the text of each test and
-  flow (add, remove, duplicate, move steps), a form for each step built from
-  its action's parameters, a targets editor (candidates in order of
-  reliability, frame and within), and new, renamed and deleted files. The text
-  editor and these views show the same text at once, and a change rewrites
-  only the lines it is about, comments included.
+- **Edits tests without YAML**: each test and flow has three views of the
+  same file, Steps, Targets and Text. The steps view shows step cards grouped
+  under before, steps and after (add, remove, duplicate, move steps); the
+  selected step's form, built from its action's parameters, is in the details
+  panel on the right, as is the selected target's (candidates in order of
+  reliability, frame and within). New, renamed and deleted files too. All
+  views show the same text at once, and a change rewrites only the lines it
+  is about, comments included.
 - **Runs tests** from Run ▾ in the top bar: the open test, the selected tests
   or folder, a tag, or all, with the browser shown or not; a run view with each step's result, a failure's expected and actual
   values and locator candidates, screenshots once the engine records them,
@@ -101,20 +103,19 @@ run from the repository's root unless said otherwise.
    tests appear on the left; the problems panel says "No problems". (Runs
    write their results into `examples/demo-app/.cfe/`, which Git ignores.)
 8. **Create a test**: select the `tests` folder, then New ▾ → Test in the
-   project panel, name it
-   `my-first`, and Create. It opens with one step, `goto: /`. In its step
-   list:
-   - select `goto` and, in its form below, set **url** to `/todos`;
-   - Add step → `fill`; set **target** to `todos.new` (the picker offers the
-     shared targets) and **value** to `Buy milk`;
+   project panel, name it `my-first`, and Create. It opens on its Steps view
+   with one step, `goto: /`:
+   - select `goto` and, in its form in the Details panel on the right, set
+     **url** to `/todos`;
+   - Add step (beside "steps") → `fill`; set **target** to `todos.new` (the
+     picker offers the shared targets) and **value** to `Buy milk`;
    - Add step → `click`; set **target** to `todos.add`;
    - Add step → `expect.text`; set **target** to `todos.count` and **equals**
      to `1`;
-   - Add step → `click`; set **target** to `todos.clearAll`; then Move to
-     after, so the list is emptied even when the test fails.
+   - Add step beside "after" → `click`; set **target** to `todos.clearAll`, so
+     the list is emptied even when the test fails.
 
-   The text editor on the right shows each change as you make it. Save
-   (Ctrl+S, Cmd+S on macOS).
+   The Text view shows each change. Save (Ctrl+S, Cmd+S on macOS).
 
 9. **Run it with the browser shown**: open Run ▾ in the top bar, tick Show
    the browser, then choose The open test (or Run in the test's tab). A browser window opens and works through the steps; the
@@ -122,7 +123,7 @@ run from the repository's root unless said otherwise.
 10. **Read a failure**: in the `expect.text` step's form, set **equals** to
     `2`, save, and Run again. The run ends "Failed"; the failed step is
     selected and shows the error code, its message, the expected value `"2"`
-    and the actual `"1"`. Click the step's file and line to go back to it;
+    and the actual `"1"`. Click the step's file and line to go back to its card;
     Revert the change (or set it to `1` again) and save.
 11. **Look back**: the bottom panel's Runs lists both runs; click one
     to open it again.

@@ -1,4 +1,9 @@
-<!-- An editable step file: toolbar, bars for changes on disk and failed saves, the step list and the targets editor, and the text editor with problem lines marked. -->
+<!--
+  An editable step file: a header strip with the switch between its three views
+  (Steps, Targets, Text; instruction D0004, task 9) and its file actions, bars
+  for changes on disk and failed saves, and the view shown. The text view marks
+  problem lines.
+-->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Desktop.App.ViewModels"
@@ -7,20 +12,38 @@
              x:Class="Desktop.App.Views.StepFileView"
              x:DataType="vm:StepFileViewModel">
   <DockPanel>
-    <Border DockPanel.Dock="Top" Classes="panelHeader">
+    <Border DockPanel.Dock="Top" Classes="panelHeader" Padding="{StaticResource InsetX2}">
       <DockPanel>
-        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{StaticResource Space1}">
+        <StackPanel x:Name="ViewSwitch" DockPanel.Dock="Left" Orientation="Horizontal" IsVisible="{Binding HasViews}">
+          <Button x:Name="StepsViewButton" Classes="tab" Classes.selected="{Binding IsStepsShown}" Content="Steps"
+                  Command="{Binding ShowStepsCommand}" IsVisible="{Binding HasSteps}" VerticalAlignment="Stretch" VerticalContentAlignment="Center" />
+          <Button x:Name="TargetsViewButton" Classes="tab" Classes.selected="{Binding IsTargetsShown}" Content="Targets"
+                  Command="{Binding ShowTargetsCommand}" IsVisible="{Binding HasTargets}" VerticalAlignment="Stretch" VerticalContentAlignment="Center" />
+          <Button x:Name="TextViewButton" Classes="tab" Classes.selected="{Binding IsTextShown}" Content="Text"
+                  Command="{Binding ShowTextCommand}" VerticalAlignment="Stretch" VerticalContentAlignment="Center" />
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{StaticResource Space1}" Margin="{StaticResource InsetY1}">
           <TextBlock Text="{Binding ProblemSummary}" Classes="small failed" VerticalAlignment="Center" Margin="{StaticResource InsetRight2}" />
-          <Button Content="Rename" Classes="quiet" Command="{Binding RenameCommand}" />
-          <Button Content="Delete" Classes="danger" Command="{Binding DeleteCommand}" Margin="{StaticResource InsetRight2}" />
-          <Button x:Name="RunButton" Content="Run" Command="{Binding RunCommand}" IsVisible="{Binding IsTest}" Margin="{StaticResource InsetRight2}"
-                  ToolTip.Tip="Run this test (asks about unsaved changes first)." />
           <Button Content="Undo" Classes="quiet" Command="{Binding UndoCommand}" />
           <Button Content="Redo" Classes="quiet" Command="{Binding RedoCommand}" />
-          <Button Content="Revert" Classes="quiet" Command="{Binding RevertCommand}" ToolTip.Tip="Put back the file as last read or saved" />
+          <Button x:Name="FileMenuButton" Classes="quiet" Content="File ▾" ToolTip.Tip="Revert, rename or delete this file.">
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <StackPanel x:Name="FileMenu" Spacing="{StaticResource Space1}" MinWidth="{StaticResource FieldMinWidth}">
+                  <Button Classes="row" Content="Revert" Command="{Binding RevertCommand}" ToolTip.Tip="Put back the file as last read or saved" />
+                  <Button Classes="row" Content="Rename…" Command="{Binding RenameCommand}" />
+                  <Separator />
+                  <Button Classes="danger" Content="Delete…" Command="{Binding DeleteCommand}" HorizontalAlignment="Stretch" />
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+          <Button x:Name="RunButton" Content="Run" Command="{Binding RunCommand}" IsVisible="{Binding IsTest}" Margin="{StaticResource InsetLeft2}"
+                  ToolTip.Tip="Run this test (asks about unsaved changes first)." />
           <Button x:Name="SaveButton" Content="Save" Command="{Binding SaveCommand}" Classes="main" />
         </StackPanel>
-        <TextBlock Text="{Binding File}" Classes="code small" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding File}" Classes="code small muted" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="{StaticResource InsetX2}"
+                   ToolTip.Tip="{Binding File}" />
       </DockPanel>
     </Border>
 
@@ -42,17 +65,15 @@
     <TextBlock DockPanel.Dock="Top" Margin="{StaticResource Inset3}" Text="{Binding LoadError}" Classes="failed" TextWrapping="Wrap"
                IsVisible="{Binding LoadError, Converter={x:Static ObjectConverters.IsNotNull}}" />
 
-    <Grid ColumnDefinitions="Auto,Auto,*">
-      <TabControl x:Name="SidePanel" Grid.Column="0" Width="{StaticResource SidePanelWidth}" Padding="0" IsVisible="{Binding HasSidePanel}" SelectedIndex="{Binding SidePanelIndex}">
-        <TabItem Header="Steps" IsVisible="{Binding HasSteps}">
-          <views:StepListView x:Name="StepList" DataContext="{Binding Steps}" />
-        </TabItem>
-        <TabItem Header="Targets" IsVisible="{Binding HasTargets}">
-          <views:TargetsEditorView x:Name="TargetsEditor" DataContext="{Binding Targets}" />
-        </TabItem>
-      </TabControl>
-      <GridSplitter Grid.Column="1" ResizeDirection="Columns" Width="{StaticResource SplitterSize}" IsVisible="{Binding HasSidePanel}" />
-      <edit:TextEditor x:Name="Editor" Grid.Column="2"
+    <Panel>
+      <Panel IsVisible="{Binding IsStepsShown}">
+        <views:StepListView x:Name="StepList" DataContext="{Binding Steps}" />
+      </Panel>
+      <Panel IsVisible="{Binding IsTargetsShown}">
+        <views:TargetsEditorView x:Name="TargetsEditor" DataContext="{Binding Targets}" />
+      </Panel>
+      <edit:TextEditor x:Name="Editor"
+                       IsVisible="{Binding IsTextShown}"
                        Document="{Binding Document}"
                        ShowLineNumbers="True"
                        FontFamily="{StaticResource CodeFont}"
@@ -60,6 +81,6 @@
                        Padding="{StaticResource Inset1}"
                        HorizontalScrollBarVisibility="Auto"
                        VerticalScrollBarVisibility="Auto" />
-    </Grid>
+    </Panel>
   </DockPanel>
 </UserControl>

@@ -1,12 +1,15 @@
 // Code-behind of the step file view: view plumbing only. It draws the problem
 // lines the view model reports, shows their messages on hover, scrolls to the
-// line the view model reveals, and binds Save to Ctrl+S (Cmd+S on macOS).
+// line the view model reveals (once the text view is shown, when it was not),
+// binds Save to Ctrl+S (Cmd+S on macOS), and closes the File menu once one of
+// its buttons is used.
 
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Threading;
 using AvaloniaEdit.Rendering;
 using Desktop.App.ViewModels;
 
@@ -18,6 +21,7 @@ public partial class StepFileView : UserControl
     private readonly ProblemLineRenderer _renderer = new();
     private StepFileViewModel? _viewModel;
     private bool _restoring;
+    private bool _revealWhenShown;
 
     /// <summary>Creates the view.</summary>
     public StepFileView()
@@ -42,6 +46,7 @@ public partial class StepFileView : UserControl
         };
         Editor.TextArea.TextView.BackgroundRenderers.Add(_renderer);
         Editor.TextArea.TextView.PointerMoved += (_, e) => ShowMessagesAt(e.GetPosition(Editor.TextArea.TextView));
+        FileMenu.AddHandler(Button.ClickEvent, (_, _) => FileMenuButton.Flyout?.Hide());
     }
 
     /// <summary>The renderer that marks problem lines; tests read which lines it marks.</summary>
@@ -107,6 +112,12 @@ public partial class StepFileView : UserControl
         {
             RevealPending();
         }
+        else if (e.PropertyName == nameof(StepFileViewModel.IsTextShown) && _viewModel?.IsTextShown == true && _revealWhenShown)
+        {
+            // A line revealed while another view was shown is scrolled to once the text has a size.
+            _revealWhenShown = false;
+            Dispatcher.UIThread.Post(RevealPending, DispatcherPriority.Loaded);
+        }
     }
 
     private void RevealPending()
@@ -119,6 +130,23 @@ public partial class StepFileView : UserControl
         Editor.TextArea.Caret.Line = line;
         Editor.TextArea.Caret.Column = 1;
         Editor.ScrollToLine(line);
+        if (!Editor.IsEffectivelyVisible)
+        {
+            _revealWhenShown = true;
+        }
+        else
+        {
+            // The text view may have just been shown and not have its size yet: scroll again once it has.
+            Dispatcher.UIThread.Post(
+                () =>
+                {
+                    if (_viewModel?.RevealedLine == line)
+                    {
+                        Editor.ScrollToLine(line);
+                    }
+                },
+                DispatcherPriority.Loaded);
+        }
     }
 
     private void ShowMessagesAt(Point point)

@@ -152,6 +152,7 @@ public sealed class MainWindowTests
         window.Show();
         await shell.OpenProjectAsync(Root);
         shell.Workspace!.OpenFile("tests/a.test.yaml");
+        ((StepFileViewModel)shell.Workspace.SelectedTab!).ShowTextCommand.Execute(null);
         Render(window);
         var editor = Find<AvaloniaEdit.TextEditor>(window, "Editor");
         editor.TextArea.Caret.Offset = editor.Document.TextLength;
@@ -177,6 +178,7 @@ public sealed class MainWindowTests
         window.Show();
         await OpenDemoProject(shell, engine, files);
         shell.Workspace!.OpenFile("tests/checkout/guest-checkout.test.yaml");
+        ((StepFileViewModel)shell.Workspace.SelectedTab!).ShowTextCommand.Execute(null);
         Render(window);
         var editor = Find<AvaloniaEdit.TextEditor>(window, "Editor");
         editor.CaretOffset = 42;

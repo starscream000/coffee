@@ -1,9 +1,10 @@
 <!--
   An open project, in named regions with a visible edge (instruction D0004,
-  task 8): the project panel on the left, the tabs in the centre, the bottom
-  panel (problems, runs, engine log) below, and the status bar. The splitters
-  can be dragged; the bottom panel can be collapsed; the code-behind applies
-  and reports the remembered sizes.
+  task 8): the project panel on the left, the tabs in the centre, the details
+  of what is selected on the right, the bottom panel (problems, runs, engine
+  log) below, and the status bar. The splitters can be dragged; the details
+  and bottom panels can be collapsed; the code-behind applies and reports the
+  remembered sizes.
 -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -11,6 +12,8 @@
              xmlns:services="using:Desktop.App.Services"
              xmlns:views="using:Desktop.App.Views"
              xmlns:runs="using:Desktop.App.ViewModels.Runs"
+             xmlns:steps="using:Desktop.App.ViewModels.Steps"
+             xmlns:targets="using:Desktop.App.ViewModels.Targets"
              x:Class="Desktop.App.Views.WorkspaceView"
              x:DataType="vm:WorkspaceViewModel">
   <UserControl.DataTemplates>
@@ -26,13 +29,23 @@
     <DataTemplate DataType="vm:RecorderTabViewModel">
       <views:RecorderTabView />
     </DataTemplate>
+    <DataTemplate DataType="steps:StepFormViewModel">
+      <views:StepFormView x:Name="StepForm" />
+    </DataTemplate>
+    <DataTemplate DataType="targets:TargetsEditorViewModel">
+      <views:TargetFormView x:Name="TargetForm" />
+    </DataTemplate>
   </UserControl.DataTemplates>
 
   <DockPanel>
     <!-- Status bar -->
     <Border DockPanel.Dock="Bottom" Classes="statusBar">
       <DockPanel>
-        <TextBlock DockPanel.Dock="Right" Classes="label" Text="{Binding LoginsText, StringFormat='Saved logins: {0}'}" VerticalAlignment="Center" />
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{StaticResource Space2}">
+          <TextBlock Classes="label" Text="{Binding LoginsText, StringFormat='Saved logins: {0}'}" VerticalAlignment="Center" />
+          <Button x:Name="ShowDetailsButton" Classes="quiet" Content="Show details" Command="{Binding Layout.ToggleDetailsCommand}"
+                  IsVisible="{Binding !Layout.IsDetailsOpen}" ToolTip.Tip="Show the details panel again." />
+        </StackPanel>
         <ProgressBar DockPanel.Dock="Left" IsIndeterminate="True" Width="{StaticResource BusyBarWidth}" Margin="{StaticResource InsetRight2}" IsVisible="{Binding IsBusy}" />
         <TextBlock x:Name="StatusText" Classes="small" Text="{Binding Status}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
       </DockPanel>
@@ -64,6 +77,8 @@
         <ColumnDefinition Width="{StaticResource ColumnSide}" />
         <ColumnDefinition Width="{StaticResource SplitterLength}" />
         <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="{StaticResource SplitterLength}" />
+        <ColumnDefinition Width="{StaticResource ColumnSide}" />
       </Grid.ColumnDefinitions>
       <Grid.RowDefinitions>
         <RowDefinition Height="*" />
@@ -161,11 +176,32 @@
         </TabControl>
       </Border>
 
-      <GridSplitter x:Name="BottomSplitter" Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1" ResizeDirection="Rows" ToolTip.Tip="Drag to resize"
+      <GridSplitter x:Name="DetailsSplitter" Grid.Column="3" Grid.Row="0" ResizeDirection="Columns" ToolTip.Tip="Drag to resize"
+                    IsVisible="{Binding Layout.IsDetailsOpen}" />
+
+      <!-- DETAILS of what is selected -->
+      <Border x:Name="DetailsRegion" Grid.Column="4" Grid.Row="0" Classes="region" IsVisible="{Binding Layout.IsDetailsOpen}">
+        <DockPanel>
+          <Border DockPanel.Dock="Top" Classes="panelHeader">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Classes="quiet" Content="Hide" Command="{Binding Layout.ToggleDetailsCommand}"
+                      ToolTip.Tip="Hide the details panel; Show details in the status bar brings it back." />
+              <TextBlock Classes="heading" Text="Details" VerticalAlignment="Center" />
+            </DockPanel>
+          </Border>
+          <Panel>
+            <TextBlock x:Name="DetailsHint" Text="{Binding DetailsHint}" Classes="muted" TextWrapping="Wrap" Margin="{StaticResource Inset3}"
+                       IsVisible="{Binding Details, Converter={x:Static ObjectConverters.IsNull}}" />
+            <ContentControl x:Name="DetailsContent" Content="{Binding Details}" />
+          </Panel>
+        </DockPanel>
+      </Border>
+
+      <GridSplitter x:Name="BottomSplitter" Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="1" ResizeDirection="Rows" ToolTip.Tip="Drag to resize"
                     IsVisible="{Binding Layout.IsBottomOpen}" />
 
       <!-- Bottom panel: problems, runs, engine log -->
-      <Border x:Name="BottomRegion" Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="2" Classes="region">
+      <Border x:Name="BottomRegion" Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="2" Classes="region">
         <DockPanel>
           <Border DockPanel.Dock="Top" Classes="panelHeader" Padding="{StaticResource InsetX2}">
             <DockPanel>

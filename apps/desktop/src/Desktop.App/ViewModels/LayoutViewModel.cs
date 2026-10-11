@@ -1,6 +1,6 @@
-// The window's layout that the app remembers: the width of the project panel,
-// the height of the bottom panel, and whether the bottom panel is open
-// (instruction D0004, task 8). The workspace view
+// The window's layout that the app remembers: the widths of the project and
+// details panels, the height of the bottom panel, and which of the two
+// collapsible panels are open (instruction D0004, task 8). The workspace view
 // applies it and reports the sizes a person drags; the shell saves it.
 
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -32,7 +32,9 @@ public sealed partial class LayoutViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(saved);
         _projectWidth = Math.Max(saved.ProjectWidth, MinimumSize);
+        _detailsWidth = Math.Max(saved.DetailsWidth, MinimumSize);
         _bottomHeight = Math.Max(saved.BottomHeight, MinimumSize);
+        _isDetailsOpen = saved.IsDetailsOpen;
         _isBottomOpen = saved.IsBottomOpen;
     }
 
@@ -43,9 +45,17 @@ public sealed partial class LayoutViewModel : ObservableObject
     [ObservableProperty]
     private double _projectWidth;
 
+    /// <summary>Width of the details panel when open, in pixels.</summary>
+    [ObservableProperty]
+    private double _detailsWidth;
+
     /// <summary>Height of the bottom panel (problems, runs, engine log) when open, in pixels.</summary>
     [ObservableProperty]
     private double _bottomHeight;
+
+    /// <summary>True when the details panel is open.</summary>
+    [ObservableProperty]
+    private bool _isDetailsOpen;
 
     /// <summary>True when the bottom panel is open.</summary>
     [ObservableProperty]
@@ -69,16 +79,24 @@ public sealed partial class LayoutViewModel : ObservableObject
     public LayoutSettings Settings => new()
     {
         ProjectWidth = ProjectWidth,
+        DetailsWidth = DetailsWidth,
         BottomHeight = BottomHeight,
+        IsDetailsOpen = IsDetailsOpen,
         IsBottomOpen = IsBottomOpen,
     };
 
     /// <summary>Takes the sizes a person dragged the splitters to.</summary>
     /// <param name="projectWidth">The project panel's width.</param>
+    /// <param name="detailsWidth">The details panel's width, when open.</param>
     /// <param name="bottomHeight">The bottom panel's height, when open.</param>
-    public void Resized(double projectWidth, double? bottomHeight)
+    public void Resized(double projectWidth, double? detailsWidth, double? bottomHeight)
     {
         ProjectWidth = Math.Max(projectWidth, MinimumSize);
+        if (detailsWidth is { } d && IsDetailsOpen)
+        {
+            DetailsWidth = Math.Max(d, MinimumSize);
+        }
+
         if (bottomHeight is { } b && IsBottomOpen)
         {
             BottomHeight = Math.Max(b, MinimumSize);
@@ -86,6 +104,10 @@ public sealed partial class LayoutViewModel : ObservableObject
 
         Changed?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>Opens or closes the details panel.</summary>
+    [RelayCommand]
+    private void ToggleDetails() => IsDetailsOpen = !IsDetailsOpen;
 
     /// <summary>Opens or closes the bottom panel.</summary>
     [RelayCommand]
@@ -108,6 +130,8 @@ public sealed partial class LayoutViewModel : ObservableObject
         BottomView = view;
         IsBottomOpen = true;
     }
+
+    partial void OnIsDetailsOpenChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
 
     partial void OnIsBottomOpenChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
 }

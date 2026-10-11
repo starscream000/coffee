@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Runs and the Engine log; and the status bar. The splitters can be dragged,
   the bottom panel can be hidden, and sizes and the open state are
   remembered in the settings.
+- A Details panel on the right shows the form of what is selected in the open
+  tab: a step, or a target with its candidates. It can be hidden and is
+  remembered like the other panels (instruction D0004, tasks 8 and 9).
+- A step file's tab switches between three views of the file: Steps (step
+  cards grouped under before, steps and after, each group with its own Add
+  step, and the selected card's actions on it), Targets and Text. A problem
+  opens the text at its line; a run's step opens the test on that step's card.
 - Empty panels say so: no tests yet (or none matching), no problems, no runs
   yet.
 
@@ -40,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - New test, New flow and New targets file are in the Project panel's New ▾
   menu; Validate and Save all are in the project ▾ menu.
+- Revert, Rename and Delete of a file are in its tab's File ▾ menu.
 - The reason runs are off (no engine, no browser) is a bar above the regions.
 
 - The browser install command shown when the engine has no browser is the

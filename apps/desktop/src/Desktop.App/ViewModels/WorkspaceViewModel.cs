@@ -153,8 +153,20 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
 
     /// <summary>The selected tab.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Details), nameof(DetailsHint))]
     [NotifyCanExecuteChangedFor(nameof(RunOpenTestCommand))]
     private WorkspaceTabViewModel? _selectedTab;
+
+    /// <summary>What the details panel shows: the selected step's form or the selected target, in the selected tab; null for nothing.</summary>
+    public object? Details => (SelectedTab as StepFileViewModel)?.Details;
+
+    /// <summary>What the details panel says when <see cref="Details"/> is null.</summary>
+    public string DetailsHint => SelectedTab switch
+    {
+        StepFileViewModel tab => tab.DetailsHint,
+        RunTabViewModel => "A run shows the details of its steps in its own tab. Hide this panel to give the run more room.",
+        _ => "Open a test from the project panel. Its selected step or target is edited here.",
+    };
 
     /// <summary>The environment the next run will use.</summary>
     [ObservableProperty]
@@ -198,10 +210,31 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Opens a file in a tab (or selects its tab) and shows a line.</summary>
+    /// <summary>Opens a file in a tab (or selects its tab) and shows a line in its text view, such as a problem's.</summary>
     /// <param name="file">The file, relative to the project root.</param>
     /// <param name="line">The line to show, if any.</param>
     public void OpenFile(string file, int? line = null)
+    {
+        var tab = OpenTab(file);
+        if (line is { } n)
+        {
+            tab.ShowTextAt(n);
+        }
+    }
+
+    /// <summary>Opens a file in a tab (or selects its tab) and selects the step on a line in its steps view, such as a failed step's.</summary>
+    /// <param name="file">The file, relative to the project root.</param>
+    /// <param name="line">The step's line, if known.</param>
+    public void OpenStep(string file, int? line)
+    {
+        var tab = OpenTab(file);
+        if (line is { } n)
+        {
+            tab.ShowStepAt(n);
+        }
+    }
+
+    private StepFileViewModel OpenTab(string file)
     {
         var tab = Tabs.OfType<StepFileViewModel>().FirstOrDefault(t => t.File == file);
         if (tab is null)
@@ -212,10 +245,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         }
 
         SelectedTab = tab;
-        if (line is { } n)
-        {
-            tab.Reveal(n);
-        }
+        return tab;
     }
 
     /// <summary>
@@ -567,6 +597,27 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasTagRuns));
     }
 
+    partial void OnSelectedTabChanged(WorkspaceTabViewModel? oldValue, WorkspaceTabViewModel? newValue)
+    {
+        if (oldValue is StepFileViewModel old)
+        {
+            old.PropertyChanged -= OnSelectedTabPropertyChanged;
+        }
+
+        if (newValue is StepFileViewModel now)
+        {
+            now.PropertyChanged += OnSelectedTabPropertyChanged;
+        }
+    }
+
+    private void OnSelectedTabPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(StepFileViewModel.Details) or nameof(StepFileViewModel.DetailsHint))
+        {
+            OnPropertyChanged(e.PropertyName);
+        }
+    }
+
     /// <summary>Runs one test file; says so when the file is not a test (a flow or the targets file).</summary>
     /// <param name="file">The file, relative to the project root.</param>
     /// <returns>A task that completes when the run has started or was refused.</returns>
@@ -786,7 +837,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
 
     private void ShowRun(RunViewModel run, bool live)
     {
-        var tab = new RunTabViewModel(run, _engine, (file, line) => OpenFile(file, line), live ? Runs.CancelCommand : null, OpenTarget);
+        var tab = new RunTabViewModel(run, _engine, (file, line) => OpenStep(file, line), live ? Runs.CancelCommand : null, OpenTarget);
         tab.CloseRequested += (_, _) =>
         {
             var index = Tabs.IndexOf(tab);

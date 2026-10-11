@@ -24,6 +24,17 @@ public enum LineMark
     Error,
 }
 
+/// <summary>The three views of a step file, switched at the top of its tab (instruction D0004, task 9).</summary>
+public enum StepFileMode
+{
+    /// <summary>Step cards grouped by section; for test and flow files.</summary>
+    Steps,
+    /// <summary>The file's targets by name; for test, flow and targets files.</summary>
+    Targets,
+    /// <summary>The file as text.</summary>
+    Text,
+}
+
 /// <summary>What a step file tab needs from the app.</summary>
 /// <param name="Root">The project root.</param>
 /// <param name="Files">Reads and writes the file.</param>
@@ -84,14 +95,17 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
         {
             Steps = new StepListViewModel(file, Document, services.Actions ?? (() => []), () => LineMarks, services.SharedTargets, () => Diagnostics);
             Steps.StepSelected += (_, line) => Reveal(line);
+            Steps.PropertyChanged += (_, e) => DetailsMayHaveChanged(e.PropertyName == nameof(StepListViewModel.Form));
             DiagnosticsChanged += (_, _) => Steps.RefreshMarks();
         }
 
         if (TargetsOutline.CanHaveTargets(file))
         {
             Targets = new TargetsEditorViewModel(Document, services.SharedTargets ?? (() => []));
-            IsTargetsShown = Steps is null;
+            Targets.PropertyChanged += (_, e) => DetailsMayHaveChanged(e.PropertyName == nameof(TargetsEditorViewModel.Form));
         }
+
+        _view = Steps is not null ? StepFileMode.Steps : Targets is not null ? StepFileMode.Targets : StepFileMode.Text;
     }
 
     /// <summary>The step list of a test or flow file; null for other files.</summary>
@@ -109,19 +123,96 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
     /// <summary>True for a test file, which can be run on its own.</summary>
     public bool IsTest => NewFiles.KindOf(File) == NewFileKind.Test;
 
-    /// <summary>True when the side panel (step list or targets editor) is shown.</summary>
-    public bool HasSidePanel => HasSteps || HasTargets;
+    /// <summary>True when the file has more than its text view, so the switch between views is shown.</summary>
+    public bool HasViews => HasSteps || HasTargets;
 
-    /// <summary>True when the side panel shows the targets editor rather than the step list.</summary>
+    /// <summary>The view shown: steps, targets or text.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SidePanelIndex))]
-    private bool _isTargetsShown;
+    [NotifyPropertyChangedFor(nameof(IsStepsShown), nameof(IsTargetsShown), nameof(IsTextShown), nameof(SidePanelIndex), nameof(Details), nameof(DetailsHint))]
+    private StepFileMode _view;
 
-    /// <summary>The side panel's tab: 0 for the step list, 1 for the targets editor.</summary>
+    /// <summary>True when the steps view is shown.</summary>
+    public bool IsStepsShown => View == StepFileMode.Steps;
+
+    /// <summary>True when the targets view is shown.</summary>
+    public bool IsTargetsShown => View == StepFileMode.Targets;
+
+    /// <summary>True when the text view is shown.</summary>
+    public bool IsTextShown => View == StepFileMode.Text;
+
+    /// <summary>The view as a number, for older callers: 0 for steps, 1 for targets, 2 for text.</summary>
     public int SidePanelIndex
     {
-        get => IsTargetsShown ? 1 : 0;
-        set => IsTargetsShown = value == 1 || !HasSteps;
+        get => (int)View;
+        set => Show((StepFileMode)Math.Clamp(value, 0, 2));
+    }
+
+    /// <summary>
+    /// What the details panel shows for this tab: the selected step's form
+    /// (<see cref="StepFormViewModel"/>) in the steps view, the targets editor
+    /// with a selected target (<see cref="TargetsEditorViewModel"/>) in the
+    /// targets view, else null.
+    /// </summary>
+    public object? Details => View switch
+    {
+        StepFileMode.Steps => Steps?.Form,
+        StepFileMode.Targets when Targets?.Form is not null => Targets,
+        _ => null,
+    };
+
+    /// <summary>What the details panel says when <see cref="Details"/> is null.</summary>
+    public string DetailsHint => View switch
+    {
+        StepFileMode.Steps when Steps?.IsAvailable == false => "The step list cannot show this file, so there is nothing to edit here. Use the Text view.",
+        StepFileMode.Steps => "Select a step to edit it here.",
+        StepFileMode.Targets => "Select a target to edit its candidates here.",
+        _ => "The text view has no details. Switch to Steps or Targets to edit with forms.",
+    };
+
+    /// <summary>Shows one of the views; a view the file does not have is not shown.</summary>
+    /// <param name="view">The view.</param>
+    public void Show(StepFileMode view) => View = view switch
+    {
+        StepFileMode.Steps when HasSteps => view,
+        StepFileMode.Targets when HasTargets => view,
+        StepFileMode.Text => view,
+        _ => View,
+    };
+
+    /// <summary>Shows the steps view.</summary>
+    [RelayCommand]
+    private void ShowSteps() => Show(StepFileMode.Steps);
+
+    /// <summary>Shows the targets view.</summary>
+    [RelayCommand]
+    private void ShowTargets() => Show(StepFileMode.Targets);
+
+    /// <summary>Shows the text view.</summary>
+    [RelayCommand]
+    private void ShowText() => Show(StepFileMode.Text);
+
+    /// <summary>Shows a line of the file in the text view, such as a problem's.</summary>
+    /// <param name="number">The line number, from 1.</param>
+    public void ShowTextAt(int number)
+    {
+        Show(StepFileMode.Text);
+        Reveal(number);
+    }
+
+    /// <summary>Shows the step on a line in the steps view, such as a failed step's; the text view when no step is there.</summary>
+    /// <param name="number">The line number, from 1.</param>
+    public void ShowStepAt(int number)
+    {
+        if (Steps?.SelectAt(number) == true)
+        {
+            Show(StepFileMode.Steps);
+        }
+        else
+        {
+            Show(StepFileMode.Text);
+        }
+
+        Reveal(number);
     }
 
     /// <summary>Shows a target in the targets editor, with a failure's match counts beside its candidates.</summary>
@@ -135,7 +226,7 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
             return false;
         }
 
-        IsTargetsShown = true;
+        Show(StepFileMode.Targets);
         if (Targets.Outline.Targets.FirstOrDefault(t => t.Name == name) is { } target)
         {
             Reveal(target.Line);
@@ -337,6 +428,16 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
             _ => $"{errors} error{(errors == 1 ? string.Empty : "s")}, {warnings} warning{(warnings == 1 ? string.Empty : "s")}",
         };
         DiagnosticsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void DetailsMayHaveChanged(bool formChanged)
+    {
+        if (formChanged)
+        {
+            OnPropertyChanged(nameof(Details));
+        }
+
+        OnPropertyChanged(nameof(DetailsHint));
     }
 
     /// <summary>Brings a line into view.</summary>

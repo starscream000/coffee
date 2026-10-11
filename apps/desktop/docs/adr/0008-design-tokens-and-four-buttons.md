@@ -65,9 +65,9 @@ Every control shows keyboard focus: buttons and inputs draw their border in
 the accent (the text colour on a main or danger button).
 
 Two looks are built on buttons but are not buttons to act with: `row` (a list
-row that selects, such as a run in the history) and `tab` (a switch between
-views, such as the parts of the bottom panel: muted text, the accent under the
-one shown). Each region of the
+row that selects, such as a step card or a run in the history) and `tab` (a
+switch between views, such as Steps, Targets and Text, or the parts of the
+bottom panel: muted text, the accent under the one shown). Each region of the
 window is a `Border.region`: the panel tone with a line around it, on the
 window tone, with the splitters between regions in the window tone and the
 accent under the pointer (instruction D0004, task 8).

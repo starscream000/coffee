@@ -1,7 +1,7 @@
 // Code-behind of the workspace view: view plumbing only. It sizes the
-// project and bottom tracks from the remembered layout, collapses the bottom
-// panel, reports the sizes a person drags the splitters to, and closes the New
-// menu once one of its buttons is used.
+// project, details and bottom tracks from the remembered layout, collapses the
+// details and bottom panels, reports the sizes a person drags the splitters
+// to, and closes the New menu once one of its buttons is used.
 
 using System.ComponentModel;
 using Avalonia.Controls;
@@ -13,6 +13,8 @@ namespace Desktop.App.Views;
 public partial class WorkspaceView : UserControl
 {
     private const int ProjectColumn = 0;
+    private const int DetailsSplitterColumn = 3;
+    private const int DetailsColumn = 4;
     private const int BottomSplitterRow = 1;
     private const int BottomRow = 2;
 
@@ -23,8 +25,8 @@ public partial class WorkspaceView : UserControl
     public WorkspaceView()
     {
         InitializeComponent();
-        _splitter = Regions.RowDefinitions[BottomSplitterRow].Height;
-        foreach (var splitter in new[] { ProjectSplitter, BottomSplitter })
+        _splitter = Regions.ColumnDefinitions[1].Width;
+        foreach (var splitter in new[] { ProjectSplitter, DetailsSplitter, BottomSplitter })
         {
             splitter.DragCompleted += (_, _) => ReportSizes();
         }
@@ -52,7 +54,7 @@ public partial class WorkspaceView : UserControl
 
     private void OnLayoutChanged(object? sender, PropertyChangedEventArgs e) => ApplyLayout();
 
-    /// <summary>Gives the tracks the remembered sizes; the collapsed bottom panel keeps only its header strip.</summary>
+    /// <summary>Gives the tracks the remembered sizes; a collapsed panel keeps only its header strip (bottom) or nothing (details).</summary>
     private void ApplyLayout()
     {
         if (_layout is not { } layout)
@@ -63,12 +65,15 @@ public partial class WorkspaceView : UserControl
         var columns = Regions.ColumnDefinitions;
         var rows = Regions.RowDefinitions;
         columns[ProjectColumn].Width = new GridLength(layout.ProjectWidth);
+        columns[DetailsSplitterColumn].Width = layout.IsDetailsOpen ? _splitter : new GridLength(0);
+        columns[DetailsColumn].Width = layout.IsDetailsOpen ? new GridLength(layout.DetailsWidth) : new GridLength(0);
         rows[BottomSplitterRow].Height = layout.IsBottomOpen ? _splitter : new GridLength(0);
         rows[BottomRow].Height = layout.IsBottomOpen ? new GridLength(layout.BottomHeight) : GridLength.Auto;
     }
 
     private void ReportSizes()
     {
-        _layout?.Resized(Regions.ColumnDefinitions[ProjectColumn].ActualWidth, Regions.RowDefinitions[BottomRow].ActualHeight);
+        var columns = Regions.ColumnDefinitions;
+        _layout?.Resized(columns[ProjectColumn].ActualWidth, columns[DetailsColumn].ActualWidth, Regions.RowDefinitions[BottomRow].ActualHeight);
     }
 }
