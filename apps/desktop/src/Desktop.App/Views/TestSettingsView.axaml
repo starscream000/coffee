@@ -1,0 +1,36 @@
+<!--
+  A test's own settings in the details panel (instruction D0004, task 19): its
+  name, tags and skip reason. Fields write back when they lose focus.
+-->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:steps="using:Desktop.App.ViewModels.Steps"
+             x:Class="Desktop.App.Views.TestSettingsView"
+             x:DataType="steps:TestSettingsViewModel">
+  <ScrollViewer>
+    <StackPanel Margin="{StaticResource Inset3}" Spacing="{StaticResource Space3}">
+      <TextBlock Text="Test" Classes="title" />
+      <TextBlock Text="{Binding Problem}" Classes="warning" TextWrapping="Wrap"
+                 IsVisible="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <StackPanel Spacing="{StaticResource Space3}" IsVisible="{Binding IsAvailable}">
+        <StackPanel Spacing="{StaticResource Space1}">
+          <TextBlock Text="name *" Classes="label strong" />
+          <TextBox x:Name="TestNameField" Text="{Binding Name, UpdateSourceTrigger=LostFocus}" />
+          <TextBlock Text="{Binding NameError}" Classes="small failed" TextWrapping="Wrap"
+                     IsVisible="{Binding NameError, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+        <StackPanel Spacing="{StaticResource Space1}">
+          <TextBlock Text="tags" Classes="label strong" />
+          <TextBox x:Name="TestTagsField" Text="{Binding Tags, UpdateSourceTrigger=LostFocus}" PlaceholderText="smoke, checkout" />
+          <TextBlock Text="Separated by commas. Run ▾ offers a run per tag." Classes="label" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Spacing="{StaticResource Space1}">
+          <TextBlock Text="skip" Classes="label strong" />
+          <TextBox x:Name="TestSkipField" Text="{Binding Skip, UpdateSourceTrigger=LostFocus}" PlaceholderText="Empty: the test runs" />
+          <TextBlock Text="A reason skips the test: it is still checked, but not run." Classes="label" TextWrapping="Wrap" />
+        </StackPanel>
+        <TextBlock Text="{x:Static steps:TestSettingsViewModel.Rest}" Classes="muted" TextWrapping="Wrap" />
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

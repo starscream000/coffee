@@ -95,7 +95,19 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
         {
             Steps = new StepListViewModel(file, Document, services.Actions ?? (() => []), () => LineMarks, services.SharedTargets, () => Diagnostics);
             Steps.StepSelected += (_, line) => Reveal(line);
-            Steps.PropertyChanged += (_, e) => DetailsMayHaveChanged(e.PropertyName == nameof(StepListViewModel.Form));
+            Steps.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(StepListViewModel.Selected) && Steps.Selected is not null)
+                {
+                    IsTestSelected = false;
+                }
+
+                DetailsMayHaveChanged(e.PropertyName == nameof(StepListViewModel.Form));
+            };
+            if (NewFiles.KindOf(file) == NewFileKind.Test)
+            {
+                TestSettings = new TestSettingsViewModel(file, Document);
+            }
             DiagnosticsChanged += (_, _) => Steps.RefreshMarks();
         }
 
@@ -119,6 +131,30 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
 
     /// <summary>True for a file with a targets editor.</summary>
     public bool HasTargets => Targets is not null;
+
+    /// <summary>The test's own settings (name, tags, skip reason); null for other files.</summary>
+    public TestSettingsViewModel? TestSettings { get; }
+
+    /// <summary>True for a test file, whose settings can be edited in the details panel.</summary>
+    public bool HasTestSettings => TestSettings is not null;
+
+    /// <summary>True when the test itself, rather than a step, is selected in the steps view.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Details), nameof(DetailsHint))]
+    private bool _isTestSelected;
+
+    /// <summary>Selects the test itself, so the details panel shows its settings.</summary>
+    [RelayCommand]
+    private void SelectTest()
+    {
+        if (TestSettings is null)
+        {
+            return;
+        }
+
+        Steps?.Select(null);
+        IsTestSelected = true;
+    }
 
     /// <summary>True for a test file, which can be run on its own.</summary>
     public bool IsTest => NewFiles.KindOf(File) == NewFileKind.Test;
@@ -155,6 +191,7 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
     /// </summary>
     public object? Details => View switch
     {
+        StepFileMode.Steps when IsTestSelected && TestSettings is not null => TestSettings,
         StepFileMode.Steps => Steps?.Form,
         StepFileMode.Targets when Targets?.Form is not null => Targets,
         _ => null,
@@ -164,6 +201,7 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
     public string DetailsHint => View switch
     {
         StepFileMode.Steps when Steps?.IsAvailable == false => "The step list cannot show this file, so there is nothing to edit here. Use the Text view.",
+        StepFileMode.Steps when TestSettings is not null => "Select a step to edit it here, or the test itself for its name, tags and skip reason.",
         StepFileMode.Steps => "Select a step to edit it here.",
         StepFileMode.Targets => "Select a target to edit its candidates here.",
         _ => "The text view has no details. Switch to Steps or Targets to edit with forms.",
