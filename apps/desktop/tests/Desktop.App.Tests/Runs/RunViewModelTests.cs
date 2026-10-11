@@ -2,6 +2,7 @@
 // (instruction D0003, task 9): a passing run, a failure with every detail,
 // skipped steps and tests, and a gap in the events.
 
+using Desktop.App.Services;
 using Desktop.App.Tests.Fakes;
 using Desktop.App.ViewModels.Runs;
 using Desktop.Protocol.Messages;
@@ -76,7 +77,8 @@ public sealed class RunViewModelTests
         Assert.Equal(TestRunState.Passed, test.State);
         Assert.Equal(["before", "steps"], test.Sections.Select(x => x.Name));
         var first = test.Step("s1")!;
-        Assert.Equal("/shots/s1.png", first.ScreenshotPath);
+        // Paths from the engine are made native where they arrive (review D0003, finding 1).
+        Assert.Equal(LocalPaths.FromEngine("/shots/s1.png"), first.ScreenshotPath);
         Assert.True(first.HasPageState);
         Assert.Equal(1, test.Step("s2.1")!.Depth);
         Assert.All(test.AllSteps, step => Assert.Equal(StepRunState.Passed, step.State));
@@ -122,6 +124,31 @@ public sealed class RunViewModelTests
         Assert.Equal(TestRunState.Skipped, skipped.State);
         Assert.Equal("Waiting for the new checkout", skipped.SkipReason);
         Assert.Equal("–", skipped.Glyph);
+    }
+
+    [Fact]
+    public void A_step_skipped_without_starting_takes_its_place_in_the_list()
+    {
+        var run = new RunViewModel("run-1");
+        var s = new RunScript("run-1");
+
+        Play(run,
+            s.Started(RunScript.Planned("t1", FileA, "A")),
+            s.TestStarted("t1"),
+            s.Step("t1", "steps.0", "Check the total"),
+            s.Failed("t1", "steps.0"),
+            s.SkippedNeverStarted("t1", "steps.1", "click", "click cart.checkout"),
+            s.SkippedNeverStarted("t1", "steps.2/steps.0", "fill", "fill checkout.email"),
+            s.TestFinished("t1", RunOutcome.Failed));
+
+        var test = run.Test("t1")!;
+        // In its place, greyed out as skipped, not in the messages (desktop request R0006).
+        Assert.Equal(["steps.0", "steps.1", "steps.2/steps.0"], test.AllSteps.Select(step => step.StepId));
+        var placed = test.Step("steps.1")!;
+        Assert.Equal(StepRunState.Skipped, placed.State);
+        Assert.Equal("click cart.checkout", placed.Title);
+        Assert.Equal("skipped: an earlier step failed", placed.SkipMessage);
+        Assert.DoesNotContain(test.Messages, m => m.Contains("steps.1", StringComparison.Ordinal));
     }
 
     [Fact]

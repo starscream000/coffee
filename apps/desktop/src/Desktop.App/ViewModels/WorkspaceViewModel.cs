@@ -102,6 +102,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     public string Name => Path.GetFileName(Project.Root.TrimEnd('/', '\\'));
 
     /// <summary>The project folder.</summary>
+    /// <remarks>As the engine sent it, so it can be sent back; compare it with <see cref="LocalPaths.Same"/>.</remarks>
     public string Root => Project.Root;
 
     /// <summary>The environments of the config.</summary>

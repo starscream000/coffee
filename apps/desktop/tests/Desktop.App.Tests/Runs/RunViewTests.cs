@@ -79,7 +79,7 @@ public sealed class RunViewTests : IDisposable
 
         Assert.False(Find<Button>(window, "RunAllButton").IsEffectivelyEnabled);
         Assert.False(Find<Button>(window, "RunSelectedButton").IsEffectivelyEnabled);
-        Assert.Contains(RunControlViewModel.InstallCommand, Find<SelectableTextBlock>(window, "RunUnavailable").Text, StringComparison.Ordinal);
+        Assert.Contains(FakeEngineService.EngineInstallCommand, Find<SelectableTextBlock>(window, "RunUnavailable").Text, StringComparison.Ordinal);
     }
 
     [AvaloniaFact]

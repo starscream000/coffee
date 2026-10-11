@@ -134,4 +134,22 @@ public sealed class EngineSessionTests
 
         Assert.Equal("flaky", Assert.IsType<TestSkippedEvent>(await received.Task.WaitAsync(TimeSpan.FromSeconds(5), Ct)).Reason);
     }
+
+    [Fact]
+    public async Task Passes_on_a_recordings_events_separately_from_a_runs()
+    {
+        var (session, _, engine) = Create();
+        await using var _ = session;
+        var received = new TaskCompletionSource<RecordingEvent>();
+        var runEvents = new List<EngineEvent>();
+        session.RecordingEventReceived += (_, e) => received.TrySetResult(e);
+        session.EventReceived += (_, e) => runEvents.Add(e);
+        await session.StartAsync(Launch, "1.0.0", Ct);
+
+        await engine().SendEventAsync("recordingNotice", new { recordingId = "rec-1", kind = "drag", message = "A drag is not recorded yet.", page = "main", url = "http://localhost/" });
+
+        var notice = Assert.IsType<RecordingNoticeEvent>(await received.Task.WaitAsync(TimeSpan.FromSeconds(5), Ct));
+        Assert.Equal(("rec-1", "drag"), (notice.RecordingId, notice.Kind));
+        Assert.Empty(runEvents);
+    }
 }

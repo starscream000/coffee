@@ -82,6 +82,22 @@ internal sealed class RunScript(string runId)
     public StepSkippedEvent Skipped(string testId, string stepId, StepSkipReason reason, string message) =>
         new() { RunId = RunId, Seq = Next(), TestId = testId, StepId = stepId, Reason = reason, Message = message };
 
+    /// <summary>A step skipped without a <c>stepStarted</c>, as protocol 0.1.1 sends it: with its place.</summary>
+    public StepSkippedEvent SkippedNeverStarted(string testId, string stepId, string action, string title, StepSection section = StepSection.Steps) =>
+        new()
+        {
+            RunId = RunId,
+            Seq = Next(),
+            TestId = testId,
+            StepId = stepId,
+            Reason = StepSkipReason.PreviousFailure,
+            Message = "skipped: an earlier step failed",
+            Section = section,
+            Action = action,
+            Title = title,
+            Location = new Location { File = "tests/a.test.yaml", Line = 12, Column = 5 },
+        };
+
     public ScreenshotReadyEvent Screenshot(string testId, string stepId, string path) =>
         new() { RunId = RunId, Seq = Next(), TestId = testId, StepId = stepId, Page = "main", Path = path, Width = 1280, Height = 720 };
 

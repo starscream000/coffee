@@ -5,11 +5,16 @@ repository's [CLAUDE.md](../../CLAUDE.md) applies too; this file adds to it and,
 for work in this folder, takes precedence where the two differ. If anything here
 conflicts with a request, ask the owner instead of guessing.
 
+One implementer works on both the engine track and this desktop track (owner
+decision, 2026-10-10). The tracks stay separate: a desktop instruction (`DNNNN`)
+is carried out under the rules below, an engine instruction under the root
+`CLAUDE.md`, and the root `handoff/STATUS.md` says which comes first.
+
 ## Scope
 
-- Change files **only under `apps/desktop/`**. Read anything in the repository;
-  edit nothing outside this folder, not even the root `handoff/`,
-  `CHANGELOG.md`, `.github/` or `.prettierignore`.
+- During a desktop instruction, change files **only under `apps/desktop/`**.
+  Read anything in the repository; edit nothing outside this folder, not even
+  the root `handoff/`, `CHANGELOG.md`, `.github/` or `.prettierignore`.
 - Anything needed outside this folder is a request in
   [handoff/requests/](handoff/requests/) (see [handoff/README.md](handoff/README.md)).
 

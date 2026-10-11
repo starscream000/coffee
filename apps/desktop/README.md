@@ -7,6 +7,10 @@ engine grows) run and review a project's end-to-end tests.
 Status: **in progress** (desktop milestones D1 to D4 and D5's placeholder,
 see the [plan](docs/plan.md)). Nothing is released.
 
+The app is its own track of work, beside the engine's: its instructions,
+reports and reviews are in [handoff/](handoff/README.md). One implementer
+works on both tracks, which stay separate (owner decision, 2026-10-10).
+
 What it does today:
 
 - **Opens a project** and shows its tests (a folder tree with search and

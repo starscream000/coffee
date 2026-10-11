@@ -68,6 +68,9 @@ public sealed class EngineSession : IAsyncDisposable
     /// <summary>An engine event arrived.</summary>
     public event EventHandler<EngineEvent>? EventReceived;
 
+    /// <summary>A recording's event arrived (on the connection's reading thread).</summary>
+    public event EventHandler<RecordingEvent>? RecordingEventReceived;
+
     /// <summary>The engine sent something unusable; the session goes on.</summary>
     public event EventHandler<ProtocolProblem>? ProblemReported;
 
@@ -196,6 +199,7 @@ public sealed class EngineSession : IAsyncDisposable
             var transport = _startTransport(launch, line => StderrLine?.Invoke(this, line));
             var connection = new JsonRpcConnection(transport);
             connection.EventReceived += (_, e) => EventReceived?.Invoke(this, e);
+            connection.RecordingEventReceived += (_, e) => RecordingEventReceived?.Invoke(this, e);
             connection.ProblemReported += (_, p) => ProblemReported?.Invoke(this, p);
             var client = new EngineClient(connection);
             lock (_gate)

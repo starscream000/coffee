@@ -50,8 +50,19 @@ public sealed partial class RunControlViewModel : ObservableObject, IDisposable
         Refresh();
     }
 
-    /// <summary>The command, built from the product's npm scope, that installs the browser for the engine of a checkout.</summary>
-    public static string InstallCommand => $"pnpm --filter {Product.NpmScope}/engine exec playwright install chromium";
+    /// <summary>
+    /// The command that installs the browser for an engine that does not say
+    /// it (protocol 0.1.0): built from the product's npm scope, for the engine
+    /// of a checkout of the repository.
+    /// </summary>
+    public static string FallbackInstallCommand => $"pnpm --filter {Product.NpmScope}/engine exec playwright install chromium";
+
+    /// <summary>
+    /// The command that installs the browser: the engine's own
+    /// (<c>capabilities.installCommand</c>, desktop request R0005), or
+    /// <see cref="FallbackInstallCommand"/> from an older engine.
+    /// </summary>
+    public string InstallCommand => _engine.Info?.Capabilities.InstallCommand ?? FallbackInstallCommand;
 
     /// <summary>The run going on, or the last one started here.</summary>
     [ObservableProperty]
@@ -261,7 +272,7 @@ public sealed partial class RunControlViewModel : ObservableObject, IDisposable
         UnavailableReason = _engine.State != EngineState.Ready
             ? "Running is off because the engine is not running."
             : browsers.Count == 0
-                ? $"Running is off because the engine cannot start a browser. Install Chromium for the engine, from the repository: {InstallCommand}"
+                ? $"Running is off because the engine cannot start a browser. Install Chromium for the engine with: {InstallCommand}"
                 : null;
         CanRun = UnavailableReason is null && !IsRunning;
         OnPropertyChanged(nameof(IsRunning));

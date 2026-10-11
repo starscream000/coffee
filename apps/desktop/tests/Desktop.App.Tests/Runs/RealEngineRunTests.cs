@@ -58,7 +58,8 @@ public sealed class RealEngineRunTests
 
             Assert.Equal(RunState.Failed, run.State);
             Assert.Empty(run.Messages);
-            Assert.StartsWith(demo.Root, run.ResultsDir, StringComparison.Ordinal);
+            // The engine writes paths with forward slashes; compare them as paths (review D0003, finding 1).
+            Assert.True(LocalPaths.IsInside(run.ResultsDir!, demo.Root), $"{run.ResultsDir} is not inside {demo.Root}");
             Assert.True(File.Exists(Path.Combine(run.ResultsDir!, "events.ndjson")));
 
             var passed = Assert.Single(run.Tests, t => t.File == Passing);
@@ -77,8 +78,8 @@ public sealed class RealEngineRunTests
             // (every step's snapshot is "skipped"); when it does, the paths must exist.
             Assert.True(step.ScreenshotPath is null || File.Exists(step.ScreenshotPath), $"No screenshot at {step.ScreenshotPath}");
             Assert.Equal(step.HasPageState, failed.AllSteps.Any(s => s.HasPageState));
-            // Steps after the failure never start; they are reported in the test's messages.
-            Assert.Contains(failed.Messages, m => m.Contains("skipped", StringComparison.OrdinalIgnoreCase));
+            // Steps after the failure never start; the engine says where they are, so they are listed, skipped.
+            Assert.Contains(failed.AllSteps, s => s.State == StepRunState.Skipped);
             Assert.All(failed.Sections.Single(s => s.Name == "after").Steps, s => Assert.Equal(StepRunState.Passed, s.State));
 
             Assert.Equal(2, run.Tests.Count(t => t.File == Skipped && t.State == TestRunState.Skipped));

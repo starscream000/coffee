@@ -103,7 +103,7 @@ public sealed partial class RunTabViewModel : WorkspaceTabViewModel
         {
             if (ex.DataAs<SnapshotUnavailableData>()?.Screenshot is { } screenshot)
             {
-                step.ScreenshotPath ??= screenshot;
+                step.ScreenshotPath ??= LocalPaths.FromEngine(screenshot);
             }
 
             PageStateMessage = $"The page state cannot be shown: {ex.Message} The screenshot is shown instead.";
