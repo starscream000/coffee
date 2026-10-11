@@ -3,7 +3,9 @@
 // repository) use the same code and look the same.
 
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Desktop.App.Services;
 using Desktop.Protocol.Messages;
 
 namespace Desktop.App.ViewModels.Runs;
@@ -37,7 +39,7 @@ public sealed partial class RunViewModel : ObservableObject
     public RunViewModel(string runId, string? resultsDir = null)
     {
         RunId = runId;
-        ResultsDir = resultsDir;
+        ResultsDir = resultsDir is null ? null : LocalPaths.FromEngine(resultsDir);
     }
 
     /// <summary>The run's id.</summary>
@@ -170,12 +172,16 @@ public sealed partial class RunViewModel : ObservableObject
             case StepSkippedEvent e when Test(e.TestId)?.Step(e.StepId) is { } step:
                 step.Apply(e);
                 break;
+            case StepSkippedEvent e when Test(e.TestId) is { } test && NeverStarted(e) is { } placed:
+                // A step that never started takes its place in the list, skipped (desktop request R0006).
+                test.Add(placed).Apply(e);
+                break;
             case StepSkippedEvent e when Test(e.TestId) is { } test:
-                // A step that never started (skipped after a failure) is still listed.
+                // An engine before protocol 0.1.1 does not say where such a step is.
                 test.Messages.Add($"{e.StepId} skipped: {e.Message}");
                 break;
             case ScreenshotReadyEvent e when Test(e.TestId)?.Step(e.StepId) is { } step:
-                step.ScreenshotPath = e.Path;
+                step.ScreenshotPath = LocalPaths.FromEngine(e.Path);
                 break;
             case SnapshotReadyEvent e when Test(e.TestId)?.Step(e.StepId) is { } step:
                 step.HasPageState = true;
@@ -261,4 +267,35 @@ public sealed partial class RunViewModel : ObservableObject
             Messages.Add(text);
         }
     }
+
+    /// <summary>
+    /// The step a <c>stepSkipped</c> describes when no <c>stepStarted</c> was
+    /// sent for it, built from its section, action, title and location; or
+    /// null when the event does not carry them.
+    /// </summary>
+    private static StepStartedEvent? NeverStarted(StepSkippedEvent skipped)
+    {
+        if (skipped.Section is not { } section || skipped.Action is not { } action || skipped.Location is not { } location)
+        {
+            return null;
+        }
+
+        var slash = skipped.StepId.LastIndexOf('/');
+        return new StepStartedEvent
+        {
+            RunId = skipped.RunId,
+            Seq = skipped.Seq,
+            TestId = skipped.TestId,
+            StepId = skipped.StepId,
+            ParentStepId = slash > 0 ? skipped.StepId[..slash] : null,
+            Section = section,
+            Action = action,
+            Params = NoParams,
+            Page = "main",
+            Title = skipped.Title ?? action,
+            Location = location,
+        };
+    }
+
+    private static readonly JsonElement NoParams = JsonDocument.Parse("{}").RootElement.Clone();
 }

@@ -137,7 +137,7 @@ public sealed partial class ShellViewModel : ObservableObject
     private void ForgetRecent(RecentProjectViewModel project)
     {
         var settings = _settings.Load();
-        TrySave(settings with { RecentProjects = [.. settings.RecentProjects.Where(p => p != project.Path)] });
+        TrySave(settings with { RecentProjects = [.. settings.RecentProjects.Where(p => !LocalPaths.Same(p, project.Path))] });
         RefreshRecent();
     }
 
@@ -170,7 +170,7 @@ public sealed partial class ShellViewModel : ObservableObject
             // The same project opened again (reopen, restart) keeps its tabs and unsaved text;
             // another project replaces this one only if its unsaved changes may go.
             var previous = Workspace;
-            var sameProject = previous is not null && SamePath(previous.Root, root);
+            var sameProject = previous is not null && LocalPaths.Same(previous.Root, root);
             if (previous is not null && !sameProject && !await previous.ConfirmCloseAsync())
             {
                 return;
@@ -285,12 +285,6 @@ public sealed partial class ShellViewModel : ObservableObject
             ShowError($"The engine stopped. Restart it to go on working with the project. {_engine.Failure?.Message}");
         }
     }
-
-    private static bool SamePath(string a, string b) =>
-        string.Equals(
-            Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)),
-            Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)),
-            OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The dialogs used when none are given: every question is answered "cancel".</summary>
     private sealed class CancellingDialogs : IDialogService

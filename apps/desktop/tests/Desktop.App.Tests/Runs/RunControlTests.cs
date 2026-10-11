@@ -172,8 +172,9 @@ public sealed class RunControlTests
         await setup.OpenAsync();
 
         Assert.False(setup.Runs.CanRun);
-        Assert.Contains(RunControlViewModel.InstallCommand, setup.Runs.UnavailableReason, StringComparison.Ordinal);
-        Assert.Contains(Product.NpmScope + "/engine", RunControlViewModel.InstallCommand, StringComparison.Ordinal);
+        // The engine's own command (desktop request R0005).
+        Assert.Equal(FakeEngineService.EngineInstallCommand, setup.Runs.InstallCommand);
+        Assert.Contains(FakeEngineService.EngineInstallCommand, setup.Runs.UnavailableReason, StringComparison.Ordinal);
         await setup.Workspace.RunAllCommand.ExecuteAsync(null);
         Assert.Empty(setup.Engine.Started);
         Assert.Equal(setup.Runs.UnavailableReason, setup.Runs.Notice);
@@ -351,7 +352,7 @@ public sealed class RunControlTests
             "The page state cannot be opened without a browser.",
             new SnapshotUnavailableData { Name = ErrorCodes.SnapshotUnavailable, Screenshot = "/shots/s1.png" });
         await tab.OpenPageStateCommand.ExecuteAsync(step);
-        Assert.Equal("/shots/s1.png", step.ScreenshotPath);
+        Assert.Equal(LocalPaths.FromEngine("/shots/s1.png"), step.ScreenshotPath);
         Assert.Contains("The screenshot is shown instead.", tab.PageStateMessage, StringComparison.Ordinal);
     }
 }
