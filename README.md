@@ -1,5 +1,5 @@
 # Coffee
-![Uploading image.png…]()
+<img width="2340" height="1376" alt="image" src="https://github.com/user-attachments/assets/d669f2d0-dc0e-469e-9f48-777ef3fded21" />
 
 > Placeholder name, defined once in
 > [`packages/protocol/src/product.ts`](packages/protocol/src/product.ts). Status: **pre-release (Milestone 0)**. Nothing runs tests yet.
