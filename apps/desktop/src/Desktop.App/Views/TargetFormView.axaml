@@ -1,0 +1,79 @@
+<!--
+  The selected target in the details panel: its frame, within and candidates in
+  order of reliability, and removing it. Text fields write back when they lose
+  focus. Its data is the targets editor, so Remove acts on the editor.
+-->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:targets="using:Desktop.App.ViewModels.Targets"
+             x:Class="Desktop.App.Views.TargetFormView"
+             x:DataType="targets:TargetsEditorViewModel">
+  <ScrollViewer>
+    <StackPanel Margin="{StaticResource Inset3}" Spacing="{StaticResource Space2}" DataContext="{Binding Form}" x:DataType="targets:TargetFormViewModel">
+      <TextBlock x:Name="TargetName" Text="{Binding Name}" Classes="code title" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Classes="warning"
+                 IsVisible="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+      <StackPanel Spacing="{StaticResource Space2}" IsVisible="{Binding IsEditable}">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+          <TextBlock Grid.Row="0" Text="frame" Classes="label strong" VerticalAlignment="Center" Margin="{StaticResource InsetRight2}"
+                     ToolTip.Tip="The target of the iframe this element is in." />
+          <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding FrameChoices}" SelectedItem="{Binding Frame}" HorizontalAlignment="Stretch"
+                    IsEnabled="{Binding !IsFrameInline}" />
+          <TextBlock Grid.Row="1" Text="within" Classes="label strong" VerticalAlignment="Center" Margin="{StaticResource InsetRight2}"
+                     ToolTip.Tip="The target of an element this one is inside." />
+          <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding FrameChoices}" SelectedItem="{Binding Within}" HorizontalAlignment="Stretch" Margin="{StaticResource InsetTop1}"
+                    IsEnabled="{Binding !IsWithinInline}" />
+        </Grid>
+        <TextBlock Text="{Binding Error}" Classes="small failed" TextWrapping="Wrap"
+                   IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+        <TextBlock Text="Candidates, most reliable first" Classes="section" Margin="{StaticResource InsetTop2}" />
+        <ItemsControl x:Name="CandidateList" ItemsSource="{Binding Candidates}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="{StaticResource Space2}" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="targets:CandidateViewModel">
+              <Border Classes="card">
+                <StackPanel Spacing="{StaticResource Space1}">
+                  <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{StaticResource Space1}">
+                      <Button Classes="quiet" Content="↑" ToolTip.Tip="More reliable"
+                              Command="{Binding $parent[ItemsControl].((targets:TargetFormViewModel)DataContext).MoveCandidateUpCommand}" CommandParameter="{Binding}" />
+                      <Button Classes="quiet" Content="↓" ToolTip.Tip="Less reliable"
+                              Command="{Binding $parent[ItemsControl].((targets:TargetFormViewModel)DataContext).MoveCandidateDownCommand}" CommandParameter="{Binding}" />
+                      <Button Classes="quiet" Content="×" ToolTip.Tip="Remove"
+                              Command="{Binding $parent[ItemsControl].((targets:TargetFormViewModel)DataContext).RemoveCandidateCommand}" CommandParameter="{Binding}" />
+                    </StackPanel>
+                    <ComboBox ItemsSource="{x:Static targets:CandidateViewModel.Kinds}" SelectedItem="{Binding Kind}" MinWidth="{StaticResource FieldMinWidth}" IsVisible="{Binding IsEditable}" />
+                    <TextBlock Text="Kept as written" Classes="label" VerticalAlignment="Center" IsVisible="{Binding IsKeptAsWritten}" />
+                  </DockPanel>
+                  <TextBox Text="{Binding Value, UpdateSourceTrigger=LostFocus}" IsVisible="{Binding IsEditable}" />
+                  <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" PlaceholderText="Accessible name" IsVisible="{Binding IsRole}" />
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" IsVisible="{Binding IsEditable}">
+                    <TextBlock Text="exact" Classes="label" VerticalAlignment="Center" />
+                    <ComboBox ItemsSource="{Binding ExactChoices}" SelectedItem="{Binding Exact}" MinWidth="{StaticResource NarrowFieldWidth}" />
+                    <TextBlock Text="nth" Classes="label" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding Nth, UpdateSourceTrigger=LostFocus}" MinWidth="{StaticResource NarrowFieldWidth}" />
+                  </StackPanel>
+                  <SelectableTextBlock Text="{Binding RawText}" Classes="code small" IsVisible="{Binding IsKeptAsWritten}" />
+                  <TextBlock Text="{Binding MatchText}" Classes="small strong"
+                             IsVisible="{Binding MatchText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                  <TextBlock Text="{Binding Error}" Classes="small failed" TextWrapping="Wrap"
+                             IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="Add candidate" Command="{Binding AddCandidateCommand}" HorizontalAlignment="Left" />
+      </StackPanel>
+
+      <Button Classes="danger" Content="Remove target" HorizontalAlignment="Left" Margin="{StaticResource InsetTop3}"
+              Command="{Binding $parent[UserControl].((targets:TargetsEditorViewModel)DataContext).RemoveTargetCommand}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

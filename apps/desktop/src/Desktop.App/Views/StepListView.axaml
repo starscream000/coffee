@@ -1,8 +1,12 @@
-<!-- The step list of a test or flow file: its sections and steps, the buttons that change them, the action picker for adding a step, and the selected step's form. -->
+<!--
+  The steps view of a test or flow file: step cards grouped under before, steps
+  and after, each group with its own "Add step"; the action picker; and the
+  actions on the selected card (move, duplicate, remove). The selected step's
+  form is shown in the details panel (instruction D0004, task 9).
+-->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:steps="using:Desktop.App.ViewModels.Steps"
-             xmlns:views="using:Desktop.App.Views"
              x:Class="Desktop.App.Views.StepListView"
              x:DataType="steps:StepListViewModel">
   <DockPanel>
@@ -10,34 +14,10 @@
     <TextBlock x:Name="StepListProblem" DockPanel.Dock="Top" Margin="{StaticResource Inset3}" Text="{Binding Problem}" TextWrapping="Wrap"
                IsVisible="{Binding !IsAvailable}" />
 
-    <!-- Tools -->
-    <StackPanel DockPanel.Dock="Top" Margin="{StaticResource Inset2}" Spacing="{StaticResource Space1}" IsVisible="{Binding IsAvailable}">
-      <WrapPanel ItemSpacing="{StaticResource Space1}" LineSpacing="{StaticResource Space1}">
-        <Button x:Name="AddStepButton" Classes="main" Content="Add step" Command="{Binding StartAddingCommand}"
-                ToolTip.Tip="Add a step after the selected one, or at the end of the steps." />
-        <Button Classes="quiet" Content="Duplicate" Command="{Binding DuplicateCommand}" />
-        <Button Classes="quiet" Content="Up" Command="{Binding MoveUpCommand}" />
-        <Button Classes="quiet" Content="Down" Command="{Binding MoveDownCommand}" />
-        <Button Classes="danger" Content="Remove" Command="{Binding RemoveCommand}" />
-      </WrapPanel>
-      <ItemsControl ItemsSource="{Binding MoveTargets}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <WrapPanel ItemSpacing="{StaticResource Space1}" LineSpacing="{StaticResource Space1}" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="x:String">
-            <Button Classes="quiet" Content="{Binding StringFormat='Move to {0}'}"
-                    Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).MoveToSectionCommand}" CommandParameter="{Binding}" />
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </StackPanel>
-
     <!-- Action picker -->
     <Border DockPanel.Dock="Top" Classes="card" Margin="{StaticResource Inset2}" IsVisible="{Binding IsPicking}">
       <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding PickerTitle}" Classes="heading" Margin="{StaticResource InsetBottom2}" />
         <DockPanel DockPanel.Dock="Top">
           <Button DockPanel.Dock="Right" Content="Cancel" Command="{Binding CancelAddingCommand}" Margin="{StaticResource InsetLeft2}" />
           <TextBox x:Name="PickerSearch" Text="{Binding PickerSearch}" PlaceholderText="Search actions" />
@@ -59,45 +39,68 @@
       </DockPanel>
     </Border>
 
-    <!-- Sections and steps above, the selected step's form below -->
-    <Grid RowDefinitions="*,Auto,*" IsVisible="{Binding IsAvailable}">
-      <ScrollViewer Grid.Row="0">
-        <ItemsControl x:Name="StepSections" ItemsSource="{Binding Sections}" Margin="{StaticResource InsetX2}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="steps:StepSectionViewModel">
-              <StackPanel Margin="{StaticResource InsetY1}">
-                <TextBlock Text="{Binding Name}" Classes="section" Margin="{StaticResource InsetY1}" />
-                <TextBlock Text="No steps" Classes="label" Margin="{StaticResource InsetX2}" IsVisible="{Binding IsEmpty}" />
-                <ItemsControl ItemsSource="{Binding Steps}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="steps:StepItemViewModel">
-                      <Button Classes="row" Classes.selected="{Binding IsSelected}" ToolTip.Tip="{Binding LinesText}"
-                              Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).SelectCommand}" CommandParameter="{Binding}">
-                        <DockPanel>
-                          <Ellipse DockPanel.Dock="Right" Classes="dot failed" Margin="{StaticResource InsetLeft2}" IsVisible="{Binding HasError}" ToolTip.Tip="This step has errors" />
-                          <Ellipse DockPanel.Dock="Right" Classes="dot warning" Margin="{StaticResource InsetLeft2}" IsVisible="{Binding HasWarningOnly}" ToolTip.Tip="This step has warnings" />
-                          <StackPanel>
-                            <TextBlock Text="{Binding Name}" Classes="strong" IsVisible="{Binding HasName}" TextTrimming="CharacterEllipsis" />
-                            <DockPanel>
-                              <TextBlock DockPanel.Dock="Left" Text="{Binding Action}" Classes="code accent" Margin="{StaticResource InsetRight2}" />
-                              <TextBlock Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
-                            </DockPanel>
-                          </StackPanel>
-                        </DockPanel>
-                      </Button>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </StackPanel>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
-      <GridSplitter Grid.Row="1" ResizeDirection="Rows" Height="{StaticResource SplitterSize}" IsVisible="{Binding Form, Converter={x:Static ObjectConverters.IsNotNull}}" />
-      <Border Grid.Row="2" Classes="panel"
-              IsVisible="{Binding Form, Converter={x:Static ObjectConverters.IsNotNull}}">
-        <views:StepFormView x:Name="StepForm" DataContext="{Binding Form}" />
-      </Border>
-    </Grid>
+    <!-- Sections and their step cards -->
+    <ScrollViewer IsVisible="{Binding IsAvailable}">
+      <ItemsControl x:Name="StepSections" ItemsSource="{Binding Sections}" Margin="{StaticResource InsetX3Y2}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="steps:StepSectionViewModel">
+            <StackPanel Margin="{StaticResource InsetBottom2}">
+              <DockPanel Margin="{StaticResource InsetY1}">
+                <Button x:Name="AddStepButton" DockPanel.Dock="Right" Classes="quiet" Content="+ Add step"
+                        Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).StartAddingCommand}" CommandParameter="{Binding Name}"
+                        ToolTip.Tip="Add a step to this group: after the selected step when it is in this group, else at its end." />
+                <TextBlock Text="{Binding Name}" Classes="section" VerticalAlignment="Center" />
+              </DockPanel>
+              <TextBlock Text="No steps" Classes="label" Margin="{StaticResource InsetX2Y1}" IsVisible="{Binding IsEmpty}" />
+              <ItemsControl ItemsSource="{Binding Steps}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="steps:StepItemViewModel">
+                    <Border Classes="card step" Classes.selected="{Binding IsSelected}" Margin="{StaticResource InsetBottom1}">
+                      <StackPanel>
+                        <Button Classes="row" ToolTip.Tip="{Binding LinesText}"
+                                Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).SelectCommand}" CommandParameter="{Binding}">
+                          <DockPanel>
+                            <Ellipse DockPanel.Dock="Right" Classes="dot failed" Margin="{StaticResource InsetLeft2}" IsVisible="{Binding HasError}" ToolTip.Tip="This step has errors" />
+                            <Ellipse DockPanel.Dock="Right" Classes="dot warning" Margin="{StaticResource InsetLeft2}" IsVisible="{Binding HasWarningOnly}" ToolTip.Tip="This step has warnings" />
+                            <StackPanel>
+                              <TextBlock Text="{Binding Name}" Classes="strong" IsVisible="{Binding HasName}" TextTrimming="CharacterEllipsis" />
+                              <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="{Binding Action}" Classes="code accent" Margin="{StaticResource InsetRight2}" />
+                                <TextBlock Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                              </DockPanel>
+                            </StackPanel>
+                          </DockPanel>
+                        </Button>
+                        <!-- The selected card's actions -->
+                        <WrapPanel x:Name="StepActions" IsVisible="{Binding IsSelected}" Margin="{StaticResource InsetX1}"
+                                   ItemSpacing="{StaticResource Space1}" LineSpacing="{StaticResource Space1}">
+                          <Button Classes="quiet" Content="↑ Up" Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).MoveUpCommand}" />
+                          <Button Classes="quiet" Content="↓ Down" Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).MoveDownCommand}" />
+                          <Button Classes="quiet" Content="Duplicate" Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).DuplicateCommand}" />
+                          <ItemsControl ItemsSource="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).MoveTargets}">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <WrapPanel ItemSpacing="{StaticResource Space1}" LineSpacing="{StaticResource Space1}" />
+                              </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="x:String">
+                                <Button Classes="quiet" Content="{Binding StringFormat='Move to {0}'}"
+                                        Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).MoveToSectionCommand}" CommandParameter="{Binding}" />
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          <Button Classes="danger" Content="Remove" Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).RemoveCommand}" />
+                        </WrapPanel>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
   </DockPanel>
 </UserControl>

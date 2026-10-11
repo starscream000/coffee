@@ -169,10 +169,35 @@ public sealed partial class StepListViewModel : ObservableObject
         BuildForm();
     }
 
-    /// <summary>Opens the action picker.</summary>
-    [RelayCommand]
-    private void StartAdding()
+    /// <summary>Selects the step whose lines hold a line, such as a failed step's.</summary>
+    /// <param name="line">The line number, from 1.</param>
+    /// <returns>False when no step holds the line; the selection is kept then.</returns>
+    public bool SelectAt(int line)
     {
+        var step = Sections.SelectMany(s => s.Steps).FirstOrDefault(s => s.Outline.Line <= line && line <= s.Outline.EndLine);
+        if (step is null)
+        {
+            return false;
+        }
+
+        Selected = step;
+        return true;
+    }
+
+    /// <summary>The section the action picker adds to; null for the selected step's section, or <c>steps</c>.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PickerTitle))]
+    private string? _addingSection;
+
+    /// <summary>Says where the picked action is added.</summary>
+    public string PickerTitle => $"Add a step to {AddingSection ?? Selected?.Section ?? "steps"}";
+
+    /// <summary>Opens the action picker.</summary>
+    /// <param name="section">The section to add to, as each section's "Add step" does; null to add after the selected step, or at the end of the steps.</param>
+    [RelayCommand]
+    private void StartAdding(string? section)
+    {
+        AddingSection = section;
         PickerSearch = string.Empty;
         FilterPicker();
         IsPicking = true;
@@ -182,7 +207,12 @@ public sealed partial class StepListViewModel : ObservableObject
     [RelayCommand]
     private void CancelAdding() => IsPicking = false;
 
-    /// <summary>Adds a step for an action after the selected step, or at the end of the steps when none is selected.</summary>
+    /// <summary>
+    /// Adds a step for an action: to the section the picker was opened for,
+    /// after the selected step when it is in that section, else at the
+    /// section's end. Without a section, after the selected step, or at the end
+    /// of the steps when none is selected.
+    /// </summary>
     /// <param name="action">The action.</param>
     [RelayCommand]
     public void Add(StepActionChoice? action)
@@ -193,8 +223,9 @@ public sealed partial class StepListViewModel : ObservableObject
         }
 
         IsPicking = false;
-        var section = Selected?.Section ?? "steps";
-        var after = Selected?.Outline.Index;
+        var section = AddingSection ?? Selected?.Section ?? "steps";
+        var after = Selected is { } selected && selected.Section == section ? selected.Outline.Index : (int?)null;
+        AddingSection = null;
         var text = StepEdits.Insert(Outline, section, after, NewStep.Text(action.Name, action.Shorthand, action.Required));
         Apply(text, section, after is { } i ? i + 1 : Outline.Sections.Single(s => s.Name == section).Steps.Count);
     }
@@ -270,6 +301,7 @@ public sealed partial class StepListViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(MoveTargets));
+        OnPropertyChanged(nameof(PickerTitle));
         BuildForm();
     }
 

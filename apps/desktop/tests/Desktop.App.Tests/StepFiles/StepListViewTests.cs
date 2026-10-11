@@ -73,7 +73,9 @@ public sealed class StepListViewTests
         Render(window, "23-targets-editor");
         Assert.Equal(3, Find<ListBox>(window, "TargetNames").ItemCount);
         Assert.Equal(2, Find<ItemsControl>(window, "CandidateList").ItemCount);
-        Assert.False(Find<TabControl>(window, "SidePanel").Items.Cast<TabItem>().First().IsVisible);
+        // A targets file has no steps: its switch offers Targets and Text only.
+        Assert.Throws<InvalidOperationException>(() => Find<Button>(window, "StepsViewButton"));
+        Assert.Contains("selected", Find<Button>(window, "TargetsViewButton").Classes);
 
         shell.Workspace.OpenFile("tests/b.test.yaml");
         Render(window);

@@ -125,6 +125,9 @@
     <Setter Property="BorderBrush" Value="{StaticResource FailedBrush}" />
     <Setter Property="Background" Value="{StaticResource FailedSubtleBrush}" />
   </Style>
+  <Style Selector="Border.card.step">
+    <Setter Property="Padding" Value="{StaticResource Inset0}" />
+  </Style>
   <Style Selector="Border.card.muted">
     <Setter Property="Opacity" Value="0.55" />
   </Style>

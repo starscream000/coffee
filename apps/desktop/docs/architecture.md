@@ -104,20 +104,25 @@ types are written by hand and how they are kept honest:
   - left, **Project**: the test explorer (folders and test files; search;
     tags) and New ▾ (test, flow, targets file);
   - centre: tabs for open step files, runs and the action catalogue. A step
-    file tab is an editor
-    ([ADR D0006](adr/0006-avaloniaedit-for-step-files.md)) with line numbers,
-    undo and redo, and problem lines marked; Save (Ctrl+S, Cmd+S on macOS)
-    writes UTF-8 without a byte-order mark, keeps the file's line endings, and
-    replaces the file in one step (a temporary file next to it, then a move);
+    file's tab switches between three views of the same file: **Steps**,
+    **Targets** and **Text**. The text view is an editor
+    ([ADR D0006](adr/0006-avaloniaedit-for-step-files.md)) with line
+    numbers, undo and redo, and problem lines marked; Save (Ctrl+S, Cmd+S on
+    macOS) writes UTF-8 without a byte-order mark, keeps the file's line
+    endings, and replaces the file in one step (a temporary file next to it,
+    then a move). A problem opens its file in the text view at its line; a
+    run's step opens its test in the steps view with that step selected;
+  - right, **Details**: the form of what is selected in the tab (a step, a
+    target), or a line saying what to select;
   - bottom: **Problems** (diagnostics with file, line and column), **Runs**
     (the run history) and the **Engine log**, each saying so when it is
     empty;
   - the status bar.
 
   The splitters between regions can be dragged (the accent shows under the
-  pointer). The bottom panel can be hidden, keeping its header strip. Sizes
-  and the open state are saved in the settings when a drag ends or the panel
-  opens or closes (`LayoutViewModel`).
+  pointer). The details and bottom panels can be hidden (the bottom panel
+  keeps its header strip). Sizes and open states are saved in the settings
+  when a drag ends or a panel opens or closes (`LayoutViewModel`).
 
 - **Problems**: the diagnostics of `openProject` plus those of `validate` over
   all test files. YAML changes under the project root (watched, gathered for
@@ -140,16 +145,18 @@ types are written by hand and how they are kept honest:
 
 ## The step list
 
-- A test or flow file's tab shows a **step list** beside the text editor: the
-  file's sections (`before`, `steps`, `after` for a test; `steps` for a flow)
-  with their steps, each with its action, main value (the shorthand value or
-  the parameters in short), its `name`, and a mark when the engine reported
-  a problem on its lines. Selecting a step shows its line in the text editor.
+- A test or flow file's tab opens on its **steps view**: the file's sections
+  (`before`, `steps`, `after` for a test; `steps` for a flow), each with its
+  own "Add step", and their steps as cards, each with its action, main value
+  (the shorthand value or the parameters in short), its `name`, and a mark
+  when the engine reported a problem on its lines. Selecting a card shows the
+  step's form in the details panel and its actions (up, down, duplicate, move
+  to another section, remove) on the card; the text view keeps its line.
 - The app reads the YAML itself, with YamlDotNet's parser
   ([ADR D0007](adr/0007-yamldotnet-for-the-step-list.md)): `StepFiles/YamlTree`
   gives every node's position, `StepFiles/StepOutline` finds each step's lines
   and its form (bare, shorthand or long, as in the step format).
-- **One text, two views.** The step list is read again from the document on
+- **One text, three views.** The step list is read again from the document on
   every change, so typing in the text editor changes it at once. A change made
   in the step list (add, remove, duplicate, move up or down, move to another
   section) is computed on the text by `StepFiles/StepEdits`, which touches only
@@ -158,13 +165,15 @@ types are written by hand and how they are kept honest:
   its undo takes it back in one step. Comments and layout elsewhere stay as
   they were.
 - **Adding a step**: an action picked from the engine's `listActions` (with a
-  search) is inserted after the selected step, or at the end of the steps. It
+  search) is inserted into the section whose "Add step" was used: after the
+  selected step when it is in that section, else at the section's end. It
   is written as the action alone when it needs nothing, with its shorthand and
   an empty value when it has one, else in the long form with its required
   parameters empty; the engine then reports what is still missing.
 - A file the step list cannot read (invalid YAML, anchors, sections written
-  as `[ … ]`, …) shows a line saying why, and the text editor alone.
-- **The step's form.** Below the list, the selected step's form has a field
+  as `[ … ]`, …) shows a line saying why in its steps view; the text view
+  edits it.
+- **The step's form.** In the details panel, the selected step's form has a field
   per parameter of its action, read from the action's `paramsSchema`
   (`StepFiles/ParamSchema`): text, number (or `${…}`), yes/no, a choice from
   an `enum`, a target picker offering the file's own targets and those of the
@@ -185,10 +194,10 @@ types are written by hand and how they are kept honest:
 
 ## The targets editor
 
-- Test, flow and targets files have a **Targets** tab in the side panel (a
-  targets file opens on it): the file's targets by name, adding a target
-  (with a name that is not taken in the file or the shared targets) and
-  removing one, and the selected target's form.
+- Test, flow and targets files have a **Targets** view (a targets file opens
+  on it): the file's targets by name and adding a target (with a name that is
+  not taken in the file or the shared targets). The selected target's form,
+  with Remove target, is in the details panel.
 - The form shows `frame` and `within`, each picked from the other targets
   (a target has one or the other, not both), and the **candidates in order of
   reliability**: each with its kind (`role`, `label`, `placeholder`, `text`,
@@ -207,7 +216,7 @@ types are written by hand and how they are kept honest:
   is listed with the candidate it took; a target that was not found, or was
   found by a fallback candidate, at any level (frame, within, the element),
   has an "Open target" button. It opens the file that declares the target
-  (the step's own file, else a shared targets file) on its targets editor,
+  (the step's own file, else a shared targets file) in its targets view,
   with the target selected; after `TargetNotFound`, each candidate shows how
   many elements it matched. An inline target has no button.
 
@@ -220,7 +229,7 @@ types are written by hand and how they are kept honest:
   engine reads without problems (a test or flow with one `goto: /` step,
   since `steps` needs at least one; a targets file with `targets: {}`), and
   open it. The test list and problems are read again at once.
-- **Rename** (in a file's tab) keeps the file in its folder and its kind's
+- **Rename** (File ▾ in a file's tab) keeps the file in its folder and its kind's
   ending; a tab with unsaved changes is saved or reverted first. **Delete**
   asks first, then deletes the file and closes its tab.
 

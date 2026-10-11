@@ -21,7 +21,7 @@ public sealed record AppSettings
     /// <summary>Recently opened project folders, newest first.</summary>
     public IReadOnlyList<string> RecentProjects { get; init; } = [];
 
-    /// <summary>The window's panel sizes and whether the bottom panel is open; a file without them gets the defaults.</summary>
+    /// <summary>The window's panel sizes and which panels are open; a file without them gets the defaults.</summary>
     public LayoutSettings Layout
     {
         get => _layout;
@@ -45,8 +45,14 @@ public sealed record LayoutSettings
     /// <summary>Width of the project panel, in pixels.</summary>
     public double ProjectWidth { get; init; } = 300;
 
+    /// <summary>Width of the details panel, in pixels.</summary>
+    public double DetailsWidth { get; init; } = 340;
+
     /// <summary>Height of the bottom panel, in pixels.</summary>
     public double BottomHeight { get; init; } = 180;
+
+    /// <summary>True when the details panel is open.</summary>
+    public bool IsDetailsOpen { get; init; } = true;
 
     /// <summary>True when the bottom panel is open.</summary>
     public bool IsBottomOpen { get; init; } = true;
