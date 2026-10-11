@@ -1,4 +1,7 @@
-<!-- The start page: open a project folder or a recent project; the engine's state. -->
+<!--
+  The start page, shown when no project is open (instruction D0004, task 12):
+  New project and Open project, the recent projects, and the engine's state.
+-->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Desktop.App.ViewModels"
@@ -9,9 +12,12 @@
       <StackPanel Spacing="{StaticResource Space1}">
         <TextBlock Text="{Binding ProductName}" Classes="page" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
-                   Text="Browse, check and manage the end-to-end tests of a project. Open the folder that holds its config file." />
+                   Text="Record, edit and run the end-to-end tests of a web application. Create a project, or open the folder that holds one." />
       </StackPanel>
-      <Button x:Name="OpenFolderButton" Content="Open a project folder…" Command="{Binding OpenFolderCommand}" Classes="main" />
+      <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+        <Button x:Name="NewProjectButton" Content="New project" Command="{Binding ShowNewProjectCommand}" Classes="main" />
+        <Button x:Name="OpenFolderButton" Content="Open project…" Command="{Binding OpenFolderCommand}" />
+      </StackPanel>
 
       <StackPanel Spacing="{StaticResource Space2}" IsVisible="{Binding HasRecentProjects}">
         <TextBlock Classes="title" Text="Recent projects" />

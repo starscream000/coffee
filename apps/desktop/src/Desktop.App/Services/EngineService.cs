@@ -136,6 +136,10 @@ public sealed class EngineService : IEngineService, IAsyncDisposable
         _session.Client.OpenProjectAsync(root, cancellationToken);
 
     /// <inheritdoc />
+    public Task<OpenProjectResult> CreateProjectAsync(CreateProjectParams project, CancellationToken cancellationToken = default) =>
+        _session.Client.CreateProjectAsync(project, cancellationToken);
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<TestInfo>> ListTestsAsync(CancellationToken cancellationToken = default) =>
         (await _session.Client.ListTestsAsync(cancellationToken: cancellationToken).ConfigureAwait(false)).Tests;
 

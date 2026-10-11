@@ -110,6 +110,12 @@ internal sealed class FakeEngineService : IEngineService
 
     public Func<string, OpenProjectResult> OpenProject { get; set; } = root => Project(root);
 
+    /// <summary>What createProject answers; the new project by default, or throws.</summary>
+    public Func<CreateProjectParams, OpenProjectResult> CreateProject { get; set; } = p => Project(p.Root) with { Environments = [p.Environment ?? "local"], DefaultEnvironment = p.Environment ?? "local" };
+
+    /// <summary>The createProject requests, in order.</summary>
+    public List<CreateProjectParams> Created { get; } = [];
+
     public IReadOnlyList<TestInfo> Tests { get; set; } = [];
 
     public IReadOnlyList<ActionInfo> Actions { get; set; } = [];
@@ -188,6 +194,14 @@ internal sealed class FakeEngineService : IEngineService
         Calls.Add($"openProject {root}");
         await Before("openProject");
         return OpenProject(root);
+    }
+
+    public async Task<OpenProjectResult> CreateProjectAsync(CreateProjectParams project, CancellationToken cancellationToken = default)
+    {
+        Calls.Add($"createProject {project.Root}");
+        Created.Add(project);
+        await Before("createProject");
+        return CreateProject(project);
     }
 
     public async Task<IReadOnlyList<TestInfo>> ListTestsAsync(CancellationToken cancellationToken = default)

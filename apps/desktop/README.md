@@ -13,7 +13,9 @@ works on both tracks, which stay separate (owner decision, 2026-10-10).
 
 What it does today:
 
-- **Opens a project** and shows its tests (a folder tree with search and
+- **Creates a project** (name, folder, the address of the application under
+  test, the first environment) with the engine's `createProject`, or **opens
+  one**, and shows its tests (a folder tree with search and
   tags), every problem the engine finds (checked again when files change), the
   action catalogue, and the engine's log.
 - **Edits tests without YAML**: each test and flow has three views of the
@@ -95,11 +97,11 @@ run from the repository's root unless said otherwise.
    $env:DEMO_PASSWORD = 'demo-secret'; apps\desktop\dist\app\Desktop.App.exe     # Windows PowerShell
    ```
 
-   The engine status at the top right turns to "Engine ready". If the run
-   buttons stay off, the text below them says why (no browser: go back to
-   step 4).
+   The engine status at the top right turns to "Engine ready". Once a project
+   is open, if Run stays off, the bar above the panels says why (no browser:
+   go back to step 4).
 
-7. **Open the demo project**: Open folder…, then `examples/demo-app`. The
+7. **Open the demo project**: Open project…, then `examples/demo-app`. The
    tests appear on the left; the problems panel says "No problems". (Runs
    write their results into `examples/demo-app/.cfe/`, which Git ignores.)
 8. **Create a test**: select the `tests` folder, then New ▾ → Test in the

@@ -79,6 +79,17 @@ public sealed class EngineClient
     public Task<OpenProjectResult> OpenProjectAsync(string root, CancellationToken cancellationToken = default) =>
         Send<OpenProjectParams, OpenProjectResult>(Methods.OpenProject, new OpenProjectParams { Root = root }, cancellationToken);
 
+    /// <summary>Sends <c>createProject</c>: creates a project in an empty or new folder, then opens it, replacing any open project.</summary>
+    /// <param name="project">The folder, the project's name, and its first environment.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>The new project, as <c>openProject</c> describes it.</returns>
+    /// <exception cref="EngineRequestException">
+    /// <c>FolderNotEmpty</c> naming what is in the folder; <c>InvalidParams</c> for an empty name,
+    /// a root that is a file, or a base address or environment name the config would not accept.
+    /// </exception>
+    public Task<OpenProjectResult> CreateProjectAsync(CreateProjectParams project, CancellationToken cancellationToken = default) =>
+        Send<CreateProjectParams, OpenProjectResult>(Methods.CreateProject, project, cancellationToken);
+
     /// <summary>Sends <c>listTests</c>.</summary>
     /// <param name="tags">Only tests with one of these tags; all tests when null.</param>
     /// <param name="cancellationToken">Stops waiting.</param>

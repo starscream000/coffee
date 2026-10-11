@@ -93,10 +93,12 @@ types are written by hand and how they are kept honest:
   views only bind. Anything that touches the operating system (dialogs, file
   system, settings storage, time) goes through a small service interface so
   that tests can replace it.
-- **Main window**: a start page (open a folder, recent projects) until a
-  project is open; then named regions, each a panel with a header strip and a
+- **Main window**: a start page until a project is open (New project and
+  Open project, the recent projects, and the engine's state); then named
+  regions, each a panel with a header strip and a
   line around it (instruction D0004, task 8; the look is ADR D0008):
-  - top bar: the project ▾ (validate, save all, open another, close), the
+  - top bar: the project ▾ (validate, save all, new project, open another,
+    close), the
     environment ▾, the two main actions **Record** and **Run ▾** (the open
     test, the selected tests, a tag, all tests; "Show the browser"; off until
     the engine reports a browser in `capabilities.browsers`), and the engine's
@@ -219,6 +221,24 @@ types are written by hand and how they are kept honest:
   (the step's own file, else a shared targets file) in its targets view,
   with the target selected; after `TargetNotFound`, each candidate shows how
   many elements it matched. An inline target has no button.
+
+## New projects
+
+- **New project** (on the start page, and in the project ▾ menu) asks for the
+  project's name, the folder to create it in (a folder chosen with Choose…,
+  and the project's own folder inside it, named from the project's name until
+  changed), the address of the application under test, and the first
+  environment's name (`local` by default). The folder offered is the parent
+  of the most recent project.
+- The form checks what it can itself (a name, a folder, an `http://` or
+  `https://` address, an environment name the config accepts), then sends
+  `createProject` after asking about the open project's unsaved changes. The
+  engine's refusals are shown next to the field they are about, in its own
+  words: `FolderNotEmpty`, a root that is a file and a failure to write go to
+  the folder; the others by what their message names; the rest below the
+  form.
+- The created project opens like any other and is added to the recent
+  projects. A bar offers "Record your first test".
 
 ## Files
 

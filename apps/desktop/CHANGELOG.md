@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- New projects (instruction D0004, tasks 12 and 13): the start page offers New
+  project and Open project beside the recent projects and the engine's state.
+  The New project form asks for the name, the folder, the address of the
+  application under test and the first environment. It creates the project
+  with the engine's `createProject`, shows the engine's refusals (a folder that
+  is not empty or cannot be written) next to their field, opens the project,
+  and offers "Record your first test".
 - A layout with named regions, each with a visible edge (instruction D0004,
   tasks 8, 10 and 11): a top bar with the project ▾, the environment ▾,
   Record, Run ▾ (the open test, the selected tests, a tag, all tests) and the

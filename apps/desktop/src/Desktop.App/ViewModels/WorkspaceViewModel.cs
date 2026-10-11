@@ -176,6 +176,10 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isBusy;
 
+    /// <summary>True for a project just created: the workspace offers to record its first test.</summary>
+    [ObservableProperty]
+    private bool _offersFirstRecording;
+
     /// <summary>What happened last, for the status bar.</summary>
     [ObservableProperty]
     private string _status = string.Empty;
@@ -423,6 +427,18 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
 
         SelectedTab = tab;
     }
+
+    /// <summary>Takes up the offer of a new project: records its first test.</summary>
+    [RelayCommand]
+    private void RecordFirstTest()
+    {
+        OffersFirstRecording = false;
+        Record();
+    }
+
+    /// <summary>Declines the offer to record a new project's first test.</summary>
+    [RelayCommand]
+    private void DismissFirstRecording() => OffersFirstRecording = false;
 
     /// <summary>Hides the file notice.</summary>
     [RelayCommand]
