@@ -1,0 +1,12 @@
+<!--
+  Build targets for every project of the desktop app. Avalonia's build
+  telemetry (package Avalonia.BuildServices) runs as the target AvaloniaStats
+  before compiling; a target of the same name defined here, after the package
+  targets, replaces it with nothing, so no build of the app sends telemetry,
+  whatever the environment (instruction D0004, task 4). Avalonia's own opt-out
+  is the environment variable AVALONIA_TELEMETRY_OPTOUT=1, which a build cannot
+  rely on being set.
+-->
+<Project>
+  <Target Name="AvaloniaStats" />
+</Project>
