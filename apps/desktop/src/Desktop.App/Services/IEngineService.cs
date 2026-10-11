@@ -49,6 +49,12 @@ public interface IEngineService
     /// <returns>The project.</returns>
     Task<OpenProjectResult> OpenProjectAsync(string root, CancellationToken cancellationToken = default);
 
+    /// <summary>Sends <c>createProject</c>: creates a project in an empty or new folder and opens it.</summary>
+    /// <param name="project">The folder, the project's name, and its first environment.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>The new project.</returns>
+    Task<OpenProjectResult> CreateProjectAsync(CreateProjectParams project, CancellationToken cancellationToken = default);
+
     /// <summary>Sends <c>listTests</c>.</summary>
     /// <param name="cancellationToken">Stops waiting.</param>
     /// <returns>The tests.</returns>

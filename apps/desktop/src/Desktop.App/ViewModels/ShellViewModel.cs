@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using Desktop.App.Services;
 using Desktop.Engine;
 using Desktop.Protocol;
+using Desktop.Protocol.Messages;
 
 namespace Desktop.App.ViewModels;
 
@@ -103,6 +104,14 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty]
     private bool _isSettingsOpen;
 
+    /// <summary>The New project form while it is shown, else null.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNewProjectOpen))]
+    private NewProjectViewModel? _newProject;
+
+    /// <summary>True while the New project form is shown.</summary>
+    public bool IsNewProjectOpen => NewProject is not null;
+
     /// <summary>Starts the engine. Called once when the window opens.</summary>
     /// <returns>A task that completes when the engine is ready or has failed.</returns>
     public Task InitializeAsync() => _engine.StartAsync();
@@ -181,21 +190,7 @@ public sealed partial class ShellViewModel : ObservableObject
                 return;
             }
 
-            var project = await _engine.OpenProjectAsync(root);
-            var workspace = new WorkspaceViewModel(project, _engine, _files, _dispatcher, Engine, _dialogs, _delay) { Layout = Layout };
-            workspace.ReopenRequested += (_, _) => _ = ReopenAsync();
-            await workspace.LoadAsync();
-            if (sameProject && Workspace is { } current)
-            {
-                // Taken at the moment of the swap, so nothing typed while the project
-                // was being opened again is left behind (review D0002, findings 1 and 2).
-                workspace.AdoptTabs(current.ReleaseTabs());
-            }
-
-            Workspace?.Dispose();
-            Workspace = workspace;
-            TrySave(_settings.Load().WithRecentProject(root));
-            RefreshRecent();
+            await ShowAsync(await _engine.OpenProjectAsync(root), root, sameProject);
         }
         catch (EngineRequestException ex)
         {
@@ -219,6 +214,97 @@ public sealed partial class ShellViewModel : ObservableObject
         {
             IsOpening = false;
         }
+    }
+
+    /// <summary>Shows the New project form, offering to create the project beside the most recent one.</summary>
+    [RelayCommand]
+    private void ShowNewProject()
+    {
+        var recents = _settings.Load().RecentProjects;
+        var recent = recents.Count > 0 ? recents[0] : null;
+        var form = new NewProjectViewModel(_folderPicker, CreateProjectAsync, recent is null ? null : Path.GetDirectoryName(recent.TrimEnd('/', '\\')));
+        form.Closed += (_, _) =>
+        {
+            if (NewProject == form)
+            {
+                NewProject = null;
+            }
+        };
+        NewProject = form;
+    }
+
+    /// <summary>
+    /// Creates a project with the engine and opens it, asking first about the
+    /// open project's unsaved changes. The engine's refusals are thrown for
+    /// the form to show next to its fields; a failure after the project was
+    /// created ends in <see cref="Notice"/>.
+    /// </summary>
+    /// <param name="request">The form's values.</param>
+    /// <returns>False when the person kept the open project.</returns>
+    /// <exception cref="EngineException">The engine is not running, or refused the request.</exception>
+    private async Task<bool> CreateProjectAsync(CreateProjectParams request)
+    {
+        if (_engine.State != EngineState.Ready)
+        {
+            await _engine.StartAsync();
+            if (_engine.State != EngineState.Ready)
+            {
+                throw new EngineException($"The engine is not running. {_engine.Failure?.Message}");
+            }
+        }
+
+        if (Workspace is { } previous && !await previous.ConfirmCloseAsync())
+        {
+            return false;
+        }
+
+        IsOpening = true;
+        Notice = null;
+        try
+        {
+            var project = await _engine.CreateProjectAsync(request);
+            Engine.Report($"Created the project {request.Name} in {request.Root}.");
+            try
+            {
+                var workspace = await ShowAsync(project, request.Root, sameProject: false);
+                workspace.OffersFirstRecording = true;
+            }
+            catch (Exception ex)
+            {
+                ShowError($"The project was created in {request.Root}, but it could not be opened: {ex.Message} Open it with Open project.");
+                Engine.Report($"Opening the new project {request.Root} failed: {ex}");
+            }
+
+            return true;
+        }
+        finally
+        {
+            IsOpening = false;
+        }
+    }
+
+    /// <summary>Builds the workspace of a project the engine opened, loads it, and shows it in place of the open one.</summary>
+    /// <param name="project">The engine's answer.</param>
+    /// <param name="root">The folder as the person chose it, for the recent projects.</param>
+    /// <param name="sameProject">True when the same project is opened again: its tabs and unsaved text are kept.</param>
+    /// <returns>The workspace now shown.</returns>
+    private async Task<WorkspaceViewModel> ShowAsync(OpenProjectResult project, string root, bool sameProject)
+    {
+        var workspace = new WorkspaceViewModel(project, _engine, _files, _dispatcher, Engine, _dialogs, _delay) { Layout = Layout };
+        workspace.ReopenRequested += (_, _) => _ = ReopenAsync();
+        await workspace.LoadAsync();
+        if (sameProject && Workspace is { } current)
+        {
+            // Taken at the moment of the swap, so nothing typed while the project
+            // was being opened again is left behind (review D0002, findings 1 and 2).
+            workspace.AdoptTabs(current.ReleaseTabs());
+        }
+
+        Workspace?.Dispose();
+        Workspace = workspace;
+        TrySave(_settings.Load().WithRecentProject(root));
+        RefreshRecent();
+        return workspace;
     }
 
     /// <summary>Closes the project and shows the start page, asking first about unsaved changes.</summary>

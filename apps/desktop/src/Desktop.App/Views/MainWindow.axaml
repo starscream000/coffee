@@ -57,6 +57,7 @@
                             ToolTip.Tip="Check every test file again." />
                     <Button Classes="row" Content="Save all" Command="{Binding Workspace.SaveAllCommand, FallbackValue={x:Null}}"
                             ToolTip.Tip="Save every file with unsaved changes." />
+                    <Button Classes="row" Content="New project…" Command="{Binding ShowNewProjectCommand}" />
                     <Button Classes="row" Content="Open another project…" Command="{Binding OpenFolderCommand}" />
                     <Button Classes="row" Content="Close project" Command="{Binding CloseProjectCommand}" />
                   </StackPanel>
@@ -69,7 +70,6 @@
                       IsVisible="{Binding Workspace.HasEnvironments, FallbackValue=False}"
                       MinWidth="{StaticResource FieldMinWidth}" ToolTip.Tip="The environment runs and recordings use" />
           </StackPanel>
-          <Button Content="Open folder…" Command="{Binding OpenFolderCommand}" IsVisible="{Binding !IsProjectOpen}" />
           <ProgressBar IsIndeterminate="True" Width="{StaticResource BusyBarWidth}" IsVisible="{Binding IsOpening}" />
         </StackPanel>
 
@@ -130,6 +130,9 @@
     <Panel Grid.Row="2">
       <views:StartPageView x:Name="StartPage" IsVisible="{Binding !IsProjectOpen}" />
       <views:WorkspaceView x:Name="WorkspacePanel" DataContext="{Binding Workspace}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsProjectOpen, FallbackValue=False}" />
+      <Border IsVisible="{Binding IsNewProjectOpen}" Classes="overlay">
+        <views:NewProjectView x:Name="NewProjectForm" DataContext="{Binding NewProject}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
       <Border IsVisible="{Binding IsSettingsOpen}" Classes="overlay">
         <views:SettingsView DataContext="{Binding Settings}" HorizontalAlignment="Center" VerticalAlignment="Center" />
       </Border>

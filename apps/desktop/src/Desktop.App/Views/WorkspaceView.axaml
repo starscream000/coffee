@@ -51,6 +51,18 @@
       </DockPanel>
     </Border>
 
+    <!-- A new project's offer to record its first test -->
+    <Border x:Name="FirstRecordingOffer" DockPanel.Dock="Top" Classes="notice" IsVisible="{Binding OffersFirstRecording}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{StaticResource Space2}">
+          <Button x:Name="RecordFirstTestButton" Content="Record your first test" Classes="main" Command="{Binding RecordFirstTestCommand}" />
+          <Button Content="Not now" Classes="quiet" Command="{Binding DismissFirstRecordingCommand}" />
+        </StackPanel>
+        <TextBlock Text="Your project is ready. Record a first test: use the application in a browser, and each step is written down for you."
+                   TextWrapping="Wrap" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+
     <!-- Notices of the project: why runs are not possible, the last run's notice, a file notice -->
     <Border DockPanel.Dock="Top" Classes="notice warning"
             IsVisible="{Binding Runs.UnavailableReason, Converter={x:Static ObjectConverters.IsNotNull}}">

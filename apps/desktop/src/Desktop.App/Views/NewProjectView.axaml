@@ -1,0 +1,69 @@
+<!--
+  The New project form (instruction D0004, task 13): name, folder, the address
+  of the application under test, and the first environment. Each field shows
+  its own problem below it, the engine's words when the engine refused.
+-->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Desktop.App.ViewModels"
+             x:Class="Desktop.App.Views.NewProjectView"
+             x:DataType="vm:NewProjectViewModel"
+             Width="{StaticResource DialogWidth}">
+  <Border Classes="dialog">
+    <StackPanel Spacing="{StaticResource Space4}">
+      <StackPanel Spacing="{StaticResource Space1}">
+        <TextBlock Text="New project" Classes="page" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="A project is a folder that holds tests, flows, targets and a config file. Keep it in your Git repository." />
+      </StackPanel>
+
+      <StackPanel Spacing="{StaticResource Space1}">
+        <TextBlock Classes="heading" Text="Name" />
+        <TextBox x:Name="NameBox" Text="{Binding Name}" PlaceholderText="Shop tests" />
+        <TextBlock x:Name="NameError" Text="{Binding NameError}" Classes="small failed" TextWrapping="Wrap"
+                   IsVisible="{Binding NameError, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+
+      <StackPanel Spacing="{StaticResource Space1}">
+        <TextBlock Classes="heading" Text="Folder" />
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Choose…" Command="{Binding BrowseCommand}" Margin="{StaticResource InsetLeft1}" />
+          <TextBox x:Name="LocationBox" Text="{Binding Location}" PlaceholderText="The folder to create the project in" />
+        </DockPanel>
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Left" Text="Project folder" Classes="label" VerticalAlignment="Center" Margin="{StaticResource InsetRight2}" />
+          <TextBox x:Name="FolderNameBox" Text="{Binding FolderName}" PlaceholderText="shop-tests" />
+        </DockPanel>
+        <TextBlock x:Name="RootText" Text="{Binding RootText}" Classes="label" TextWrapping="Wrap" />
+        <TextBlock x:Name="FolderError" Text="{Binding FolderError}" Classes="small failed" TextWrapping="Wrap"
+                   IsVisible="{Binding FolderError, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+
+      <StackPanel Spacing="{StaticResource Space1}">
+        <TextBlock Classes="heading" Text="Address of the application under test" />
+        <TextBox x:Name="BaseUrlBox" Text="{Binding BaseUrl}" PlaceholderText="http://localhost:5173" />
+        <TextBlock Text="Tests go to paths under it, such as /login." Classes="label" TextWrapping="Wrap" />
+        <TextBlock x:Name="BaseUrlError" Text="{Binding BaseUrlError}" Classes="small failed" TextWrapping="Wrap"
+                   IsVisible="{Binding BaseUrlError, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+
+      <StackPanel Spacing="{StaticResource Space1}">
+        <TextBlock Classes="heading" Text="First environment" />
+        <TextBox x:Name="EnvironmentBox" Text="{Binding Environment}" PlaceholderText="local" />
+        <TextBlock Text="More environments, such as staging, can be added to the config file later." Classes="label" TextWrapping="Wrap" />
+        <TextBlock x:Name="EnvironmentError" Text="{Binding EnvironmentError}" Classes="small failed" TextWrapping="Wrap"
+                   IsVisible="{Binding EnvironmentError, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+
+      <TextBlock x:Name="FormError" Text="{Binding Error}" Classes="failed" TextWrapping="Wrap"
+                 IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <DockPanel>
+        <ProgressBar DockPanel.Dock="Left" IsIndeterminate="True" Width="{StaticResource BusyBarWidth}" IsVisible="{Binding IsCreating}" VerticalAlignment="Center" />
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" HorizontalAlignment="Right">
+          <Button Content="Cancel" Command="{Binding CancelCommand}" />
+          <Button x:Name="CreateButton" Content="Create project" Classes="main" Command="{Binding CreateCommand}" IsDefault="True" />
+        </StackPanel>
+      </DockPanel>
+    </StackPanel>
+  </Border>
+</UserControl>
