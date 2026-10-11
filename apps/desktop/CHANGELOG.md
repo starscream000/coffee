@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The check of a recording (instruction D0004, task 16): when a recording
+  ends, the app runs the test once by itself (`verifyRecording`) and follows
+  it as a run, kept in the run history. The Record tab says "This test runs",
+  or which step failed and why, with Open test at that step. A typed password
+  that matched no declared secret is explained in plain words: the test holds
+  an empty variable in its place, and how to declare the secret and use it.
 - Recording (instruction D0004, tasks 14, 15 and 17). Record asks for the
   test's name, start address, environment and saved login, or shows the
   engine's install command when there is no browser. The Record tab shows the

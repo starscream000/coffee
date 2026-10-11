@@ -252,6 +252,9 @@ internal sealed class FakeEngineService : IEngineService
     /// <summary>What stopRecording answers, or throws.</summary>
     public Func<string, StopRecordingResult> StopRecording { get; set; } = _ => new StopRecordingResult { File = "tests/recorded.test.yaml", Steps = 1 };
 
+    /// <summary>What verifyRecording answers, or throws.</summary>
+    public Func<string, StartRunResult> VerifyRecording { get; set; } = id => new StartRunResult { RunId = $"verify-{id}", ResultsDir = $"/work/shop-tests/.runs/verify-{id}" };
+
     public async Task<StartRecordingResult> StartRecordingAsync(StartRecordingParams parameters, CancellationToken cancellationToken = default)
     {
         Calls.Add($"startRecording {parameters.File}");
@@ -265,6 +268,13 @@ internal sealed class FakeEngineService : IEngineService
         Calls.Add($"stopRecording {recordingId}");
         await Before("stopRecording");
         return StopRecording(recordingId);
+    }
+
+    public async Task<StartRunResult> VerifyRecordingAsync(string recordingId, CancellationToken cancellationToken = default)
+    {
+        Calls.Add($"verifyRecording {recordingId}");
+        await Before("verifyRecording");
+        return VerifyRecording(recordingId);
     }
 
     /// <summary>What openSnapshot does: nothing, or throw.</summary>

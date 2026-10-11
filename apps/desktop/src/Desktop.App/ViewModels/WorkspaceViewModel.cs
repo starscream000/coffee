@@ -478,6 +478,8 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
             EngineStatus.Report($"Recording {started.File} ({started.RecordingId}).");
             var tab = new RecordingTabViewModel(started.RecordingId, started.File, new RecordingHost(
                 id => _engine.StopRecordingAsync(id),
+                VerifyRecordingAsync,
+                run => ShowRun(run, live: run.IsActive),
                 (file, line) =>
                 {
                     if (line is { } n)
@@ -523,6 +525,14 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
             _recordingStarting = false;
             _earlyRecording.Clear();
         }
+    }
+
+    /// <summary>Starts the check of a recording as a run the app follows.</summary>
+    private async Task<(RunViewModel? Run, string? Problem)> VerifyRecordingAsync(string recordingId)
+    {
+        var file = Tabs.OfType<RecordingTabViewModel>().FirstOrDefault(t => t.RecordingId == recordingId)?.File ?? recordingId;
+        var run = await Runs.FollowAsync(() => _engine.VerifyRecordingAsync(recordingId), $"The check of {file}");
+        return (run, run is null ? Runs.Notice : null);
     }
 
     private void OnRecordingEvent(object? sender, RecordingEvent recordingEvent)

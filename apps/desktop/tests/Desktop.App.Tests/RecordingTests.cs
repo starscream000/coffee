@@ -1,7 +1,8 @@
-// Recording (instruction D0004, tasks 14, 15 and 17): the form Record opens,
-// the Record tab as steps arrive and change, review marks and notices, Stop
-// and the closed browser, and the rules: one recording at a time, none during
-// a run, runs wait while recording, and what the engine's stopping keeps. With DESKTOP_SCREENSHOTS
+// Recording (instruction D0004, tasks 14 to 17): the form Record opens, the
+// Record tab as steps arrive and change, review marks and notices, Stop, the
+// check that follows (passed and failed), a password that matched no secret,
+// and the rules: one recording at a time, none during a run, runs wait while
+// recording, and what the engine's stopping keeps. With DESKTOP_SCREENSHOTS
 // set to a folder, the view test also saves what it rendered.
 
 using System.Text.Json;
@@ -83,6 +84,14 @@ public sealed class RecordingTests
                 Engine.Raise(e);
             }
         }
+
+        public void Play(params EngineEvent[] events)
+        {
+            foreach (var e in events)
+            {
+                Engine.Raise(e);
+            }
+        }
     }
 
     private static RecordedStep Step(string action, object parameters) =>
@@ -93,6 +102,8 @@ public sealed class RecordingTests
 
     private static RecordingStoppedEvent Stopped(RecordingStopReason reason = RecordingStopReason.Stopped) =>
         new() { RecordingId = Id, File = File, Reason = reason, Steps = 3 };
+
+    private static RecordingVerifiedEvent Verified(VerifyOutcome status) => new() { RecordingId = Id, RunId = $"verify-{Id}", Status = status };
 
     private static EngineRequestException Refusal(string method, string name, string message) =>
         new(method, new JsonRpcError { Code = -32000, Message = message, Data = ProtocolJson.ToElement(new { name }) });
@@ -205,10 +216,11 @@ public sealed class RecordingTests
         Assert.Equal("only CSS identifies this element", tab.Steps[2].Review);
         Assert.Equal("A drag is not recorded yet.", Assert.Single(tab.Notices).Message);
         Assert.True(tab.HasNotices);
+        Assert.Null(tab.PasswordHelp);
     }
 
     [AvaloniaFact]
-    public async Task Stop_ends_the_recording_and_the_test_opens()
+    public async Task Stop_then_the_check_says_this_test_runs()
     {
         var setup = new Setup();
         await setup.OpenAsync();
@@ -218,23 +230,35 @@ public sealed class RecordingTests
 
         await tab.StopCommand.ExecuteAsync(null);
         Assert.Contains($"stopRecording {Id}", setup.Engine.Calls);
-        Assert.Equal(RecordingPhase.Stopping, tab.Phase);
-        Assert.False(tab.StopCommand.CanExecute(null));
         setup.Raise(Stopped());
 
-        Assert.Equal(RecordingPhase.Stopped, tab.Phase);
-        Assert.Equal($"The recording ended. {File} holds what was recorded.", tab.StatusText);
+        Assert.Equal(RecordingPhase.Checking, tab.Phase);
+        Assert.Contains($"verifyRecording {Id}", setup.Engine.Calls);
         Assert.False(setup.Workspace.IsRecording);
         Assert.True(tab.CanClose);
-        Assert.True(setup.Workspace.Runs.CanRun);
+        var s = new RunScript($"verify-{Id}");
+        setup.Play(
+            s.Started(RunScript.Planned("t1", File, "Add a to-do")),
+            s.TestStarted("t1"),
+            s.Step("t1", "s1", "Go to /todos", file: File, line: 4),
+            s.Passed("t1", "s1"),
+            s.TestFinished("t1", RunOutcome.Passed),
+            s.Finished(RunOutcome.Passed, passed: 1));
+        setup.Raise(Verified(VerifyOutcome.Passed));
+
+        Assert.True(tab.IsPassed);
+        Assert.Equal("This test runs: it passed when it was checked.", tab.StatusText);
+        Assert.Equal($"verify-{Id}", tab.Run!.RunId);
         Assert.Equal("Recorded: add-a-to-do.test.yaml", tab.Title);
 
         tab.OpenTestCommand.Execute(null);
         Assert.Equal(File, Assert.IsType<StepFileViewModel>(setup.Workspace.SelectedTab).File);
+        tab.OpenRunCommand.Execute(null);
+        Assert.IsType<ViewModels.Runs.RunTabViewModel>(setup.Workspace.SelectedTab);
     }
 
     [AvaloniaFact]
-    public async Task Closing_the_browser_ends_the_recording_and_a_failed_stop_says_so()
+    public async Task A_failed_stop_says_so_and_the_recording_goes_on()
     {
         var setup = new Setup();
         await setup.OpenAsync();
@@ -242,11 +266,57 @@ public sealed class RecordingTests
         setup.Engine.StopRecording = _ => throw Refusal(Methods.StopRecording, ErrorCodes.RecordingNotFound, "No recording rec-1.");
 
         await tab.StopCommand.ExecuteAsync(null);
+
         Assert.Equal(RecordingPhase.Recording, tab.Phase);
         Assert.Equal("The recording did not stop: No recording rec-1. Close the recording browser to end it.", tab.Problem);
+        Assert.True(tab.StopCommand.CanExecute(null));
+    }
 
+    [AvaloniaFact]
+    public async Task A_failed_check_says_which_step_and_opens_the_test_there()
+    {
+        var setup = new Setup();
+        await setup.OpenAsync();
+        var tab = await setup.RecordAsync();
+        setup.Files.Files[File] = RecordedText;
+
+        // Closing the recording browser ends the recording too.
         setup.Raise(Stopped(RecordingStopReason.BrowserClosed));
-        Assert.Equal(RecordingPhase.Stopped, tab.Phase);
+        var s = new RunScript($"verify-{Id}");
+        setup.Play(
+            s.Started(RunScript.Planned("t1", File, "Add a to-do")),
+            s.TestStarted("t1"),
+            s.Step("t1", "s1", "Click todos.add", file: File, line: 6),
+            s.Failed("t1", "s1"),
+            s.TestFinished("t1", RunOutcome.Failed),
+            s.Finished(RunOutcome.Failed, failed: 1));
+        setup.Raise(Verified(VerifyOutcome.Failed));
+
+        Assert.True(tab.IsFailed);
+        Assert.Equal("Click todos.add", tab.FailedStep);
+        Assert.StartsWith("The text of \"order total\"", tab.FailedMessage, StringComparison.Ordinal);
+        Assert.Equal(6, tab.FailedLine);
+
+        tab.OpenFailedStepCommand.Execute(null);
+        var editor = Assert.IsType<StepFileViewModel>(setup.Workspace.SelectedTab);
+        Assert.Equal(StepFileMode.Steps, editor.View);
+        Assert.Equal("click", editor.Steps!.Selected!.Action);
+    }
+
+    [AvaloniaFact]
+    public async Task A_password_that_matched_no_secret_is_explained()
+    {
+        var setup = new Setup();
+        await setup.OpenAsync();
+        var tab = await setup.RecordAsync();
+
+        setup.Raise(Recorded(1, Step("fill", new { target = "login.password", value = "${vars.loginPassword}" }),
+            "typed into a password field, and no declared secret has this value; declare a secret and use ${secrets.NAME}"));
+
+        Assert.Equal("loginPassword", tab.Steps[0].PasswordVariable);
+        Assert.Contains("login.password", tab.PasswordHelp, StringComparison.Ordinal);
+        Assert.Contains("an empty variable, loginPassword, in its place", tab.PasswordHelp, StringComparison.Ordinal);
+        Assert.Contains("${secrets.NAME}", tab.PasswordHelp, StringComparison.Ordinal);
     }
 
     [AvaloniaFact]
@@ -269,8 +339,10 @@ public sealed class RecordingTests
         Assert.False(setup.Workspace.IsRecordStartOpen);
         Assert.StartsWith("A recording is already going on", setup.Workspace.Runs.Notice, StringComparison.Ordinal);
 
-        // Once it stops, runs can start again; Record waits for a run.
+        // Once it stops (and its check ends), runs can start again; Record waits for a run.
         setup.Raise(Stopped());
+        var s = new RunScript($"verify-{Id}");
+        setup.Play(s.Started(), s.Finished(RunOutcome.Passed));
         Assert.True(setup.Workspace.Runs.CanRun);
         setup.Engine.BeforeAnswer = _ => Task.Delay(Timeout.Infinite);
         _ = setup.Workspace.RunAllCommand.ExecuteAsync(null);
@@ -297,7 +369,7 @@ public sealed class RecordingTests
     }
 
     [AvaloniaFact]
-    public async Task The_record_tab_renders_while_recording_and_after_it()
+    public async Task The_record_tab_renders_while_recording_and_after_the_check()
     {
         var setup = new Setup();
         await setup.OpenAsync();
@@ -320,7 +392,12 @@ public sealed class RecordingTests
         Assert.True(Find<Button>(window, "StopRecordingButton").IsEffectivelyVisible);
 
         setup.Raise(Stopped());
-        Render(window, "30-recording-stopped");
+        var s = new RunScript($"verify-{Id}");
+        setup.Play(s.Started(RunScript.Planned("t1", File, "Add a to-do")), s.TestStarted("t1"), s.Step("t1", "s1", "Go to /todos", file: File, line: 4), s.Passed("t1", "s1"),
+            s.TestFinished("t1", RunOutcome.Passed), s.Finished(RunOutcome.Passed, passed: 1));
+        setup.Raise(Verified(VerifyOutcome.Passed));
+        Render(window, "30-recording-verified");
+        Assert.True(Find<TextBlock>(window, "VerdictPassed").IsEffectivelyVisible);
         Assert.False(Find<Button>(window, "StopRecordingButton").IsEffectivelyVisible);
         Assert.True(Find<Button>(window, "OpenRecordedTestButton").IsEffectivelyVisible);
         Assert.False(tab.IsRecording);

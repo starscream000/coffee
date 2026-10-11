@@ -152,6 +152,53 @@ public sealed partial class RunControlViewModel : ObservableObject, IDisposable
         _engine.StateChanged -= OnEngineStateChanged;
     }
 
+    /// <summary>
+    /// Follows a run that something other than Run starts, such as the verify
+    /// of a recording: its events are applied as a run's, and it becomes the
+    /// current run. Never throws: a refusal ends in <see cref="Notice"/>.
+    /// </summary>
+    /// <param name="start">Starts the run with the engine.</param>
+    /// <param name="what">What runs, for messages ("the check of tests/a.test.yaml").</param>
+    /// <returns>The run, or null when it did not start (see <see cref="Notice"/>).</returns>
+    public async Task<RunViewModel?> FollowAsync(Func<Task<StartRunResult>> start, string what)
+    {
+        ArgumentNullException.ThrowIfNull(start);
+        if (IsRunning)
+        {
+            Notice = $"{what} waits: a run is already going.";
+            return null;
+        }
+
+        Notice = null;
+        _starting = true;
+        _early.Clear();
+        Refresh();
+        try
+        {
+            var result = await start();
+            var run = new RunViewModel(result.RunId, result.ResultsDir);
+            Current = run;
+            foreach (var early in _early)
+            {
+                run.Apply(early);
+            }
+
+            return run;
+        }
+        catch (Exception ex) when (ex is EngineException)
+        {
+            Notice = $"{what} did not start: {ex.Message}";
+            _host.Report($"Starting {what} failed: {ex}");
+            return null;
+        }
+        finally
+        {
+            _starting = false;
+            _early.Clear();
+            Refresh();
+        }
+    }
+
     /// <summary>Says again whether runs can start, after something the host decides on changed (see <see cref="RunControlHost.Blocked"/>).</summary>
     public void Update() => Refresh();
 

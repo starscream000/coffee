@@ -97,6 +97,12 @@ public interface IEngineService
     /// <returns>The file and its number of steps.</returns>
     Task<StopRecordingResult> StopRecordingAsync(string recordingId, CancellationToken cancellationToken = default);
 
+    /// <summary>Sends <c>verifyRecording</c>; the run's events follow, then <c>recordingVerified</c>.</summary>
+    /// <param name="recordingId">The recording.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>The verify run's id and folder.</returns>
+    Task<StartRunResult> VerifyRecordingAsync(string recordingId, CancellationToken cancellationToken = default);
+
     /// <summary>Sends <c>cancelRun</c>.</summary>
     /// <param name="runId">The run.</param>
     /// <param name="cancellationToken">Stops waiting.</param>

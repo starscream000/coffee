@@ -1,8 +1,8 @@
 <!--
-  The Record tab of one recording (instruction D0004, task 15): what is
-  happening and Stop; the recorded steps as cards, with review marks; the
-  notices of what was not recorded beside them; and once it has ended, Open
-  test.
+  The Record tab of one recording (instruction D0004, tasks 15 and 16): what
+  is happening and Stop; the recorded steps as cards, with review marks; the
+  notices of what was not recorded beside them; and after the recording, the
+  check's verdict with Open test (at the failed step) and the run.
 -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -23,11 +23,39 @@
     </Border>
     <TextBlock x:Name="RecordingStatus" DockPanel.Dock="Top" Text="{Binding StatusText}" TextWrapping="Wrap" Margin="{StaticResource InsetX3Y2}" />
 
-    <!-- Once the recording has ended -->
     <SelectableTextBlock x:Name="RecordingProblem" DockPanel.Dock="Top" Text="{Binding Problem}" TextWrapping="Wrap" Classes="warning" Margin="{StaticResource InsetX3Y1}"
                          IsVisible="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}" />
-    <Border x:Name="Ended" DockPanel.Dock="Top" Classes="card" Margin="{StaticResource InsetX3Y1}" IsVisible="{Binding IsDone}">
-      <Button x:Name="OpenRecordedTestButton" Content="Open test" Classes="main" Command="{Binding OpenTestCommand}" HorizontalAlignment="Left" />
+
+    <!-- The verdict of the check -->
+    <Border x:Name="Verdict" DockPanel.Dock="Top" Classes="card" Margin="{StaticResource InsetX3Y1}" IsVisible="{Binding IsDone}"
+            Classes.failure="{Binding IsFailed}">
+      <StackPanel Spacing="{StaticResource Space2}">
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" IsVisible="{Binding IsChecking}">
+          <ProgressBar IsIndeterminate="True" Width="{StaticResource BusyBarWidth}" />
+          <TextBlock Text="Running the recorded test once…" Classes="muted" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" IsVisible="{Binding IsPassed}">
+          <Ellipse Classes="dot passed" VerticalAlignment="Center" />
+          <TextBlock x:Name="VerdictPassed" Text="This test runs" Classes="title" />
+        </StackPanel>
+        <StackPanel Spacing="{StaticResource Space1}" IsVisible="{Binding IsFailed}">
+          <TextBlock Text="The test did not pass" Classes="title failed" />
+          <TextBlock x:Name="FailedStep" Text="{Binding FailedStep, StringFormat='At the step: {0}'}" TextWrapping="Wrap"
+                     IsVisible="{Binding FailedStep, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          <SelectableTextBlock x:Name="FailedMessage" Text="{Binding FailedMessage}" TextWrapping="Wrap" Classes="muted"
+                               IsVisible="{Binding FailedMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+        <WrapPanel ItemSpacing="{StaticResource Space2}" LineSpacing="{StaticResource Space1}" IsVisible="{Binding !IsChecking}">
+          <Button x:Name="OpenFailedStepButton" Classes="main" Content="Open test at that step" Command="{Binding OpenFailedStepCommand}" IsVisible="{Binding IsFailed}" />
+          <Button x:Name="OpenRecordedTestButton" Content="Open test" Classes.main="{Binding !IsFailed}" Command="{Binding OpenTestCommand}" />
+          <Button Content="Open the check's run" Classes="quiet" Command="{Binding OpenRunCommand}"
+                  IsVisible="{Binding Run, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </WrapPanel>
+      </StackPanel>
+    </Border>
+    <Border x:Name="PasswordHelp" DockPanel.Dock="Top" Classes="notice warning" Margin="{StaticResource InsetX3Y1}"
+            IsVisible="{Binding PasswordHelp, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <TextBlock Text="{Binding PasswordHelp}" TextWrapping="Wrap" />
     </Border>
 
     <!-- Steps, with the notices beside them -->

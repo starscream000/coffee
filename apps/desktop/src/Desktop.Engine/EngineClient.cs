@@ -146,6 +146,14 @@ public sealed class EngineClient
     public Task<StopRecordingResult> StopRecordingAsync(string recordingId, CancellationToken cancellationToken = default) =>
         Send<RecordingParams, StopRecordingResult>(Methods.StopRecording, new RecordingParams { RecordingId = recordingId }, cancellationToken);
 
+    /// <summary>Sends <c>verifyRecording</c>: runs the recorded file as <c>startRun</c> does; <c>recordingVerified</c> follows the run's events.</summary>
+    /// <param name="recordingId">The recording.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>The verify run's id and results folder.</returns>
+    /// <exception cref="EngineRequestException"><c>RecordingInProgress</c> while still recording, <c>RecordingNotFound</c>, and the errors of <c>startRun</c>.</exception>
+    public Task<StartRunResult> VerifyRecordingAsync(string recordingId, CancellationToken cancellationToken = default) =>
+        Send<RecordingParams, StartRunResult>(Methods.VerifyRecording, new RecordingParams { RecordingId = recordingId }, cancellationToken);
+
     /// <summary>Sends <c>cancelRun</c>; returns as soon as cancellation has started.</summary>
     /// <param name="runId">The run.</param>
     /// <param name="cancellationToken">Stops waiting.</param>
