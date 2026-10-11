@@ -86,6 +86,28 @@ public sealed partial class DesignTokenTests
         Assert.Empty(used.Except(tokens).Order(StringComparer.Ordinal));
     }
 
+    [Fact]
+    public void A_grid_definition_names_a_length_token()
+    {
+        // A number token (x:Double) in a column's width builds, but fails when the row is
+        // shown, with a cast error deep in Avalonia; only GridLength tokens fit.
+        var lengths = XDocument.Load(RepoPaths.Of("apps/desktop/src/Desktop.App/Themes/Tokens.axaml"))
+            .Descendants()
+            .Where(e => e.Name.LocalName == "GridLength")
+            .Select(e => e.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2006/xaml"))?.Value)
+            .OfType<string>()
+            .ToHashSet(StringComparer.Ordinal);
+        var problems = Directory.EnumerateFiles(ViewsFolder, "*.axaml", SearchOption.AllDirectories)
+            .SelectMany(path => XDocument.Load(path, LoadOptions.SetLineInfo).Descendants()
+                .Where(e => e.Name.LocalName is "ColumnDefinition" or "RowDefinition")
+                .SelectMany(e => e.Attributes().Where(a => a.Name.LocalName is "Width" or "Height"))
+                .Select(a => (path, a, line: ((System.Xml.IXmlLineInfo)a.Parent!).LineNumber)))
+            .Where(x => ResourceReference().Match(x.a.Value) is { Success: true } m && !lengths.Contains(m.Groups[1].Value))
+            .Select(x => $"{Path.GetFileName(x.path)}:{x.line}: {x.a.Name.LocalName}=\"{x.a.Value}\" is not a GridLength token")
+            .ToList();
+        Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
+    }
+
     private static void CheckValue(string property, string value, int line, List<string> problems)
     {
         if (value.StartsWith('{'))
