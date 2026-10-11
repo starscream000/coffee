@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A `call` step picks its flow from the project's flows, and shows the flow's
+  parameters as fields of `with` (instruction D0004, task 20).
 - A test's own settings without YAML (instruction D0004, task 19): the steps
   view starts with a card for the test itself, and selecting it shows its
   name, tags and skip reason as fields in the details panel. Each writes only

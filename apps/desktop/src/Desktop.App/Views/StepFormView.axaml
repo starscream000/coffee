@@ -1,4 +1,4 @@
-<!-- The form of the selected step: its action, a field per parameter and setting with the engine's problems next to them, and the step's other problems. Text fields write back when they lose focus. -->
+<!-- The form of the selected step: its action, a field per parameter and setting with the engine's problems next to them, a call step's flow parameters, and the step's other problems. Text fields write back when they lose focus. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:steps="using:Desktop.App.ViewModels.Steps"
@@ -43,6 +43,17 @@
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
       </ItemsControl>
+      <TextBlock Text="{Binding FlowNote}" Classes="label" TextWrapping="Wrap" IsVisible="{Binding FlowNote, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <StackPanel Spacing="{StaticResource Space2}" IsVisible="{Binding HasFlowParameters}">
+        <TextBlock Text="with: the flow's parameters" Classes="section" Margin="{StaticResource InsetTop2}" />
+        <ItemsControl x:Name="FlowParameters" ItemsSource="{Binding FlowParameters}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="{StaticResource Space3}" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+        </ItemsControl>
+      </StackPanel>
       <TextBlock Text="Step" Classes="section" Margin="{StaticResource InsetTop2}" />
       <ItemsControl x:Name="FormSettings" ItemsSource="{Binding Settings}">
         <ItemsControl.ItemsPanel>

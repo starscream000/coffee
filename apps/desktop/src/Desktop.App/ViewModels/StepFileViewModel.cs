@@ -47,6 +47,7 @@ public enum StepFileMode
 /// <param name="SharedTargets">The names of the project's shared targets, for the target picker; null for none.</param>
 /// <param name="Rename">Renames the tab's file; null when the tab cannot.</param>
 /// <param name="Delete">Deletes the tab's file; null when the tab cannot.</param>
+/// <param name="Flows">The project's flows and their parameters, for a <c>call</c> step's form; null for none.</param>
 public sealed record StepFileServices(
     string Root,
     IProjectFiles Files,
@@ -58,7 +59,8 @@ public sealed record StepFileServices(
     Func<IReadOnlyList<StepActionChoice>>? Actions = null,
     Func<IReadOnlyList<string>>? SharedTargets = null,
     Func<StepFileViewModel, Task>? Rename = null,
-    Func<StepFileViewModel, Task>? Delete = null);
+    Func<StepFileViewModel, Task>? Delete = null,
+    Func<FlowSource>? Flows = null);
 
 /// <summary>An editable step file in a tab.</summary>
 public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposable
@@ -93,7 +95,7 @@ public sealed partial class StepFileViewModel : WorkspaceTabViewModel, IDisposab
         };
         if (StepOutline.SectionsOf(file).Count > 0)
         {
-            Steps = new StepListViewModel(file, Document, services.Actions ?? (() => []), () => LineMarks, services.SharedTargets, () => Diagnostics);
+            Steps = new StepListViewModel(file, Document, services.Actions ?? (() => []), () => LineMarks, services.SharedTargets, () => Diagnostics, services.Flows);
             Steps.StepSelected += (_, line) => Reveal(line);
             Steps.PropertyChanged += (_, e) =>
             {

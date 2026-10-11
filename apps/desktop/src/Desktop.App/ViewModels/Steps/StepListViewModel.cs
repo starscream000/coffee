@@ -41,6 +41,7 @@ public sealed partial class StepListViewModel : ObservableObject
     private readonly Func<IReadOnlyDictionary<int, LineMark>> _marks;
     private readonly Func<IReadOnlyList<string>> _sharedTargets;
     private readonly Func<IReadOnlyList<Diagnostic>> _diagnostics;
+    private readonly Func<FlowSource>? _flows;
     private bool _editing;
 
     /// <summary>Creates the list and reads the document.</summary>
@@ -50,14 +51,17 @@ public sealed partial class StepListViewModel : ObservableObject
     /// <param name="marks">The file's problem lines.</param>
     /// <param name="sharedTargets">The names of the shared targets, for the target picker.</param>
     /// <param name="diagnostics">The file's problems, for the step's form.</param>
+    /// <param name="flows">The project's flows and their parameters, for a call step's form; null for none.</param>
     public StepListViewModel(
         string file,
         TextDocument document,
         Func<IReadOnlyList<StepActionChoice>> actions,
         Func<IReadOnlyDictionary<int, LineMark>> marks,
         Func<IReadOnlyList<string>>? sharedTargets = null,
-        Func<IReadOnlyList<Diagnostic>>? diagnostics = null)
+        Func<IReadOnlyList<Diagnostic>>? diagnostics = null,
+        Func<FlowSource>? flows = null)
     {
+        _flows = flows;
         _sharedTargets = sharedTargets ?? (() => []);
         _diagnostics = diagnostics ?? (() => []);
         ArgumentNullException.ThrowIfNull(document);
@@ -322,7 +326,7 @@ public sealed partial class StepListViewModel : ObservableObject
             {
                 Apply(StepEdits.Replace(outline, step.Outline, text), step.Section, step.Outline.Index);
             }
-        });
+        }, step.Outline.Action == "call" ? _flows?.Invoke() : null);
     }
 
     private bool HasSelection() => Selected is not null;
