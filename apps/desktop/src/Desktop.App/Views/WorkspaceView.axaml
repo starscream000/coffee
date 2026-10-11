@@ -198,7 +198,7 @@
                           CommandParameter="{Binding}">
                     <Grid>
                       <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="{StaticResource GlyphWidth}" />
+                        <ColumnDefinition Width="{StaticResource GlyphColumn}" />
                         <ColumnDefinition Width="Auto" SharedSizeGroup="HistoryTime" />
                         <ColumnDefinition Width="Auto" SharedSizeGroup="HistoryStatus" />
                         <ColumnDefinition Width="Auto" SharedSizeGroup="HistoryEnv" />
