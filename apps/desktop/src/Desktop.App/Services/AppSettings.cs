@@ -21,6 +21,15 @@ public sealed record AppSettings
     /// <summary>Recently opened project folders, newest first.</summary>
     public IReadOnlyList<string> RecentProjects { get; init; } = [];
 
+    /// <summary>The window's panel sizes and whether the bottom panel is open; a file without them gets the defaults.</summary>
+    public LayoutSettings Layout
+    {
+        get => _layout;
+        init => _layout = value ?? new();
+    }
+
+    private readonly LayoutSettings _layout = new();
+
     /// <summary>Returns these settings with <paramref name="root"/> first in the recent projects.</summary>
     /// <param name="root">The project folder just opened.</param>
     /// <returns>The new settings.</returns>
@@ -28,6 +37,19 @@ public sealed record AppSettings
     {
         RecentProjects = [root, .. RecentProjects.Where(p => !string.Equals(p, root, StringComparison.Ordinal)).Take(MaxRecentProjects - 1)],
     };
+}
+
+/// <summary>The window's remembered layout (instruction D0004, task 8).</summary>
+public sealed record LayoutSettings
+{
+    /// <summary>Width of the project panel, in pixels.</summary>
+    public double ProjectWidth { get; init; } = 300;
+
+    /// <summary>Height of the bottom panel, in pixels.</summary>
+    public double BottomHeight { get; init; } = 180;
+
+    /// <summary>True when the bottom panel is open.</summary>
+    public bool IsBottomOpen { get; init; } = true;
 }
 
 /// <summary>Loads and saves <see cref="AppSettings"/>.</summary>

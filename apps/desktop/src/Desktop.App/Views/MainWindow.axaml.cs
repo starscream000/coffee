@@ -1,5 +1,6 @@
-// Code-behind of the main window: starts the engine when the window opens and
-// stops it before the window closes.
+// Code-behind of the main window: starts the engine when the window opens,
+// stops it before the window closes, and closes the top bar's menus once one
+// of their buttons is used.
 
 using Avalonia.Controls;
 using Desktop.App.ViewModels;
@@ -15,6 +16,18 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        foreach (var (button, menu) in new (Button, Control)[] { (RunMenuButton, RunMenu), (ProjectMenuButton, ProjectMenu), (EngineButton, EngineMenu) })
+        {
+            // A check box is a button too, but ticking it is not a choice that ends the menu.
+            menu.AddHandler(Button.ClickEvent, (_, e) =>
+            {
+                if (e.Source is not CheckBox)
+                {
+                    button.Flyout?.Hide();
+                }
+            });
+        }
+
         Opened += async (_, _) =>
         {
             if (DataContext is ShellViewModel shell)

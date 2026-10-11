@@ -22,8 +22,8 @@ What it does today:
   reliability, frame and within), and new, renamed and deleted files. The text
   editor and these views show the same text at once, and a change rewrites
   only the lines it is about, comments included.
-- **Runs tests**: all, a folder, a tag or one test, with the browser shown or
-  not; a run view with each step's result, a failure's expected and actual
+- **Runs tests** from Run ▾ in the top bar: the open test, the selected tests
+  or folder, a tag, or all, with the browser shown or not; a run view with each step's result, a failure's expected and actual
   values and locator candidates, screenshots once the engine records them,
   and a link from a failed target to the targets editor; cancel; and the
   history of earlier runs.
@@ -100,7 +100,8 @@ run from the repository's root unless said otherwise.
 7. **Open the demo project**: Open folder…, then `examples/demo-app`. The
    tests appear on the left; the problems panel says "No problems". (Runs
    write their results into `examples/demo-app/.cfe/`, which Git ignores.)
-8. **Create a test**: select the `tests` folder, click New test, name it
+8. **Create a test**: select the `tests` folder, then New ▾ → Test in the
+   project panel, name it
    `my-first`, and Create. It opens with one step, `goto: /`. In its step
    list:
    - select `goto` and, in its form below, set **url** to `/todos`;
@@ -115,15 +116,15 @@ run from the repository's root unless said otherwise.
    The text editor on the right shows each change as you make it. Save
    (Ctrl+S, Cmd+S on macOS).
 
-9. **Run it with the browser shown**: tick Show browser on the left, then Run
-   in the test's tab. A browser window opens and works through the steps; the
+9. **Run it with the browser shown**: open Run ▾ in the top bar, tick Show
+   the browser, then choose The open test (or Run in the test's tab). A browser window opens and works through the steps; the
    run's tab shows each step turning green and the run ends "Passed".
 10. **Read a failure**: in the `expect.text` step's form, set **equals** to
     `2`, save, and Run again. The run ends "Failed"; the failed step is
     selected and shows the error code, its message, the expected value `"2"`
     and the actual `"1"`. Click the step's file and line to go back to it;
     Revert the change (or set it to `1` again) and save.
-11. **Look back**: the bottom panel's Run history lists both runs; click one
+11. **Look back**: the bottom panel's Runs lists both runs; click one
     to open it again.
 
 ## Layout

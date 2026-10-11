@@ -64,6 +64,14 @@ splitters from the tokens. Buttons come in exactly four kinds:
 Every control shows keyboard focus: buttons and inputs draw their border in
 the accent (the text colour on a main or danger button).
 
+Two looks are built on buttons but are not buttons to act with: `row` (a list
+row that selects, such as a run in the history) and `tab` (a switch between
+views, such as the parts of the bottom panel: muted text, the accent under the
+one shown). Each region of the
+window is a `Border.region`: the panel tone with a line around it, on the
+window tone, with the splitters between regions in the window tone and the
+accent under the pointer (instruction D0004, task 8).
+
 **Views only pick.** A view uses classes (`Classes="card"`, `Classes="label"`)
 and token resources. It never writes a colour, a text size, a spacing or a
 fixed size. A test (`DesignTokenTests`) reads every view and fails when it

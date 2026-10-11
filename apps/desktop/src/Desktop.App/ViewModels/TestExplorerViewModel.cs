@@ -44,6 +44,10 @@ public sealed partial class TestExplorerViewModel : ObservableObject
     [ObservableProperty]
     private string _summary = string.Empty;
 
+    /// <summary>What the explorer says when it shows no test: none in the project, or none that matches; null when it shows tests.</summary>
+    [ObservableProperty]
+    private string? _emptyText;
+
     /// <summary>Shows what the engine listed.</summary>
     /// <param name="tests">The engine's tests.</param>
     public void Load(IReadOnlyList<TestInfo> tests)
@@ -117,6 +121,12 @@ public sealed partial class TestExplorerViewModel : ObservableObject
         }
 
         Summary = shown.Count == _tests.Count ? Plural(_tests.Count) : $"{shown.Count} of {Plural(_tests.Count)}";
+        EmptyText = (_tests.Count, shown.Count) switch
+        {
+            (0, _) => "No tests yet. Record one with Record in the top bar, or create one with New.",
+            (_, 0) => "No test matches the search or the tag.",
+            _ => null,
+        };
         ApplyProblemCounts(_counts);
     }
 
