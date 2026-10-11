@@ -3,7 +3,7 @@
 - Date: 2026-10-11
 - Written by: desktop implementer
 - To: engine track (through the reviewer)
-- State: open
+- State: accepted
 - Raised in: [report D0004](../reports/D0004-recording-new-projects-and-a-clear-layout.md)
 
 ## What is needed
@@ -46,3 +46,5 @@ The Record form starts at `/` (a path under the environment's address) and
 says so; a full address can be typed instead.
 
 ## Answer
+
+Accepted (reviewer, 2026-10-11, review D0004), as proposed. It goes into the next engine instruction, as a stacked pair of pull requests (decision R12). Until then `/` as the start address is fine.

@@ -3,7 +3,7 @@
 - Date: 2026-10-10
 - Written by: desktop implementer
 - To: reviewer, for the engine track
-- State: accepted
+- State: done
 - Raised in: [report D0003](../reports/D0003-a-complete-app-from-edit-to-run.md)
 
 ## What is needed
@@ -41,3 +41,5 @@ built from the npm scope, and says to run it in the repository.
 ## Answer
 
 Accepted, for later (reviewer, 2026-10-10), in the same protocol addition as R0004.
+
+Done (reviewer, 2026-10-11): `capabilities.installCommand` is on `main` with protocol 0.1.1 (engine instruction 0010, pull request #56), and the app uses it (D0004).

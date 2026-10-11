@@ -3,35 +3,29 @@
 Written only by the reviewer. The implementer reads this first, then
 [apps/desktop/handoff/STATUS.md](../apps/desktop/handoff/STATUS.md).
 
-- Updated: 2026-10-10
-- **Open instruction:** [0010: recording and new projects over the protocol](instructions/0010-recording-and-new-projects-over-the-protocol.md)
-- Waiting on: implementer
+- Updated: 2026-10-11
+- **Open instruction:** none
+- Waiting on: owner (`next`)
 
 ## Order of work
 
-One implementer works on both tracks. Open instructions, in the order to carry
-them out:
-
-1. Engine: [0010](instructions/0010-recording-and-new-projects-over-the-protocol.md).
-2. Desktop: [D0004](../apps/desktop/handoff/instructions/D0004-recording-new-projects-and-a-clear-layout.md),
-   whose first branch sits on the last branch of 0010.
-
-Finish and report one before starting the other.
+One implementer works on both tracks. No instruction is open on either track.
+When both have one, this section says which comes first.
 
 ## Instructions
 
-| No.  | Title                                               | State  | Report                                                          | Review                                                          | Pull requests                                        |
-| ---- | --------------------------------------------------- | ------ | --------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
-| 0001 | Finish the Milestone 0 documents                    | merged | [0001](reports/0001-finish-milestone-0-docs.md)                 | [0001](reviews/0001-finish-milestone-0-docs.md)                 | [#2](https://github.com/starscream000/coffee/pull/2) |
-| 0002 | Review fixes and the final names                    | merged | [0002](reports/0002-review-fixes-and-names.md)                  | [0002](reviews/0002-review-fixes-and-names.md)                  | #3, #4                                               |
-| 0003 | Milestone 1 foundation                              | merged | [0003](reports/0003-milestone-1-foundation.md)                  | [0003](reviews/0003-milestone-1-foundation.md)                  | #5, #6, #7, #8, #9                                   |
-| 0004 | Review fixes, user actions, variables and secrets   | merged | [0004](reports/0004-fixes-actions-and-secrets.md)               | [0004](reviews/0004-fixes-actions-and-secrets.md)               | #10, #11, #12, #13                                   |
-| 0005 | Masking and loader fixes, locators, the demo app    | merged | [0005](reports/0005-masking-loader-locators-demo-app.md)        | [0005](reviews/0005-masking-loader-locators-demo-app.md)        | #14, #13, #15, #17                                   |
-| 0006 | Review fixes and the runner                         | merged | [0006](reports/0006-review-fixes-and-the-runner.md)             | [0006](reviews/0006-review-fixes-and-the-runner.md)             | #19, #21, #23, #25                                   |
-| 0007 | A build for the owner, then fixes, pages and logins | merged | [0007](reports/0007-a-build-then-fixes-and-pages-and-logins.md) | [0007](reviews/0007-a-build-then-fixes-and-pages-and-logins.md) | #25, #27, #28, #29                                   |
-| 0008 | The demo `.env` and the built-in actions            | merged | [0008](reports/0008-demo-env-and-the-built-in-actions.md)       | [0008](reviews/0008-demo-env-and-the-built-in-actions.md)       | #30, #43, #44, #45, #46                              |
-| 0009 | The recorder, first part                            | merged | [0009](reports/0009-the-recorder-first-part.md)                 | [0009](reviews/0009-the-recorder-first-part.md)                 | #48 to #52                                           |
-| 0010 | Recording and new projects over the protocol        | open   | –                                                               | –                                                               | –                                                    |
+| No.  | Title                                               | State  | Report                                                               | Review                                                               | Pull requests                                        |
+| ---- | --------------------------------------------------- | ------ | -------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------- |
+| 0001 | Finish the Milestone 0 documents                    | merged | [0001](reports/0001-finish-milestone-0-docs.md)                      | [0001](reviews/0001-finish-milestone-0-docs.md)                      | [#2](https://github.com/starscream000/coffee/pull/2) |
+| 0002 | Review fixes and the final names                    | merged | [0002](reports/0002-review-fixes-and-names.md)                       | [0002](reviews/0002-review-fixes-and-names.md)                       | #3, #4                                               |
+| 0003 | Milestone 1 foundation                              | merged | [0003](reports/0003-milestone-1-foundation.md)                       | [0003](reviews/0003-milestone-1-foundation.md)                       | #5, #6, #7, #8, #9                                   |
+| 0004 | Review fixes, user actions, variables and secrets   | merged | [0004](reports/0004-fixes-actions-and-secrets.md)                    | [0004](reviews/0004-fixes-actions-and-secrets.md)                    | #10, #11, #12, #13                                   |
+| 0005 | Masking and loader fixes, locators, the demo app    | merged | [0005](reports/0005-masking-loader-locators-demo-app.md)             | [0005](reviews/0005-masking-loader-locators-demo-app.md)             | #14, #13, #15, #17                                   |
+| 0006 | Review fixes and the runner                         | merged | [0006](reports/0006-review-fixes-and-the-runner.md)                  | [0006](reviews/0006-review-fixes-and-the-runner.md)                  | #19, #21, #23, #25                                   |
+| 0007 | A build for the owner, then fixes, pages and logins | merged | [0007](reports/0007-a-build-then-fixes-and-pages-and-logins.md)      | [0007](reviews/0007-a-build-then-fixes-and-pages-and-logins.md)      | #25, #27, #28, #29                                   |
+| 0008 | The demo `.env` and the built-in actions            | merged | [0008](reports/0008-demo-env-and-the-built-in-actions.md)            | [0008](reviews/0008-demo-env-and-the-built-in-actions.md)            | #30, #43, #44, #45, #46                              |
+| 0009 | The recorder, first part                            | merged | [0009](reports/0009-the-recorder-first-part.md)                      | [0009](reviews/0009-the-recorder-first-part.md)                      | #48 to #52                                           |
+| 0010 | Recording and new projects over the protocol        | merged | [0010](reports/0010-recording-and-new-projects-over-the-protocol.md) | [0010](reviews/0010-recording-and-new-projects-over-the-protocol.md) | #53 to #56                                           |
 
 States: `open` (published, no review yet), `changes requested`, `approved`,
 `merged`, `replaced`.
@@ -39,19 +33,23 @@ States: `open` (published, no review yet), `changes requested`, `approved`,
 ## Where the plan stands
 
 Milestone 0 is finished. Of the 16 branches in
-[the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 13 are on `main`,
-and so is the first part of the recorder: a person uses a page in the engine's
-browser, and the engine writes a test that runs.
+[the v0.1.0 plan](../docs/milestones/v0.1.0-plan.md), 1 to 13 are on `main`.
+So is recording: a person uses a page in the engine's browser, and the engine
+writes a test that runs. Since instruction 0010 a client can do this over the
+protocol (now `0.1.1`) and can create a new project; the desktop app does
+both.
 
-Instruction 0010 puts recording and "new project" on the protocol, for the
-desktop app. Plan branches 14 (page states), 15 (the command-line `run`) and
-16 (the release) follow later.
+Next for the engine, on the owner's `next`: the recorder's second part
+(recorded checks first, then hover, drag, upload and reuse of shared
+targets), `env` in `startRecording` (reviewer decision R13, review 0010),
+desktop request R0008, then plan branches 14 (page states), 15 (the
+command-line `run`) and 16 (the release).
 
 ## The desktop track
 
 The Avalonia app lives under `apps/desktop/`, with its own instructions,
 reports and reviews in [apps/desktop/handoff/](../apps/desktop/handoff/). Its
-instructions D0001 to D0003 are merged. Since 2026-10-10 the same implementer
+instructions D0001 to D0004 are merged. Since 2026-10-10 the same implementer
 works on it, as a separate track with its own scope.
 
 ## Owner decisions on record
@@ -110,5 +108,7 @@ works on it, as a separate track with its own scope.
 - Repository visibility: it is public. Decide whether it should be private.
 - Node: upgrade the local install to the current 24 LTS patch, then say so, so
   the pin can be raised.
+- A `name` key in the project's config file, so the app can show the name
+  given in "New project" (review 0010, question 2)? Recommended: yes.
 - The desktop track's open questions are in
   [its status file](../apps/desktop/handoff/STATUS.md).

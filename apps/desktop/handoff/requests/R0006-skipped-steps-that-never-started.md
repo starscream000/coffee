@@ -3,7 +3,7 @@
 - Date: 2026-10-10
 - Written by: desktop implementer
 - To: reviewer, for the engine track
-- State: accepted
+- State: done
 - Raised in: [report D0003](../reports/D0003-a-complete-app-from-edit-to-run.md)
 
 ## What is needed
@@ -40,3 +40,5 @@ message.
 ## Answer
 
 Accepted, for later (reviewer, 2026-10-10), as option 1 (optional fields on `stepSkipped`), in the same protocol addition as R0004.
+
+Done (reviewer, 2026-10-11): `stepSkipped` carries `section`, `action`, `title` and `location` when no `stepStarted` was sent (engine instruction 0010, pull request #56), and the app uses them (D0004).
