@@ -13,6 +13,15 @@ using Desktop.Protocol.Messages;
 
 namespace Desktop.App.ViewModels;
 
+/// <summary>A tag offered in the Run menu.</summary>
+/// <param name="Tag">The tag.</param>
+/// <param name="Command">Runs the tests with the tag; the tag is its parameter.</param>
+public sealed record TagRunChoice(string Tag, IAsyncRelayCommand<string?> Command)
+{
+    /// <summary>The menu item's text.</summary>
+    public string Text => $"Tests tagged {Tag}";
+}
+
 /// <summary>An open project.</summary>
 public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
 {
@@ -63,6 +72,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         SelectedTab = Actions;
         Explorer.FileActivated += (_, file) => OpenFile(file);
         Problems.ProblemActivated += (_, d) => OpenFile(d.File, d.Line);
+        Explorer.Tags.CollectionChanged += (_, _) => RefreshTagRuns();
         Problems.Changed += (_, _) => ProblemsChanged();
         Problems.SetProjectDiagnostics(project.Diagnostics);
         Runs = new RunControlViewModel(engine, dialogs, new RunControlHost(
@@ -132,8 +142,18 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     /// <summary>The tabs in the centre.</summary>
     public ObservableCollection<WorkspaceTabViewModel> Tabs { get; } = [];
 
+    /// <summary>The window's panel sizes and open states; the shell gives its own, saved in the settings.</summary>
+    public LayoutViewModel Layout { get; init; } = new(new LayoutSettings());
+
+    /// <summary>The tags the Run menu offers, one item each.</summary>
+    public ObservableCollection<TagRunChoice> TagRuns { get; } = [];
+
+    /// <summary>True when the project's tests have tags.</summary>
+    public bool HasTagRuns => TagRuns.Count > 0;
+
     /// <summary>The selected tab.</summary>
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RunOpenTestCommand))]
     private WorkspaceTabViewModel? _selectedTab;
 
     /// <summary>The environment the next run will use.</summary>
@@ -519,11 +539,33 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         return Runs.RunFilesAsync(node.IsTest ? [node.Path] : [.. TestsBelow(node)]);
     }
 
-    /// <summary>Runs the tests with the tag chosen in the explorer; every test when none is chosen.</summary>
+    /// <summary>Runs the tests with a tag: the one given (the Run menu), else the one chosen in the explorer; every test when none is chosen.</summary>
+    /// <param name="tag">The tag, or null for the explorer's.</param>
     /// <returns>A task that completes when the run has started or was refused.</returns>
     [RelayCommand]
-    private Task RunTagAsync() =>
-        Explorer.SelectedTag == TestExplorerViewModel.AllTags ? Runs.RunAllAsync() : Runs.RunTagAsync(Explorer.SelectedTag);
+    private Task RunTagAsync(string? tag)
+    {
+        tag ??= Explorer.SelectedTag;
+        return tag == TestExplorerViewModel.AllTags ? Runs.RunAllAsync() : Runs.RunTagAsync(tag);
+    }
+
+    /// <summary>Runs the test in the selected tab, asking about its unsaved changes first.</summary>
+    /// <returns>A task that completes when the run has started or was refused.</returns>
+    [RelayCommand(CanExecute = nameof(CanRunOpenTest))]
+    private Task RunOpenTestAsync() => SelectedTab is StepFileViewModel { IsTest: true } tab ? tab.RunCommand.ExecuteAsync(null) : Task.CompletedTask;
+
+    private bool CanRunOpenTest() => SelectedTab is StepFileViewModel { IsTest: true };
+
+    private void RefreshTagRuns()
+    {
+        TagRuns.Clear();
+        foreach (var tag in Explorer.Tags.Where(t => t != TestExplorerViewModel.AllTags))
+        {
+            TagRuns.Add(new TagRunChoice(tag, RunTagCommand));
+        }
+
+        OnPropertyChanged(nameof(HasTagRuns));
+    }
 
     /// <summary>Runs one test file; says so when the file is not a test (a flow or the targets file).</summary>
     /// <param name="file">The file, relative to the project root.</param>

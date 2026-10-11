@@ -94,18 +94,31 @@ types are written by hand and how they are kept honest:
   system, settings storage, time) goes through a small service interface so
   that tests can replace it.
 - **Main window**: a start page (open a folder, recent projects) until a
-  project is open; then a three-part layout:
-  - left: the test explorer (folders and test files; search; tags);
-  - centre: tabs for open step files and the action catalogue. A step file
-    tab is an editor ([ADR D0006](adr/0006-avaloniaedit-for-step-files.md))
-    with line numbers, undo and redo, and problem lines marked; Save (Ctrl+S,
-    Cmd+S on macOS) writes UTF-8 without a byte-order mark, keeps the file's
-    line endings, and replaces the file in one step (a temporary file next to
-    it, then a move);
-  - bottom: problems (diagnostics with file, line and column) and the engine
-    log;
-  - top: project, environment, engine status, and the run controls (disabled
-    until the engine reports a browser in `capabilities.browsers`).
+  project is open; then named regions, each a panel with a header strip and a
+  line around it (instruction D0004, task 8; the look is ADR D0008):
+  - top bar: the project ▾ (validate, save all, open another, close), the
+    environment ▾, the two main actions **Record** and **Run ▾** (the open
+    test, the selected tests, a tag, all tests; "Show the browser"; off until
+    the engine reports a browser in `capabilities.browsers`), and the engine's
+    state ● (its detail and Restart engine);
+  - left, **Project**: the test explorer (folders and test files; search;
+    tags) and New ▾ (test, flow, targets file);
+  - centre: tabs for open step files, runs and the action catalogue. A step
+    file tab is an editor
+    ([ADR D0006](adr/0006-avaloniaedit-for-step-files.md)) with line numbers,
+    undo and redo, and problem lines marked; Save (Ctrl+S, Cmd+S on macOS)
+    writes UTF-8 without a byte-order mark, keeps the file's line endings, and
+    replaces the file in one step (a temporary file next to it, then a move);
+  - bottom: **Problems** (diagnostics with file, line and column), **Runs**
+    (the run history) and the **Engine log**, each saying so when it is
+    empty;
+  - the status bar.
+
+  The splitters between regions can be dragged (the accent shows under the
+  pointer). The bottom panel can be hidden, keeping its header strip. Sizes
+  and the open state are saved in the settings when a drag ends or the panel
+  opens or closes (`LayoutViewModel`).
+
 - **Problems**: the diagnostics of `openProject` plus those of `validate` over
   all test files. YAML changes under the project root (watched, gathered for
   300 ms) re-read the open tabs, re-list the tests when test files came or
@@ -122,7 +135,7 @@ types are written by hand and how they are kept honest:
   another project, asks (through `IDialogService`) whether to save, discard
   or cancel. Opening the same project again keeps the open tabs and their
   unsaved text, so an automatic reopen never loses work.
-- **Settings**: Node path, engine path and recent projects, stored as JSON in
+- **Settings**: Node path, engine path, recent projects and the layout, stored as JSON in
   the user's application data folder under the product's display name.
 
 ## The step list
@@ -200,7 +213,7 @@ types are written by hand and how they are kept honest:
 
 ## Files
 
-- **New test, New flow, New targets file** (in the explorer) ask for a folder
+- **New ▾ → Test, Flow, Targets file** (in the project panel) ask for a folder
   and a name (a test goes to the folder selected in the explorer by default;
   flows to `flows`, targets files to `targets`), add the kind's ending, refuse
   paths outside the project and existing files, write a minimal file the
@@ -213,12 +226,13 @@ types are written by hand and how they are kept honest:
 
 ## Runs
 
-- **Starting**: Run all, Run selected (a test, or every test shown in a
-  folder of the explorer), Run tag, and Run in a test's tab. Each sends
-  `startRun` with the chosen environment and `options.headed` ("Show
-  browser"). Running is off, with the reason shown, while the engine is not
-  running or reports no browser in `capabilities.browsers`; the reason then
-  names the command that installs Chromium for the engine of a checkout.
+- **Starting**: the top bar's Run ▾ offers the open test, the selected tests
+  (a test, or every test shown in a folder of the explorer), one item per tag,
+  and all tests; a test's tab has Run too. Each sends `startRun` with the
+  chosen environment and `options.headed` ("Show the browser" in the menu). Running is off, with the reason shown, while the engine is not
+  running or reports no browser in `capabilities.browsers`; the reason, in a
+  bar above the regions, then names the engine's command that installs
+  Chromium.
 - **Unsaved files**: the engine runs what is on disk, so a run with unsaved
   tabs first asks to save and run, run without saving, or cancel.
 - **One run at a time**: a second start while a run goes on only says so.

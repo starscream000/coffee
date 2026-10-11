@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A layout with named regions, each with a visible edge (instruction D0004,
+  tasks 8, 10 and 11): a top bar with the project ▾, the environment ▾,
+  Record, Run ▾ (the open test, the selected tests, a tag, all tests) and the
+  engine's state; the Project panel; the tabs; a bottom panel with Problems,
+  Runs and the Engine log; and the status bar. The splitters can be dragged,
+  the bottom panel can be hidden, and sizes and the open state are
+  remembered in the settings.
+- Empty panels say so: no tests yet (or none matching), no problems, no runs
+  yet.
+
 - A design system (ADR D0008): every colour, spacing step, corner radius,
   text size and fixed size is named once in `Themes/Tokens.axaml`, and
   `Themes/Controls.axaml` gives each kind of control one look from them. The
@@ -27,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contract tests pass again.
 
 ### Changed
+
+- New test, New flow and New targets file are in the Project panel's New ▾
+  menu; Validate and Save all are in the project ▾ menu.
+- The reason runs are off (no engine, no browser) is a bar above the regions.
 
 - The browser install command shown when the engine has no browser is the
   engine's own (`capabilities.installCommand`, request R0005); the command for

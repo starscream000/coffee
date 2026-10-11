@@ -257,6 +257,28 @@ public sealed class RunControlTests
     }
 
     [AvaloniaFact]
+    public async Task The_run_menu_runs_the_open_test_and_offers_each_tag()
+    {
+        var setup = new Setup();
+        await setup.OpenAsync();
+
+        Assert.Equal(["smoke"], setup.Workspace.TagRuns.Select(t => t.Tag));
+        Assert.Equal("Tests tagged smoke", setup.Workspace.TagRuns[0].Text);
+        Assert.False(setup.Workspace.RunOpenTestCommand.CanExecute(null));
+
+        setup.Workspace.OpenFile(FileB);
+        Assert.True(setup.Workspace.RunOpenTestCommand.CanExecute(null));
+        await setup.Workspace.RunOpenTestCommand.ExecuteAsync(null);
+        Assert.Equal([FileB], setup.Engine.Started[^1].Files);
+
+        var s = new RunScript("run-1");
+        setup.Play(s.Started(), s.Finished(RunOutcome.Passed));
+        var tag = setup.Workspace.TagRuns[0];
+        await tag.Command.ExecuteAsync(tag.Tag);
+        Assert.Equal(["smoke"], setup.Engine.Started[^1].Tags);
+    }
+
+    [AvaloniaFact]
     public async Task A_tab_runs_its_test_and_a_flow_says_it_cannot_be_run_alone()
     {
         var setup = new Setup();

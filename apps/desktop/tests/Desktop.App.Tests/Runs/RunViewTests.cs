@@ -6,6 +6,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.LogicalTree;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -77,8 +78,7 @@ public sealed class RunViewTests : IDisposable
         await OpenAsync(window, shell);
         Snapshot(window, "10-runs-no-browser");
 
-        Assert.False(Find<Button>(window, "RunAllButton").IsEffectivelyEnabled);
-        Assert.False(Find<Button>(window, "RunSelectedButton").IsEffectivelyEnabled);
+        Assert.False(Find<Button>(window, "RunMenuButton").IsEffectivelyEnabled);
         Assert.Contains(FakeEngineService.EngineInstallCommand, Find<SelectableTextBlock>(window, "RunUnavailable").Text, StringComparison.Ordinal);
     }
 
@@ -87,7 +87,16 @@ public sealed class RunViewTests : IDisposable
     {
         var (window, shell, engine) = Create("chromium");
         await OpenAsync(window, shell);
-        Assert.True(Find<Button>(window, "RunAllButton").IsEffectivelyEnabled);
+        // The Run menu in the top bar offers the open test, the selected tests, a tag and all tests.
+        var menu = Find<Button>(window, "RunMenuButton");
+        Assert.True(menu.IsEffectivelyEnabled);
+        menu.Flyout!.ShowAt(menu);
+        Render(window);
+        var items = ((Control)((Flyout)menu.Flyout).Content!).GetLogicalDescendants().OfType<Button>().ToList();
+        Assert.True(items.Single(b => b.Name == "RunAllButton").IsEffectivelyEnabled);
+        Assert.True(items.Single(b => b.Name == "RunSelectedButton").IsEffectivelyEnabled);
+        Assert.False(items.Single(b => b.Name == "RunOpenTestButton").IsEffectivelyEnabled);
+        menu.Flyout.Hide();
         var screenshot = Path.Combine(_folder, "s2.png");
         await System.IO.File.WriteAllBytesAsync(screenshot, Png);
 

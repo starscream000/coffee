@@ -1,4 +1,8 @@
-<!-- The main window: top bar, notice bar, and either the start page or the open project. -->
+<!--
+  The main window: the top bar (project ▾, environment ▾, Record, Run ▾, the
+  engine's state), the notice bar, and either the start page or the open
+  project (instruction D0004, task 8).
+-->
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Desktop.App.ViewModels"
@@ -11,38 +15,103 @@
     <!-- Top bar -->
     <Border Grid.Row="0" Classes="bar">
       <DockPanel>
-        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{StaticResource Space2}">
-          <Border Classes="badge" ToolTip.Tip="{Binding Engine.Detail}">
+        <!-- Right: the engine's state and the settings -->
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{StaticResource Space1}">
+          <Button x:Name="EngineButton" Classes="quiet" ToolTip.Tip="{Binding Engine.Detail}">
             <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+              <TextBlock x:Name="EngineStateText" Classes="small" Text="{Binding Engine.StateText}" VerticalAlignment="Center" />
               <Ellipse Classes="status"
                        Classes.ready="{Binding Engine.IsReady}"
                        Classes.busy="{Binding Engine.IsBusy}"
                        Classes.failed="{Binding Engine.IsFailed}" />
-              <TextBlock x:Name="EngineStateText" Classes="small" Text="{Binding Engine.StateText}" />
             </StackPanel>
-          </Border>
-          <Button Content="Restart engine" Command="{Binding RestartEngineCommand}"
-                  ToolTip.Tip="Stop the engine and start it again with the current settings." />
-          <Button Content="Settings" Command="{Binding ToggleSettingsCommand}" />
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <StackPanel x:Name="EngineMenu" MaxWidth="{StaticResource DialogWidth}" Spacing="{StaticResource Space2}">
+                  <TextBlock Classes="heading" Text="{Binding Engine.StateText}" />
+                  <SelectableTextBlock Text="{Binding Engine.Detail}" Classes="muted" TextWrapping="Wrap" />
+                  <Button Content="Restart engine" Command="{Binding RestartEngineCommand}" HorizontalAlignment="Left"
+                          ToolTip.Tip="Stop the engine and start it again with the current settings." />
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+          <Button Content="Settings" Classes="quiet" Command="{Binding ToggleSettingsCommand}" />
         </StackPanel>
+
+        <!-- Left: the product, the project ▾ and its environment ▾ -->
         <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space3}" VerticalAlignment="Center">
           <TextBlock Text="{Binding ProductName}" Classes="title" VerticalAlignment="Center" />
           <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" IsVisible="{Binding IsProjectOpen}" VerticalAlignment="Center">
             <TextBlock Text="›" Classes="muted" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding Workspace.Name, FallbackValue=''}" Classes="strong" VerticalAlignment="Center"
-                       ToolTip.Tip="{Binding Workspace.Root, FallbackValue=''}" />
-            <ComboBox ItemsSource="{Binding Workspace.Environments, FallbackValue={x:Null}}"
+            <Button x:Name="ProjectMenuButton" Classes="quiet" ToolTip.Tip="{Binding Workspace.Root, FallbackValue=''}">
+              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+                <TextBlock Text="{Binding Workspace.Name, FallbackValue=''}" Classes="strong" VerticalAlignment="Center" />
+                <TextBlock Text="▾" Classes="muted" VerticalAlignment="Center" />
+              </StackPanel>
+              <Button.Flyout>
+                <Flyout Placement="BottomEdgeAlignedLeft">
+                  <StackPanel x:Name="ProjectMenu" Spacing="{StaticResource Space1}" MinWidth="{StaticResource SidePanelWidth}" MaxWidth="{StaticResource SidePanelWidth}">
+                    <TextBlock Text="{Binding Workspace.Root, FallbackValue=''}" Classes="code small muted" TextWrapping="Wrap" Margin="{StaticResource InsetBottom1}" />
+                    <Button Classes="row" Content="Validate all tests" Command="{Binding Workspace.ValidateCommand, FallbackValue={x:Null}}"
+                            ToolTip.Tip="Check every test file again." />
+                    <Button Classes="row" Content="Save all" Command="{Binding Workspace.SaveAllCommand, FallbackValue={x:Null}}"
+                            ToolTip.Tip="Save every file with unsaved changes." />
+                    <Button Classes="row" Content="Open another project…" Command="{Binding OpenFolderCommand}" />
+                    <Button Classes="row" Content="Close project" Command="{Binding CloseProjectCommand}" />
+                  </StackPanel>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
+            <ComboBox x:Name="EnvironmentBox"
+                      ItemsSource="{Binding Workspace.Environments, FallbackValue={x:Null}}"
                       SelectedItem="{Binding Workspace.SelectedEnvironment, FallbackValue={x:Null}}"
                       IsVisible="{Binding Workspace.HasEnvironments, FallbackValue=False}"
-                      MinWidth="{StaticResource FieldMinWidth}" ToolTip.Tip="Environment for runs" />
-            <Button Content="Validate" Command="{Binding Workspace.ValidateCommand, FallbackValue={x:Null}}"
-                    ToolTip.Tip="Check every test file again." />
-            <Button Content="Save all" Command="{Binding Workspace.SaveAllCommand, FallbackValue={x:Null}}"
-                    ToolTip.Tip="Save every file with unsaved changes." />
-            <Button Content="Close project" Command="{Binding CloseProjectCommand}" />
+                      MinWidth="{StaticResource FieldMinWidth}" ToolTip.Tip="The environment runs and recordings use" />
           </StackPanel>
-          <Button Content="Open folder…" Command="{Binding OpenFolderCommand}" />
+          <Button Content="Open folder…" Command="{Binding OpenFolderCommand}" IsVisible="{Binding !IsProjectOpen}" />
           <ProgressBar IsIndeterminate="True" Width="{StaticResource BusyBarWidth}" IsVisible="{Binding IsOpening}" />
+        </StackPanel>
+
+        <!-- Centre: the two main actions, Record and Run ▾ -->
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" HorizontalAlignment="Right" Margin="{StaticResource InsetRight4}"
+                    IsVisible="{Binding IsProjectOpen}">
+          <Button x:Name="RecordButton" Command="{Binding Workspace.RecordCommand, FallbackValue={x:Null}}"
+                  ToolTip.Tip="Record a test by using the application in a browser.">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+              <Ellipse Classes="dot failed" />
+              <TextBlock Text="Record" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="RunMenuButton" Classes="main" IsEnabled="{Binding Workspace.Runs.CanRun, FallbackValue=False}"
+                  ToolTip.Tip="Run the open test, the selected tests, a tag or all tests.">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+              <TextBlock Text="Run" VerticalAlignment="Center" />
+              <TextBlock Text="▾" VerticalAlignment="Center" />
+            </StackPanel>
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <StackPanel x:Name="RunMenu" Spacing="{StaticResource Space1}" MinWidth="{StaticResource SidePanelWidth}">
+                  <Button x:Name="RunOpenTestButton" Classes="row" Content="The open test" Command="{Binding Workspace.RunOpenTestCommand, FallbackValue={x:Null}}"
+                          ToolTip.Tip="Run the test in the selected tab (asks about unsaved changes first)." />
+                  <Button x:Name="RunSelectedButton" Classes="row" Content="The selected tests" Command="{Binding Workspace.RunSelectedCommand, FallbackValue={x:Null}}"
+                          ToolTip.Tip="Run the test selected in the project panel, or every test shown in the selected folder." />
+                  <Button x:Name="RunAllButton" Classes="row" Content="All tests" Command="{Binding Workspace.RunAllCommand, FallbackValue={x:Null}}" />
+                  <TextBlock Text="By tag" Classes="section" Margin="{StaticResource InsetTop2}" IsVisible="{Binding Workspace.HasTagRuns, FallbackValue=False}" />
+                  <ItemsControl x:Name="TagRunList" ItemsSource="{Binding Workspace.TagRuns, FallbackValue={x:Null}}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:TagRunChoice">
+                        <Button Classes="row" Content="{Binding Text}" Command="{Binding Command}" CommandParameter="{Binding Tag}" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Separator />
+                  <CheckBox Content="Show the browser" IsChecked="{Binding Workspace.Runs.Headed, FallbackValue=False}"
+                            ToolTip.Tip="Show the browser window while the tests run." />
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
         </StackPanel>
       </DockPanel>
     </Border>
@@ -50,7 +119,7 @@
     <!-- Notice bar -->
     <Border Grid.Row="1" Classes="notice" Classes.failed="{Binding NoticeIsError}" IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissNoticeCommand}" />
+        <Button DockPanel.Dock="Right" Content="Dismiss" Classes="quiet" Command="{Binding DismissNoticeCommand}" />
         <TextBlock x:Name="NoticeText" Text="{Binding Notice}" TextWrapping="Wrap" VerticalAlignment="Center"
                    IsVisible="{Binding NoticeIsError}" />
         <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" VerticalAlignment="Center" IsVisible="{Binding !NoticeIsError}" />

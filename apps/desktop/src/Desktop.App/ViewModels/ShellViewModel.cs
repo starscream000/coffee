@@ -52,6 +52,8 @@ public sealed partial class ShellViewModel : ObservableObject
         Engine = new EngineStatusViewModel(engine);
         Settings = new SettingsViewModel(settings, RestartEngineAsync);
         Settings.Closed += (_, _) => IsSettingsOpen = false;
+        Layout = new LayoutViewModel(settings.Load().Layout);
+        Layout.Changed += (_, _) => TrySave(_settings.Load() with { Layout = Layout.Settings });
         engine.StateChanged += (_, _) => OnEngineStateChanged();
         RefreshRecent();
     }
@@ -67,6 +69,9 @@ public sealed partial class ShellViewModel : ObservableObject
 
     /// <summary>The settings panel.</summary>
     public SettingsViewModel Settings { get; }
+
+    /// <summary>The window's panel sizes and open states, remembered in the settings.</summary>
+    public LayoutViewModel Layout { get; }
 
     /// <summary>Recent projects for the start page.</summary>
     public ObservableCollection<RecentProjectViewModel> RecentProjects { get; } = [];
@@ -177,7 +182,7 @@ public sealed partial class ShellViewModel : ObservableObject
             }
 
             var project = await _engine.OpenProjectAsync(root);
-            var workspace = new WorkspaceViewModel(project, _engine, _files, _dispatcher, Engine, _dialogs, _delay);
+            var workspace = new WorkspaceViewModel(project, _engine, _files, _dispatcher, Engine, _dialogs, _delay) { Layout = Layout };
             workspace.ReopenRequested += (_, _) => _ = ReopenAsync();
             await workspace.LoadAsync();
             if (sameProject && Workspace is { } current)
