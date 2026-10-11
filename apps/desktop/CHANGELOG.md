@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Screenshots of the main window in the README (`docs/screens/`), rendered
+  headless by `DocScreensTests` (instruction D0004, task 22).
 - A `call` step picks its flow from the project's flows, and shows the flow's
   parameters as fields of `with` (instruction D0004, task 20).
 - A test's own settings without YAML (instruction D0004, task 19): the steps
