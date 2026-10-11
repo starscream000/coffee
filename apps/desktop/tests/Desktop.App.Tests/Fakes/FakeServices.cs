@@ -243,6 +243,30 @@ internal sealed class FakeEngineService : IEngineService
     /// <summary>What startRun answers; by default run-N in a folder of that name.</summary>
     public Func<StartRunParams, StartRunResult> StartRun { get; set; }
 
+    /// <summary>What startRecording answers; rec-N for the file by default, or throws.</summary>
+    public Func<StartRecordingParams, StartRecordingResult> StartRecording { get; set; } = p => new StartRecordingResult { RecordingId = "rec-1", File = p.File };
+
+    /// <summary>The startRecording requests, in order.</summary>
+    public List<StartRecordingParams> Recordings { get; } = [];
+
+    /// <summary>What stopRecording answers, or throws.</summary>
+    public Func<string, StopRecordingResult> StopRecording { get; set; } = _ => new StopRecordingResult { File = "tests/recorded.test.yaml", Steps = 1 };
+
+    public async Task<StartRecordingResult> StartRecordingAsync(StartRecordingParams parameters, CancellationToken cancellationToken = default)
+    {
+        Calls.Add($"startRecording {parameters.File}");
+        Recordings.Add(parameters);
+        await Before("startRecording");
+        return StartRecording(parameters);
+    }
+
+    public async Task<StopRecordingResult> StopRecordingAsync(string recordingId, CancellationToken cancellationToken = default)
+    {
+        Calls.Add($"stopRecording {recordingId}");
+        await Before("stopRecording");
+        return StopRecording(recordingId);
+    }
+
     /// <summary>What openSnapshot does: nothing, or throw.</summary>
     public Action<OpenSnapshotParams> OpenSnapshot { get; set; } = _ => { };
 

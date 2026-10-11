@@ -1,0 +1,83 @@
+<!--
+  The Record tab of one recording (instruction D0004, task 15): what is
+  happening and Stop; the recorded steps as cards, with review marks; the
+  notices of what was not recorded beside them; and once it has ended, Open
+  test.
+-->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:rec="using:Desktop.App.ViewModels.Recording"
+             x:Class="Desktop.App.Views.RecordingTabView"
+             x:DataType="rec:RecordingTabViewModel">
+  <DockPanel>
+    <!-- What is happening, and Stop -->
+    <Border DockPanel.Dock="Top" Classes="panelHeader">
+      <DockPanel>
+        <Button x:Name="StopRecordingButton" DockPanel.Dock="Right" Classes="main" Content="Stop" Command="{Binding StopCommand}" IsVisible="{Binding IsRecording}"
+                ToolTip.Tip="Stop recording; the engine writes the last step and closes its browser." />
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+          <Ellipse Classes="dot failed" IsVisible="{Binding IsRecording}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding File}" Classes="code" VerticalAlignment="Center" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+    <TextBlock x:Name="RecordingStatus" DockPanel.Dock="Top" Text="{Binding StatusText}" TextWrapping="Wrap" Margin="{StaticResource InsetX3Y2}" />
+
+    <!-- Once the recording has ended -->
+    <SelectableTextBlock x:Name="RecordingProblem" DockPanel.Dock="Top" Text="{Binding Problem}" TextWrapping="Wrap" Classes="warning" Margin="{StaticResource InsetX3Y1}"
+                         IsVisible="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}" />
+    <Border x:Name="Ended" DockPanel.Dock="Top" Classes="card" Margin="{StaticResource InsetX3Y1}" IsVisible="{Binding IsDone}">
+      <Button x:Name="OpenRecordedTestButton" Content="Open test" Classes="main" Command="{Binding OpenTestCommand}" HorizontalAlignment="Left" />
+    </Border>
+
+    <!-- Steps, with the notices beside them -->
+    <Grid ColumnDefinitions="2*,*">
+      <ScrollViewer Grid.Column="0">
+        <StackPanel Margin="{StaticResource InsetX3Y2}" Spacing="{StaticResource Space1}">
+          <TextBlock Text="steps" Classes="section" />
+          <TextBlock Text="No steps yet." Classes="label" IsVisible="{Binding !Steps.Count}" />
+          <ItemsControl x:Name="RecordedSteps" ItemsSource="{Binding Steps}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="rec:RecordedStepViewModel">
+                <Border Classes="card step" Margin="{StaticResource InsetBottom1}">
+                  <StackPanel Margin="{StaticResource InsetX2Y1}" Spacing="{StaticResource Space1}">
+                    <DockPanel>
+                      <TextBlock DockPanel.Dock="Right" Text="{Binding PageText}" Classes="label" VerticalAlignment="Center" />
+                      <TextBlock DockPanel.Dock="Left" Text="{Binding Number}" Classes="label" Width="{StaticResource CountWidth}" VerticalAlignment="Center" />
+                      <TextBlock DockPanel.Dock="Left" Text="{Binding Action}" Classes="code accent" Margin="{StaticResource InsetRight2}" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Detail}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" IsVisible="{Binding HasReview}">
+                      <Border Classes="badge warning">
+                        <TextBlock Classes="small" Text="review" />
+                      </Border>
+                      <TextBlock Text="{Binding Review}" Classes="small warning" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+      <Border Grid.Column="1" Classes="panel" BorderBrush="{StaticResource LineBrush}" BorderThickness="{StaticResource LineLeft}">
+        <ScrollViewer>
+          <StackPanel Margin="{StaticResource InsetX3Y2}" Spacing="{StaticResource Space2}">
+            <TextBlock Text="Not recorded" Classes="section" />
+            <TextBlock Text="Everything you did so far was recorded." Classes="label" TextWrapping="Wrap" IsVisible="{Binding !HasNotices}" />
+            <ItemsControl x:Name="RecordingNotices" ItemsSource="{Binding Notices}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="rec:RecordingNoticeViewModel">
+                  <StackPanel Margin="{StaticResource InsetBottom2}" Spacing="{StaticResource Space1}">
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Where}" Classes="label" TextWrapping="Wrap" />
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+  </DockPanel>
+</UserControl>

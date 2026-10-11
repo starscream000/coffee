@@ -31,8 +31,10 @@ What it does today:
   values and locator candidates, screenshots once the engine records them,
   and a link from a failed target to the targets editor; cancel; and the
   history of earlier runs.
-- **Recording** has its place (Record), which says that it arrives with a
-  later engine version.
+- **Records tests**: Record asks for the test's name, the start address, the
+  environment and a saved login; the engine opens its own browser, and each
+  click, entry and choice appears as a step card in the Record tab, with the
+  steps marked for review and what was not recorded beside them.
 
 Saving writes the whole file anew (a temporary file next to it, then moved
 over the old one), so a crash never leaves half a file. The new file does not

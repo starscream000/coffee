@@ -127,6 +127,25 @@ public sealed class EngineClient
     public Task<StartRunResult> StartRunAsync(StartRunParams parameters, CancellationToken cancellationToken = default) =>
         Send<StartRunParams, StartRunResult>(Methods.StartRun, parameters, cancellationToken);
 
+    /// <summary>Sends <c>startRecording</c>: the engine opens its own visible browser and records what the person does there. Steps arrive as recording events.</summary>
+    /// <param name="parameters">The test file to write, the start address, environment, saved login and name.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>The recording's id and file, once the recording browser is open.</returns>
+    /// <exception cref="EngineRequestException">
+    /// <c>RecordingInProgress</c>, <c>RunInProgress</c>, <c>FileExists</c>; <c>InvalidParams</c> for a file name not ending in
+    /// <c>.test.yaml</c>, an unknown environment or login, or a browser that cannot start.
+    /// </exception>
+    public Task<StartRecordingResult> StartRecordingAsync(StartRecordingParams parameters, CancellationToken cancellationToken = default) =>
+        Send<StartRecordingParams, StartRecordingResult>(Methods.StartRecording, parameters, cancellationToken);
+
+    /// <summary>Sends <c>stopRecording</c>: writes the last step, closes the recording browser, and answers after <c>recordingStopped</c>.</summary>
+    /// <param name="recordingId">The recording.</param>
+    /// <param name="cancellationToken">Stops waiting.</param>
+    /// <returns>The file and how many steps it holds.</returns>
+    /// <exception cref="EngineRequestException"><c>RecordingNotFound</c> for an unknown id.</exception>
+    public Task<StopRecordingResult> StopRecordingAsync(string recordingId, CancellationToken cancellationToken = default) =>
+        Send<RecordingParams, StopRecordingResult>(Methods.StopRecording, new RecordingParams { RecordingId = recordingId }, cancellationToken);
+
     /// <summary>Sends <c>cancelRun</c>; returns as soon as cancellation has started.</summary>
     /// <param name="runId">The run.</param>
     /// <param name="cancellationToken">Stops waiting.</param>
