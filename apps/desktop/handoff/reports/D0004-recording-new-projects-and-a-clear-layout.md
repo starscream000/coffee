@@ -23,18 +23,18 @@ While rendering them I found and fixed a crash: showing a run in the history cra
 
 All stacked, in this order. Each pull request targets `main`, and its description names the branch it sits on. Lines changed count against the branch below, without images and lock files.
 
-| Branch                        | Last commit | Pull request | Pushed | Lines changed | CI (Linux, Windows, macOS)                 |
-| ----------------------------- | ----------- | ------------ | ------ | ------------- | ------------------------------------------ |
-| `desktop/feat/protocol-0-1-1` | `e02fd5a`   | #57          | yes    | +533 −60      | 9 of 9 green                               |
-| `desktop/feat/design-system`  | `f1592f9`   | #58          | yes    | +1125 −380    | 9 of 9 green                               |
-| `desktop/feat/shell-layout`   | `d87590d`   | #59          | yes    | +897 −264     | 9 of 9 green                               |
-| `desktop/feat/step-views`     | `6e53786`   | #60          | yes    | +729 −267     | 9 of 9 green                               |
-| `desktop/feat/new-project`    | `2637dbe`   | #61          | yes    | +848 −27      | 9 of 9 green                               |
-| `desktop/feat/record`         | `08eaefd`   | #62          | yes    | +1211 −128    | 9 of 9 green                               |
-| `desktop/feat/record-check`   | `7984829`   | #63          | yes    | +701 −42      | 9 of 9 green                               |
-| `desktop/feat/project-tree`   | `d08763b`   | #64          | yes    | +512 −70      | running at the time of writing; see the PR |
-| `desktop/feat/test-forms`     | `1e7fa7f`   | #65          | yes    | +881 −15      | running at the time of writing; see the PR |
-| `desktop/docs/screens`        | this report | #66          | yes    | see the PR    | see the PR                                 |
+| Branch                        | Last commit | Pull request | Pushed | Lines changed       | CI (Linux, Windows, macOS) |
+| ----------------------------- | ----------- | ------------ | ------ | ------------------- | -------------------------- |
+| `desktop/feat/protocol-0-1-1` | `e02fd5a`   | #57          | yes    | +533 −60            | 9 of 9 green               |
+| `desktop/feat/design-system`  | `f1592f9`   | #58          | yes    | +1125 −380          | 9 of 9 green               |
+| `desktop/feat/shell-layout`   | `d87590d`   | #59          | yes    | +897 −264           | 9 of 9 green               |
+| `desktop/feat/step-views`     | `6e53786`   | #60          | yes    | +729 −267           | 9 of 9 green               |
+| `desktop/feat/new-project`    | `2637dbe`   | #61          | yes    | +848 −27            | 9 of 9 green               |
+| `desktop/feat/record`         | `08eaefd`   | #62          | yes    | +1211 −128          | 9 of 9 green               |
+| `desktop/feat/record-check`   | `7984829`   | #63          | yes    | +701 −42            | 9 of 9 green               |
+| `desktop/feat/project-tree`   | `d08763b`   | #64          | yes    | +512 −70            | 9 of 9 green               |
+| `desktop/feat/test-forms`     | `1e7fa7f`   | #65          | yes    | +881 −15            | 9 of 9 green               |
+| `desktop/docs/screens`        | this report | #66          | yes    | +24 −2 and 8 images | 9 of 9 green               |
 
 The jobs are `verify`, `integration` and `desktop` on each system. The CI results are those of the last push of each branch: the merge of the history fix, which re-ran every job.
 
@@ -129,8 +129,7 @@ The jobs are `verify`, `integration` and `desktop` on each system. The CI result
 
 - Task 21 (see above).
 - The screenshots are headless renders with a fake engine, not the real window.
-- CI of #64, #65 and #66 was still running when this report was written.
-- Each pull request's CI ran green once on its last push. I have not re-run them a second time.
+- CI is green on all nine jobs of every pull request, #57 to #66. Each of #57 to #65 also passed a second, re-run, round on its last push.
 
 ## What of the engine the app still cannot use
 
