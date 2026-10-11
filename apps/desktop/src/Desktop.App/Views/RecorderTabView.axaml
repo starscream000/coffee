@@ -5,15 +5,15 @@
              x:Class="Desktop.App.Views.RecorderTabView"
              x:DataType="vm:RecorderTabViewModel">
   <ScrollViewer>
-    <StackPanel Margin="24" Spacing="12" MaxWidth="640" HorizontalAlignment="Left">
-      <TextBlock x:Name="RecorderHeading" Text="{x:Static vm:RecorderTabViewModel.Heading}" FontSize="18" FontWeight="SemiBold" />
+    <StackPanel Margin="{StaticResource Inset6}" Spacing="{StaticResource Space3}" MaxWidth="{StaticResource PageWidth}" HorizontalAlignment="Left">
+      <TextBlock x:Name="RecorderHeading" Text="{x:Static vm:RecorderTabViewModel.Heading}" Classes="page" />
       <TextBlock Text="{x:Static vm:RecorderTabViewModel.Now}" TextWrapping="Wrap" />
-      <TextBlock Text="What recording will do" Classes="heading" Margin="0,8,0,0" />
+      <TextBlock Text="What recording will do" Classes="title" Margin="{StaticResource InsetTop2}" />
       <ItemsControl ItemsSource="{x:Static vm:RecorderTabViewModel.WillDo}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="x:String">
-            <DockPanel Margin="0,0,0,6">
-              <TextBlock DockPanel.Dock="Left" Text="•" Margin="0,0,8,0" />
+            <DockPanel Margin="{StaticResource InsetBottom1}">
+              <TextBlock DockPanel.Dock="Left" Text="•" Margin="{StaticResource InsetRight2}" />
               <TextBlock Text="{Binding}" TextWrapping="Wrap" />
             </DockPanel>
           </DataTemplate>

@@ -1,0 +1,149 @@
+<!--
+  The design tokens of the app (ADR D0008): every colour, spacing step, corner
+  radius and text size, named once. Views and styles use these keys and never
+  write a value of their own; DesignTokenTests checks that.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Surfaces, from the back to the front: window, panel, raised. -->
+  <Color x:Key="WindowColor">#0F1115</Color>
+  <Color x:Key="PanelColor">#161A20</Color>
+  <Color x:Key="RaisedColor">#1D222A</Color>
+  <Color x:Key="HoverColor">#252B35</Color>
+  <Color x:Key="PressedColor">#2D3440</Color>
+  <Color x:Key="LineColor">#2A303A</Color>
+  <Color x:Key="LineStrongColor">#3A4250</Color>
+  <Color x:Key="OverlayColor">#B30F1115</Color>
+
+  <!-- Text -->
+  <Color x:Key="TextColor">#E6E8EB</Color>
+  <Color x:Key="TextMutedColor">#9AA3AF</Color>
+  <Color x:Key="TextDisabledColor">#5C6573</Color>
+  <Color x:Key="OnAccentColor">#FFFFFF</Color>
+
+  <!-- The main action, selection and focus -->
+  <Color x:Key="AccentColor">#4C8DFF</Color>
+  <Color x:Key="AccentHoverColor">#6A9FFF</Color>
+  <Color x:Key="AccentPressedColor">#3B78E6</Color>
+  <Color x:Key="AccentSubtleColor">#334C8DFF</Color>
+
+  <!-- Outcomes -->
+  <Color x:Key="PassedColor">#3FB950</Color>
+  <Color x:Key="WarningColor">#D29922</Color>
+  <Color x:Key="FailedColor">#F85149</Color>
+  <Color x:Key="FailedHoverColor">#FF6B63</Color>
+  <Color x:Key="PassedSubtleColor">#263FB950</Color>
+  <Color x:Key="WarningSubtleColor">#33D29922</Color>
+  <Color x:Key="FailedSubtleColor">#33F85149</Color>
+
+  <SolidColorBrush x:Key="WindowBrush" Color="{StaticResource WindowColor}" />
+  <SolidColorBrush x:Key="PanelBrush" Color="{StaticResource PanelColor}" />
+  <SolidColorBrush x:Key="RaisedBrush" Color="{StaticResource RaisedColor}" />
+  <SolidColorBrush x:Key="HoverBrush" Color="{StaticResource HoverColor}" />
+  <SolidColorBrush x:Key="PressedBrush" Color="{StaticResource PressedColor}" />
+  <SolidColorBrush x:Key="LineBrush" Color="{StaticResource LineColor}" />
+  <SolidColorBrush x:Key="LineStrongBrush" Color="{StaticResource LineStrongColor}" />
+  <SolidColorBrush x:Key="OverlayBrush" Color="{StaticResource OverlayColor}" />
+  <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}" />
+  <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}" />
+  <SolidColorBrush x:Key="TextDisabledBrush" Color="{StaticResource TextDisabledColor}" />
+  <SolidColorBrush x:Key="OnAccentBrush" Color="{StaticResource OnAccentColor}" />
+  <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+  <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
+  <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressedColor}" />
+  <SolidColorBrush x:Key="AccentSubtleBrush" Color="{StaticResource AccentSubtleColor}" />
+  <SolidColorBrush x:Key="PassedBrush" Color="{StaticResource PassedColor}" />
+  <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
+  <SolidColorBrush x:Key="FailedBrush" Color="{StaticResource FailedColor}" />
+  <SolidColorBrush x:Key="FailedHoverBrush" Color="{StaticResource FailedHoverColor}" />
+  <SolidColorBrush x:Key="PassedSubtleBrush" Color="{StaticResource PassedSubtleColor}" />
+  <SolidColorBrush x:Key="WarningSubtleBrush" Color="{StaticResource WarningSubtleColor}" />
+  <SolidColorBrush x:Key="FailedSubtleBrush" Color="{StaticResource FailedSubtleColor}" />
+  <SolidColorBrush x:Key="NoBrush" Color="Transparent" />
+
+  <!-- Spacing in steps of 4: gaps between items (Spacing) -->
+  <x:Double x:Key="Space1">4</x:Double>
+  <x:Double x:Key="Space2">8</x:Double>
+  <x:Double x:Key="Space3">12</x:Double>
+  <x:Double x:Key="Space4">16</x:Double>
+  <x:Double x:Key="Space6">24</x:Double>
+
+  <!-- Spacing in steps of 4: insets (Padding, Margin) -->
+  <Thickness x:Key="Inset0">0</Thickness>
+  <Thickness x:Key="Inset1">4</Thickness>
+  <Thickness x:Key="Inset2">8</Thickness>
+  <Thickness x:Key="Inset3">12</Thickness>
+  <Thickness x:Key="Inset4">16</Thickness>
+  <Thickness x:Key="Inset6">24</Thickness>
+  <Thickness x:Key="InsetX1">4,0</Thickness>
+  <Thickness x:Key="InsetX2">8,0</Thickness>
+  <Thickness x:Key="InsetX2Y1">8,4</Thickness>
+  <Thickness x:Key="InsetX3Y1">12,4</Thickness>
+  <Thickness x:Key="InsetX3Y2">12,8</Thickness>
+  <Thickness x:Key="InsetX4Y2">16,8</Thickness>
+  <Thickness x:Key="InsetY1">0,4</Thickness>
+  <Thickness x:Key="InsetY2">0,8</Thickness>
+  <Thickness x:Key="InsetTop1">0,4,0,0</Thickness>
+  <Thickness x:Key="InsetTop2">0,8,0,0</Thickness>
+  <Thickness x:Key="InsetTop3">0,12,0,0</Thickness>
+  <Thickness x:Key="InsetBottom1">0,0,0,4</Thickness>
+  <Thickness x:Key="InsetBottom2">0,0,0,8</Thickness>
+  <Thickness x:Key="InsetRight1">0,0,4,0</Thickness>
+  <Thickness x:Key="InsetRight2">0,0,8,0</Thickness>
+  <Thickness x:Key="InsetRight4">0,0,16,0</Thickness>
+  <Thickness x:Key="InsetLeft1">4,0,0,0</Thickness>
+  <Thickness x:Key="InsetLeft2">8,0,0,0</Thickness>
+  <Thickness x:Key="InsetDepth">16,0,0,0</Thickness>
+  <Thickness x:Key="InsetPage">24,48</Thickness>
+
+  <!-- Lines: the one-pixel edges between regions and around cards -->
+  <Thickness x:Key="LineAll">1</Thickness>
+  <Thickness x:Key="LineTop">0,1,0,0</Thickness>
+  <Thickness x:Key="LineBottom">0,0,0,1</Thickness>
+  <Thickness x:Key="LineLeft">1,0,0,0</Thickness>
+  <Thickness x:Key="LineRight">0,0,1,0</Thickness>
+  <Thickness x:Key="LineAccent">0,0,0,2</Thickness>
+  <Thickness x:Key="LineSelected">3,0,0,0</Thickness>
+
+  <!-- Corners -->
+  <CornerRadius x:Key="RadiusSmall">4</CornerRadius>
+  <CornerRadius x:Key="Radius">6</CornerRadius>
+  <CornerRadius x:Key="RadiusPill">10</CornerRadius>
+
+  <!-- Text sizes -->
+  <x:Double x:Key="TextLabel">12</x:Double>
+  <x:Double x:Key="TextBody">13</x:Double>
+  <x:Double x:Key="TextTitle">15</x:Double>
+  <x:Double x:Key="TextPage">20</x:Double>
+
+  <!-- Sizes of small marks and fixed parts -->
+  <x:Double x:Key="DotSize">8</x:Double>
+  <x:Double x:Key="StatusSize">10</x:Double>
+  <x:Double x:Key="SplitterSize">5</x:Double>
+  <x:Double x:Key="FieldMinWidth">120</x:Double>
+  <x:Double x:Key="NarrowFieldWidth">56</x:Double>
+  <x:Double x:Key="BusyBarWidth">64</x:Double>
+  <x:Double x:Key="PageWidth">640</x:Double>
+  <x:Double x:Key="DialogWidth">520</x:Double>
+  <x:Double x:Key="ListMaxHeight">260</x:Double>
+  <x:Double x:Key="CodeMinHeight">48</x:Double>
+
+  <!-- Window and column sizes -->
+  <x:Double x:Key="WindowWidth">1280</x:Double>
+  <x:Double x:Key="WindowHeight">820</x:Double>
+  <x:Double x:Key="WindowMinWidth">960</x:Double>
+  <x:Double x:Key="WindowMinHeight">600</x:Double>
+  <x:Double x:Key="GlyphWidth">16</x:Double>
+  <x:Double x:Key="CountWidth">24</x:Double>
+  <GridLength x:Key="SplitterLength">5</GridLength>
+  <GridLength x:Key="GlyphColumn">16</GridLength>
+  <GridLength x:Key="ColumnList">280</GridLength>
+  <GridLength x:Key="ColumnSide">320</GridLength>
+  <GridLength x:Key="ColumnName">180</GridLength>
+  <GridLength x:Key="ColumnType">160</GridLength>
+  <GridLength x:Key="BottomPanelLength">230</GridLength>
+  <x:Double x:Key="SidePanelWidth">360</x:Double>
+
+  <!-- Fonts: monospaced only for file text and code -->
+  <FontFamily x:Key="CodeFont">Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace</FontFamily>
+</ResourceDictionary>

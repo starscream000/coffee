@@ -6,39 +6,51 @@
              x:DataType="steps:StepFormViewModel">
   <UserControl.DataTemplates>
     <DataTemplate DataType="steps:StepFieldViewModel">
-      <StackPanel Margin="0,4" Spacing="2">
-        <TextBlock Text="{Binding Label}" Classes="small" FontWeight="SemiBold" />
+      <StackPanel Spacing="{StaticResource Space1}">
+        <TextBlock Text="{Binding Label}" Classes="label strong" />
         <TextBox Text="{Binding Value, UpdateSourceTrigger=LostFocus}" IsVisible="{Binding IsLine}" />
         <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Value}" IsVisible="{Binding IsChoice}" HorizontalAlignment="Stretch" />
         <AutoCompleteBox Text="{Binding Value, UpdateSourceTrigger=LostFocus}" ItemsSource="{Binding TargetNames}" FilterMode="ContainsOrdinal"
                          IsVisible="{Binding IsTarget}" PlaceholderText="A target name" />
-        <TextBox Text="{Binding Value, UpdateSourceTrigger=LostFocus}" IsVisible="{Binding IsYaml}" AcceptsReturn="True" TextWrapping="NoWrap"
-                 FontFamily="{StaticResource CodeFont}" FontSize="12" MinHeight="48" />
-        <TextBlock Text="{Binding Note}" Classes="muted small" TextWrapping="Wrap" IsVisible="{Binding Note, Converter={x:Static ObjectConverters.IsNotNull}}" />
-        <TextBlock Text="{Binding Description}" Classes="muted small" TextWrapping="Wrap" IsVisible="{Binding Description, Converter={x:Static ObjectConverters.IsNotNull}}" />
-        <TextBlock Text="{Binding Error}" Classes="small" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap"
+        <TextBox Classes="code" Text="{Binding Value, UpdateSourceTrigger=LostFocus}" IsVisible="{Binding IsYaml}" AcceptsReturn="True" TextWrapping="NoWrap"
+                 MinHeight="{StaticResource CodeMinHeight}" />
+        <TextBlock Text="{Binding Note}" Classes="label" TextWrapping="Wrap" IsVisible="{Binding Note, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <TextBlock Text="{Binding Description}" Classes="label" TextWrapping="Wrap" IsVisible="{Binding Description, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <TextBlock Text="{Binding Error}" Classes="small failed" TextWrapping="Wrap"
                    IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
-        <TextBlock Text="{Binding Problem}" Classes="small" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap"
+        <TextBlock Text="{Binding Problem}" Classes="small failed" TextWrapping="Wrap"
                    IsVisible="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
     </DataTemplate>
   </UserControl.DataTemplates>
 
   <ScrollViewer>
-    <StackPanel Margin="10,6" Spacing="4">
-      <TextBlock x:Name="FormAction" Text="{Binding Action}" Classes="code" FontWeight="SemiBold" />
-      <TextBlock Text="{Binding Description}" Classes="muted small" TextWrapping="Wrap" IsVisible="{Binding Description, Converter={x:Static ObjectConverters.IsNotNull}}" />
-      <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}" />
+    <StackPanel Margin="{StaticResource Inset3}" Spacing="{StaticResource Space2}">
+      <TextBlock x:Name="FormAction" Text="{Binding Action}" Classes="code title" />
+      <TextBlock Text="{Binding Description}" Classes="label" TextWrapping="Wrap" IsVisible="{Binding Description, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" Classes="warning" IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}" />
       <ItemsControl ItemsSource="{Binding Problems}" IsVisible="{Binding HasProblems}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="x:String">
-            <TextBlock Text="{Binding}" Classes="small" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding}" Classes="small failed" TextWrapping="Wrap" />
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
-      <ItemsControl x:Name="FormParameters" ItemsSource="{Binding Parameters}" />
-      <TextBlock Text="Step" Classes="heading muted" Margin="0,8,0,0" />
-      <ItemsControl x:Name="FormSettings" ItemsSource="{Binding Settings}" />
+      <ItemsControl x:Name="FormParameters" ItemsSource="{Binding Parameters}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="{StaticResource Space3}" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
+      <TextBlock Text="Step" Classes="section" Margin="{StaticResource InsetTop2}" />
+      <ItemsControl x:Name="FormSettings" ItemsSource="{Binding Settings}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="{StaticResource Space3}" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

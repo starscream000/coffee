@@ -5,46 +5,30 @@
              xmlns:views="using:Desktop.App.Views"
              x:Class="Desktop.App.Views.StepListView"
              x:DataType="steps:StepListViewModel">
-  <UserControl.Styles>
-    <Style Selector="Button.stepRow">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="Padding" Value="6,3" />
-    </Style>
-    <Style Selector="Button.stepRow.selected">
-      <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}" />
-    </Style>
-    <Style Selector="Button.tool">
-      <Setter Property="Padding" Value="8,2" />
-      <Setter Property="Margin" Value="0,0,4,4" />
-    </Style>
-  </UserControl.Styles>
-
   <DockPanel>
     <!-- Text only, with the reason -->
-    <TextBlock x:Name="StepListProblem" DockPanel.Dock="Top" Margin="10" Text="{Binding Problem}" TextWrapping="Wrap"
+    <TextBlock x:Name="StepListProblem" DockPanel.Dock="Top" Margin="{StaticResource Inset3}" Text="{Binding Problem}" TextWrapping="Wrap"
                IsVisible="{Binding !IsAvailable}" />
 
     <!-- Tools -->
-    <StackPanel DockPanel.Dock="Top" Margin="8,6,8,0" IsVisible="{Binding IsAvailable}">
-      <WrapPanel>
-        <Button x:Name="AddStepButton" Classes="tool accent" Content="Add step" Command="{Binding StartAddingCommand}"
+    <StackPanel DockPanel.Dock="Top" Margin="{StaticResource Inset2}" Spacing="{StaticResource Space1}" IsVisible="{Binding IsAvailable}">
+      <WrapPanel ItemSpacing="{StaticResource Space1}" LineSpacing="{StaticResource Space1}">
+        <Button x:Name="AddStepButton" Classes="main" Content="Add step" Command="{Binding StartAddingCommand}"
                 ToolTip.Tip="Add a step after the selected one, or at the end of the steps." />
-        <Button Classes="tool" Content="Duplicate" Command="{Binding DuplicateCommand}" />
-        <Button Classes="tool" Content="Up" Command="{Binding MoveUpCommand}" />
-        <Button Classes="tool" Content="Down" Command="{Binding MoveDownCommand}" />
-        <Button Classes="tool" Content="Remove" Command="{Binding RemoveCommand}" />
+        <Button Classes="quiet" Content="Duplicate" Command="{Binding DuplicateCommand}" />
+        <Button Classes="quiet" Content="Up" Command="{Binding MoveUpCommand}" />
+        <Button Classes="quiet" Content="Down" Command="{Binding MoveDownCommand}" />
+        <Button Classes="danger" Content="Remove" Command="{Binding RemoveCommand}" />
       </WrapPanel>
       <ItemsControl ItemsSource="{Binding MoveTargets}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <WrapPanel />
+            <WrapPanel ItemSpacing="{StaticResource Space1}" LineSpacing="{StaticResource Space1}" />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="x:String">
-            <Button Classes="tool" Content="{Binding StringFormat='Move to {0}'}"
+            <Button Classes="quiet" Content="{Binding StringFormat='Move to {0}'}"
                     Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).MoveToSectionCommand}" CommandParameter="{Binding}" />
           </DataTemplate>
         </ItemsControl.ItemTemplate>
@@ -52,21 +36,20 @@
     </StackPanel>
 
     <!-- Action picker -->
-    <Border DockPanel.Dock="Top" Margin="8,0,8,6" Padding="8" BorderThickness="1" CornerRadius="4"
-            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" IsVisible="{Binding IsPicking}">
+    <Border DockPanel.Dock="Top" Classes="card" Margin="{StaticResource Inset2}" IsVisible="{Binding IsPicking}">
       <DockPanel>
         <DockPanel DockPanel.Dock="Top">
-          <Button DockPanel.Dock="Right" Content="Cancel" Command="{Binding CancelAddingCommand}" Margin="6,0,0,0" />
+          <Button DockPanel.Dock="Right" Content="Cancel" Command="{Binding CancelAddingCommand}" Margin="{StaticResource InsetLeft2}" />
           <TextBox x:Name="PickerSearch" Text="{Binding PickerSearch}" PlaceholderText="Search actions" />
         </DockPanel>
-        <ScrollViewer MaxHeight="260" Margin="0,6,0,0">
+        <ScrollViewer MaxHeight="{StaticResource ListMaxHeight}" Margin="{StaticResource InsetTop2}">
           <ItemsControl x:Name="PickerList" ItemsSource="{Binding PickerItems}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="steps:StepActionChoice">
-                <Button Classes="stepRow" Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).AddCommand}" CommandParameter="{Binding}">
+                <Button Classes="row" Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).AddCommand}" CommandParameter="{Binding}">
                   <StackPanel>
                     <TextBlock Text="{Binding Name}" Classes="code" />
-                    <TextBlock Text="{Binding Description}" Classes="muted small" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Description}" Classes="label" TextWrapping="Wrap" />
                   </StackPanel>
                 </Button>
               </DataTemplate>
@@ -77,28 +60,26 @@
     </Border>
 
     <!-- Sections and steps above, the selected step's form below -->
-    <Grid RowDefinitions="*,4,*" IsVisible="{Binding IsAvailable}">
+    <Grid RowDefinitions="*,Auto,*" IsVisible="{Binding IsAvailable}">
       <ScrollViewer Grid.Row="0">
-        <ItemsControl x:Name="StepSections" ItemsSource="{Binding Sections}" Margin="6,0,6,6">
+        <ItemsControl x:Name="StepSections" ItemsSource="{Binding Sections}" Margin="{StaticResource InsetX2}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="steps:StepSectionViewModel">
-              <StackPanel Margin="0,4">
-                <TextBlock Text="{Binding Name}" Classes="heading muted" Margin="4,4" />
-                <TextBlock Text="No steps" Classes="muted small" Margin="8,0" IsVisible="{Binding IsEmpty}" />
+              <StackPanel Margin="{StaticResource InsetY1}">
+                <TextBlock Text="{Binding Name}" Classes="section" Margin="{StaticResource InsetY1}" />
+                <TextBlock Text="No steps" Classes="label" Margin="{StaticResource InsetX2}" IsVisible="{Binding IsEmpty}" />
                 <ItemsControl ItemsSource="{Binding Steps}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="steps:StepItemViewModel">
-                      <Button Classes="stepRow" Classes.selected="{Binding IsSelected}" ToolTip.Tip="{Binding LinesText}"
+                      <Button Classes="row" Classes.selected="{Binding IsSelected}" ToolTip.Tip="{Binding LinesText}"
                               Command="{Binding $parent[UserControl].((steps:StepListViewModel)DataContext).SelectCommand}" CommandParameter="{Binding}">
                         <DockPanel>
-                          <Ellipse DockPanel.Dock="Right" Width="8" Height="8" Margin="6,0,0,0" VerticalAlignment="Center"
-                                   Fill="{StaticResource ErrorBrush}" IsVisible="{Binding HasError}" ToolTip.Tip="This step has errors" />
-                          <Ellipse DockPanel.Dock="Right" Width="8" Height="8" Margin="6,0,0,0" VerticalAlignment="Center"
-                                   Fill="{StaticResource WarningBrush}" IsVisible="{Binding HasWarningOnly}" ToolTip.Tip="This step has warnings" />
+                          <Ellipse DockPanel.Dock="Right" Classes="dot failed" Margin="{StaticResource InsetLeft2}" IsVisible="{Binding HasError}" ToolTip.Tip="This step has errors" />
+                          <Ellipse DockPanel.Dock="Right" Classes="dot warning" Margin="{StaticResource InsetLeft2}" IsVisible="{Binding HasWarningOnly}" ToolTip.Tip="This step has warnings" />
                           <StackPanel>
-                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" IsVisible="{Binding HasName}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Name}" Classes="strong" IsVisible="{Binding HasName}" TextTrimming="CharacterEllipsis" />
                             <DockPanel>
-                              <TextBlock DockPanel.Dock="Left" Text="{Binding Action}" Classes="code" Margin="0,0,8,0" />
+                              <TextBlock DockPanel.Dock="Left" Text="{Binding Action}" Classes="code accent" Margin="{StaticResource InsetRight2}" />
                               <TextBlock Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
                             </DockPanel>
                           </StackPanel>
@@ -112,8 +93,8 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
       </ScrollViewer>
-      <GridSplitter Grid.Row="1" ResizeDirection="Rows" IsVisible="{Binding Form, Converter={x:Static ObjectConverters.IsNotNull}}" />
-      <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+      <GridSplitter Grid.Row="1" ResizeDirection="Rows" Height="{StaticResource SplitterSize}" IsVisible="{Binding Form, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <Border Grid.Row="2" Classes="panel"
               IsVisible="{Binding Form, Converter={x:Static ObjectConverters.IsNotNull}}">
         <views:StepFormView x:Name="StepForm" DataContext="{Binding Form}" />
       </Border>

@@ -103,7 +103,7 @@ public sealed partial class StepRunViewModel : ObservableObject
 
     /// <summary>Where the step stands.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsFailed), nameof(StatusText), nameof(Glyph))]
+    [NotifyPropertyChangedFor(nameof(IsFailed), nameof(IsSkipped), nameof(StatusText), nameof(Glyph))]
     private StepRunState _state = StepRunState.Running;
 
     /// <summary>True when the step is the one whose details are shown.</summary>
@@ -145,6 +145,9 @@ public sealed partial class StepRunViewModel : ObservableObject
 
     /// <summary>True when the step failed.</summary>
     public bool IsFailed => State == StepRunState.Failed;
+
+    /// <summary>True when the step did not run; the run view shows it greyed out.</summary>
+    public bool IsSkipped => State == StepRunState.Skipped;
 
     /// <summary>True when a screenshot was recorded.</summary>
     public bool HasScreenshot => ScreenshotPath is not null;
