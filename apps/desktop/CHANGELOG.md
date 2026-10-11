@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A design system (ADR D0008): every colour, spacing step, corner radius,
+  text size and fixed size is named once in `Themes/Tokens.axaml`, and
+  `Themes/Controls.axaml` gives each kind of control one look from them. The
+  window uses the dark theme with distinct window, panel and raised tones.
+  Buttons come in four kinds (main, normal, quiet, danger), and every control
+  shows keyboard focus. A test fails when a view writes a colour, size or
+  spacing of its own.
+
 - Protocol `0.1.1` in the app's C# types: the recording requests and events
   (`startRecording`, `stopRecording`, `verifyRecording`, `recordingStarted`,
   `stepRecorded`, `stepChanged`, `recordingNotice`, `recordingStopped`,

@@ -22,36 +22,47 @@
     </DataTemplate>
   </UserControl.DataTemplates>
 
-  <Grid ColumnDefinitions="320,4,*" RowDefinitions="*,4,230,Auto">
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="{StaticResource ColumnSide}" />
+      <ColumnDefinition Width="{StaticResource SplitterLength}" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="{StaticResource SplitterLength}" />
+      <RowDefinition Height="{StaticResource BottomPanelLength}" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
     <!-- Test explorer -->
     <DockPanel Grid.Column="0" Grid.Row="0" Grid.RowSpan="3">
       <Border DockPanel.Dock="Top" Classes="panelHeader">
         <DockPanel>
-          <TextBlock DockPanel.Dock="Right" Classes="muted small" Text="{Binding Explorer.Summary}" VerticalAlignment="Center" />
+          <TextBlock DockPanel.Dock="Right" Classes="label" Text="{Binding Explorer.Summary}" VerticalAlignment="Center" />
           <TextBlock Classes="heading" Text="Tests" />
         </DockPanel>
       </Border>
-      <StackPanel DockPanel.Dock="Top" Margin="8,8,8,4" Spacing="6">
+      <StackPanel DockPanel.Dock="Top" Margin="{StaticResource Inset2}" Spacing="{StaticResource Space2}">
         <TextBox x:Name="SearchBox" Text="{Binding Explorer.SearchText}" PlaceholderText="Search tests by name or path" />
         <ComboBox ItemsSource="{Binding Explorer.Tags}" SelectedItem="{Binding Explorer.SelectedTag}" HorizontalAlignment="Stretch" />
-        <WrapPanel x:Name="RunButtons">
-          <Button x:Name="RunSelectedButton" Content="Run selected" Command="{Binding RunSelectedCommand}" IsEnabled="{Binding Runs.CanRun}" Margin="0,0,4,4"
+        <WrapPanel x:Name="RunButtons" ItemSpacing="{StaticResource Space1}" LineSpacing="{StaticResource Space1}">
+          <Button x:Name="RunSelectedButton" Content="Run selected" Command="{Binding RunSelectedCommand}" IsEnabled="{Binding Runs.CanRun}"
                   ToolTip.Tip="Run the selected test, or every test shown in the selected folder." />
-          <Button Content="Run tag" Command="{Binding RunTagCommand}" IsEnabled="{Binding Runs.CanRun}" Margin="0,0,4,4"
+          <Button Content="Run tag" Command="{Binding RunTagCommand}" IsEnabled="{Binding Runs.CanRun}"
                   ToolTip.Tip="Run every test with the chosen tag." />
-          <Button x:Name="RunAllButton" Content="Run all" Command="{Binding RunAllCommand}" IsEnabled="{Binding Runs.CanRun}" Margin="0,0,4,4" />
-          <CheckBox Content="Show browser" IsChecked="{Binding Runs.Headed}" Margin="0,0,4,4"
+          <Button x:Name="RunAllButton" Content="Run all" Command="{Binding RunAllCommand}" IsEnabled="{Binding Runs.CanRun}" />
+          <CheckBox Content="Show browser" IsChecked="{Binding Runs.Headed}"
                     ToolTip.Tip="Show the browser window while the tests run." />
         </WrapPanel>
-        <WrapPanel>
-          <Button x:Name="NewTestButton" Content="New test" Command="{Binding NewTestCommand}" Margin="0,0,4,4"
+        <WrapPanel ItemSpacing="{StaticResource Space1}" LineSpacing="{StaticResource Space1}">
+          <Button x:Name="NewTestButton" Content="New test" Command="{Binding NewTestCommand}"
                   ToolTip.Tip="Create a test in the selected folder." />
-          <Button Content="New flow" Command="{Binding NewFlowCommand}" Margin="0,0,4,4" />
-          <Button Content="New targets file" Command="{Binding NewTargetsCommand}" Margin="0,0,4,4" />
-          <Button x:Name="RecordButton" Content="Record" Command="{Binding RecordCommand}" Margin="0,0,4,4"
+          <Button Content="New flow" Command="{Binding NewFlowCommand}" />
+          <Button Content="New targets file" Command="{Binding NewTargetsCommand}" />
+          <Button x:Name="RecordButton" Content="Record" Command="{Binding RecordCommand}"
                   ToolTip.Tip="Recording arrives with a later engine version." />
         </WrapPanel>
-        <SelectableTextBlock x:Name="RunUnavailable" Text="{Binding Runs.UnavailableReason}" TextWrapping="Wrap" Classes="small"
+        <SelectableTextBlock x:Name="RunUnavailable" Text="{Binding Runs.UnavailableReason}" TextWrapping="Wrap" Classes="small warning"
                              IsVisible="{Binding Runs.UnavailableReason, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
       <TreeView x:Name="ExplorerTree" ItemsSource="{Binding Explorer.Roots}" SelectedItem="{Binding Explorer.SelectedNode}">
@@ -62,9 +73,9 @@
         </TreeView.Styles>
         <TreeView.ItemTemplate>
           <TreeDataTemplate x:DataType="vm:ExplorerNodeViewModel" ItemsSource="{Binding Children}">
-            <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding Path}">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" ToolTip.Tip="{Binding Path}">
               <TextBlock Text="•" Classes="muted" IsVisible="{Binding IsTest}" VerticalAlignment="Center" />
-              <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" IsVisible="{Binding IsFolder}" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding DisplayName}" Classes="strong" IsVisible="{Binding IsFolder}" VerticalAlignment="Center" />
               <TextBlock Text="{Binding DisplayName}" IsVisible="{Binding IsTest}" VerticalAlignment="Center" />
               <Border Classes="badge error" IsVisible="{Binding HasErrors}" ToolTip.Tip="Errors">
                 <TextBlock Classes="small" Text="{Binding ErrorCount}" />
@@ -72,7 +83,7 @@
               <Border Classes="badge warning" IsVisible="{Binding HasWarningsOnly}" ToolTip.Tip="Warnings">
                 <TextBlock Classes="small" Text="{Binding WarningCount}" />
               </Border>
-              <TextBlock Text="{Binding RowsText}" Classes="muted small" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding RowsText}" Classes="label" VerticalAlignment="Center" />
               <ItemsControl ItemsSource="{Binding Tags}" IsVisible="{Binding HasTags}" VerticalAlignment="Center">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
@@ -97,14 +108,14 @@
 
     <!-- Tabs: step files, runs and the action catalogue, under the run notice -->
     <DockPanel Grid.Column="2" Grid.Row="0">
-      <Border DockPanel.Dock="Top" Padding="10,6" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+      <Border DockPanel.Dock="Top" Classes="notice"
               IsVisible="{Binding Runs.Notice, Converter={x:Static ObjectConverters.IsNotNull}}">
         <DockPanel>
           <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding Runs.DismissNoticeCommand}" />
           <SelectableTextBlock x:Name="RunNotice" Text="{Binding Runs.Notice}" TextWrapping="Wrap" VerticalAlignment="Center" />
         </DockPanel>
       </Border>
-      <Border DockPanel.Dock="Top" Padding="10,6" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+      <Border DockPanel.Dock="Top" Classes="notice"
               IsVisible="{Binding FileNotice, Converter={x:Static ObjectConverters.IsNotNull}}">
         <DockPanel>
           <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissFileNoticeCommand}" />
@@ -114,9 +125,9 @@
       <TabControl x:Name="Tabs" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab}" Padding="0">
         <TabControl.ItemTemplate>
           <DataTemplate x:DataType="vm:WorkspaceTabViewModel">
-            <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding ToolTip}">
-              <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" />
-              <Button Content="×" Padding="4,0" FontSize="12" Background="Transparent" VerticalAlignment="Center"
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" ToolTip.Tip="{Binding ToolTip}">
+              <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+              <Button Content="×" Classes="quiet" VerticalAlignment="Center"
                       IsVisible="{Binding CanClose}" Command="{Binding CloseCommand}" ToolTip.Tip="Close" />
             </StackPanel>
           </DataTemplate>
@@ -135,13 +146,13 @@
     <TabControl Grid.Column="2" Grid.Row="2" Padding="0">
       <TabItem>
         <TabItem.Header>
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <TextBlock Text="Problems" FontSize="14" VerticalAlignment="Center" />
-            <TextBlock x:Name="ProblemSummary" Text="{Binding Problems.Summary}" Classes="muted small" VerticalAlignment="Center" />
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+            <TextBlock Text="Problems" VerticalAlignment="Center" />
+            <TextBlock x:Name="ProblemSummary" Text="{Binding Problems.Summary}" Classes="label" VerticalAlignment="Center" />
           </StackPanel>
         </TabItem.Header>
         <DockPanel>
-          <CheckBox DockPanel.Dock="Top" Margin="8,2" Content="Show warnings" IsChecked="{Binding Problems.ShowWarnings}" />
+          <CheckBox DockPanel.Dock="Top" Margin="{StaticResource InsetX2}" Content="Show warnings" IsChecked="{Binding Problems.ShowWarnings}" />
           <ListBox x:Name="ProblemList" ItemsSource="{Binding Problems.Items}" SelectedItem="{Binding Problems.SelectedItem}" Grid.IsSharedSizeScope="True">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="vm:ProblemItemViewModel">
@@ -151,13 +162,11 @@
                     <ColumnDefinition Width="Auto" SharedSizeGroup="ProblemLocation" />
                     <ColumnDefinition Width="*" />
                   </Grid.ColumnDefinitions>
-                  <Ellipse Grid.Column="0" Width="8" Height="8" Margin="0,6,8,0" VerticalAlignment="Top"
-                           Fill="{StaticResource ErrorBrush}" IsVisible="{Binding IsError}" />
-                  <Ellipse Grid.Column="0" Width="8" Height="8" Margin="0,6,8,0" VerticalAlignment="Top"
-                           Fill="{StaticResource WarningBrush}" IsVisible="{Binding !IsError}" />
-                  <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                  <Ellipse Grid.Column="0" Classes="dot failed" Margin="{StaticResource InsetRight2}" IsVisible="{Binding IsError}" />
+                  <Ellipse Grid.Column="0" Classes="dot warning" Margin="{StaticResource InsetRight2}" IsVisible="{Binding !IsError}" />
+                  <StackPanel Grid.Column="1" Margin="{StaticResource InsetRight4}">
                     <TextBlock Text="{Binding Location}" Classes="code small" />
-                    <TextBlock Text="{Binding Diagnostic.Code}" Classes="muted small" />
+                    <TextBlock Text="{Binding Diagnostic.Code}" Classes="label" />
                   </StackPanel>
                   <TextBlock Grid.Column="2" Text="{Binding Text}" TextWrapping="Wrap" />
                 </Grid>
@@ -168,14 +177,14 @@
       </TabItem>
       <TabItem>
         <TabItem.Header>
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <TextBlock Text="Run history" FontSize="14" VerticalAlignment="Center" />
-            <TextBlock x:Name="HistorySummary" Text="{Binding History.Summary}" Classes="muted small" VerticalAlignment="Center" />
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+            <TextBlock Text="Run history" VerticalAlignment="Center" />
+            <TextBlock x:Name="HistorySummary" Text="{Binding History.Summary}" Classes="label" VerticalAlignment="Center" />
           </StackPanel>
         </TabItem.Header>
         <DockPanel>
-          <DockPanel DockPanel.Dock="Top" Margin="8,2">
-            <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding History.RefreshCommand}" Padding="8,2" />
+          <DockPanel DockPanel.Dock="Top" Margin="{StaticResource InsetX2Y1}">
+            <Button DockPanel.Dock="Right" Content="Refresh" Classes="quiet" Command="{Binding History.RefreshCommand}" />
             <TextBlock Text="{Binding History.Notice}" TextWrapping="Wrap" VerticalAlignment="Center"
                        IsVisible="{Binding History.Notice, Converter={x:Static ObjectConverters.IsNotNull}}" />
           </DockPanel>
@@ -183,25 +192,25 @@
             <ItemsControl x:Name="HistoryList" ItemsSource="{Binding History.Items}" Grid.IsSharedSizeScope="True">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="runs:RunHistoryItemViewModel">
-                  <Button Background="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="8,2"
+                  <Button Classes="row"
                           ToolTip.Tip="{Binding RunId, StringFormat='Open run {0}'}"
                           Command="{Binding $parent[ItemsControl].((vm:WorkspaceViewModel)DataContext).History.OpenCommand}"
                           CommandParameter="{Binding}">
                     <Grid>
                       <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition Width="{StaticResource GlyphWidth}" />
                         <ColumnDefinition Width="Auto" SharedSizeGroup="HistoryTime" />
                         <ColumnDefinition Width="Auto" SharedSizeGroup="HistoryStatus" />
                         <ColumnDefinition Width="Auto" SharedSizeGroup="HistoryEnv" />
                         <ColumnDefinition Width="*" />
                       </Grid.ColumnDefinitions>
-                      <TextBlock Grid.Column="0" Text="{Binding Glyph}" FontWeight="Bold" />
-                      <TextBlock Grid.Column="1" Text="{Binding StartedText}" Classes="code small" Margin="0,0,16,0" VerticalAlignment="Center" />
-                      <TextBlock Grid.Column="2" Text="{Binding StatusText}" Margin="0,0,16,0" />
-                      <TextBlock Grid.Column="3" Text="{Binding Environment}" Classes="muted" Margin="0,0,16,0" />
-                      <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="12">
+                      <TextBlock Grid.Column="0" Text="{Binding Glyph}" Classes="glyph" />
+                      <TextBlock Grid.Column="1" Text="{Binding StartedText}" Classes="code small" Margin="{StaticResource InsetRight4}" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="2" Text="{Binding StatusText}" Margin="{StaticResource InsetRight4}" />
+                      <TextBlock Grid.Column="3" Text="{Binding Environment}" Classes="muted" Margin="{StaticResource InsetRight4}" />
+                      <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="{StaticResource Space3}">
                         <TextBlock Text="{Binding TotalsText}" Classes="small" VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding Problem}" Classes="small" Foreground="{StaticResource WarningBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Problem}" Classes="small warning" VerticalAlignment="Center" />
                       </StackPanel>
                     </Grid>
                   </Button>
@@ -211,13 +220,13 @@
           </ScrollViewer>
         </DockPanel>
       </TabItem>
-      <TabItem Header="Engine log" FontSize="14">
+      <TabItem Header="Engine log">
         <ListBox ItemsSource="{Binding EngineStatus.Log}">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="services:EngineLogLine">
-              <StackPanel Orientation="Horizontal" Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
                 <TextBlock Text="{Binding Time, StringFormat='{}{0:HH:mm:ss}'}" Classes="muted code small" />
-                <TextBlock Text="{Binding Source}" Classes="muted code small" Width="64" />
+                <TextBlock Text="{Binding Source}" Classes="muted code small" Width="{StaticResource BusyBarWidth}" />
                 <SelectableTextBlock Text="{Binding Text}" Classes="code small" TextWrapping="Wrap" />
               </StackPanel>
             </DataTemplate>
@@ -227,11 +236,10 @@
     </TabControl>
 
     <!-- Status bar -->
-    <Border Grid.Row="3" Grid.ColumnSpan="3" Padding="10,4" BorderThickness="0,1,0,0"
-            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+    <Border Grid.Row="3" Grid.ColumnSpan="3" Classes="statusBar">
       <DockPanel>
-        <TextBlock DockPanel.Dock="Right" Classes="muted small" Text="{Binding LoginsText, StringFormat='Saved logins: {0}'}" />
-        <ProgressBar DockPanel.Dock="Left" IsIndeterminate="True" Width="60" Margin="0,0,8,0" IsVisible="{Binding IsBusy}" />
+        <TextBlock DockPanel.Dock="Right" Classes="label" Text="{Binding LoginsText, StringFormat='Saved logins: {0}'}" />
+        <ProgressBar DockPanel.Dock="Left" IsIndeterminate="True" Width="{StaticResource BusyBarWidth}" Margin="{StaticResource InsetRight2}" IsVisible="{Binding IsBusy}" />
         <TextBlock x:Name="StatusText" Classes="small" Text="{Binding Status}" TextTrimming="CharacterEllipsis" />
       </DockPanel>
     </Border>

@@ -129,11 +129,12 @@ public partial class StepFileView : UserControl
         ToolTip.SetIsOpen(Editor, messages is not null);
     }
 
-    /// <summary>Tints the lines that have problems: red for errors, amber for warnings.</summary>
+    /// <summary>Tints the lines that have problems, in the design tokens' subtle failed and warning tones.</summary>
     internal sealed class ProblemLineRenderer : IBackgroundRenderer
     {
-        private static readonly IBrush ErrorBrush = new SolidColorBrush(Color.FromArgb(0x40, 0xD1, 0x34, 0x38));
-        private static readonly IBrush WarningBrush = new SolidColorBrush(Color.FromArgb(0x40, 0xC7, 0x8A, 0x00));
+        private static IBrush? ErrorBrush => Token("FailedSubtleBrush");
+
+        private static IBrush? WarningBrush => Token("WarningSubtleBrush");
 
         /// <summary>The marked lines.</summary>
         public IReadOnlyDictionary<int, LineMark> Marks { get; set; } = new Dictionary<int, LineMark>();
@@ -157,10 +158,15 @@ public partial class StepFileView : UserControl
                 }
 
                 var top = visualLine.VisualTop - textView.ScrollOffset.Y;
-                drawingContext.FillRectangle(
-                    mark == LineMark.Error ? ErrorBrush : WarningBrush,
-                    new Rect(0, top, textView.Bounds.Width + textView.ScrollOffset.X, visualLine.Height));
+                if ((mark == LineMark.Error ? ErrorBrush : WarningBrush) is { } brush)
+                {
+                    drawingContext.FillRectangle(brush, new Rect(0, top, textView.Bounds.Width + textView.ScrollOffset.X, visualLine.Height));
+                }
             }
         }
+
+        /// <summary>A brush of the design tokens (Themes/Tokens.axaml), by key.</summary>
+        private static IBrush? Token(string key) =>
+            Application.Current?.TryGetResource(key, Application.Current.ActualThemeVariant, out var value) == true ? value as IBrush : null;
     }
 }

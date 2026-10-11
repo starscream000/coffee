@@ -5,45 +5,23 @@
              xmlns:views="using:Desktop.App.Views"
              x:Class="Desktop.App.Views.RunTabView"
              x:DataType="runs:RunTabViewModel">
-  <UserControl.Styles>
-    <Style Selector="TextBlock.glyph">
-      <Setter Property="FontWeight" Value="Bold" />
-      <Setter Property="Width" Value="16" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <Style Selector="TextBlock.glyph.passed">
-      <Setter Property="Foreground" Value="{StaticResource OkBrush}" />
-    </Style>
-    <Style Selector="TextBlock.glyph.failed">
-      <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
-    </Style>
-    <Style Selector="Button.stepRow">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="Padding" Value="6,2" />
-    </Style>
-    <Style Selector="Button.stepRow.selected">
-      <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}" />
-    </Style>
-  </UserControl.Styles>
 
   <DockPanel>
     <!-- Header: state, totals, environment, cancel -->
-    <Border DockPanel.Dock="Top" Classes="panelHeader" Padding="10,6">
+    <Border DockPanel.Dock="Top" Classes="panelHeader">
       <DockPanel>
         <Button x:Name="CancelButton" DockPanel.Dock="Right" Content="Cancel run" Command="{Binding Cancel}"
                 IsVisible="{Binding Run.IsActive}" />
-        <StackPanel Orientation="Horizontal" Spacing="12">
-          <TextBlock x:Name="RunStatus" Text="{Binding Run.StatusText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space3}">
+          <TextBlock x:Name="RunStatus" Text="{Binding Run.StatusText}" Classes="title" VerticalAlignment="Center" />
           <TextBlock Text="{Binding Run.TotalsText}" VerticalAlignment="Center" />
-          <TextBlock Text="{Binding Run.StartedText}" Classes="muted small" VerticalAlignment="Center" />
-          <TextBlock Text="{Binding Run.Environment, StringFormat='Environment: {0}'}" Classes="muted small" VerticalAlignment="Center" />
-          <TextBlock Text="{Binding Run.Browser}" Classes="muted small" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding Run.StartedText}" Classes="label" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding Run.Environment, StringFormat='Environment: {0}'}" Classes="label" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding Run.Browser}" Classes="label" VerticalAlignment="Center" />
         </StackPanel>
       </DockPanel>
     </Border>
-    <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Run.Messages}" Margin="10,4">
+    <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Run.Messages}" Margin="{StaticResource InsetX3Y1}">
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="x:String">
           <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" Classes="small" />
@@ -51,7 +29,12 @@
       </ItemsControl.ItemTemplate>
     </ItemsControl>
 
-    <Grid ColumnDefinitions="280,4,*">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="{StaticResource ColumnList}" />
+        <ColumnDefinition Width="{StaticResource SplitterLength}" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
       <!-- Test instances -->
       <ListBox x:Name="TestList" Grid.Column="0" ItemsSource="{Binding Run.Tests}" SelectedItem="{Binding Run.SelectedTest}">
         <ListBox.ItemTemplate>
@@ -60,12 +43,12 @@
               <TextBlock DockPanel.Dock="Left" Classes="glyph" Text="{Binding Glyph}"
                          Classes.passed="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static runs:TestRunState.Passed}}"
                          Classes.failed="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static runs:TestRunState.Failed}}" />
-              <TextBlock DockPanel.Dock="Right" Text="{Binding DurationText}" Classes="muted small" VerticalAlignment="Center" />
+              <TextBlock DockPanel.Dock="Right" Text="{Binding DurationText}" Classes="label" VerticalAlignment="Center" />
               <StackPanel>
                 <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <TextBlock Text="{Binding StatusText}" Classes="muted small" />
-                  <TextBlock Text="{Binding RowText}" Classes="muted small" />
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+                  <TextBlock Text="{Binding StatusText}" Classes="label" />
+                  <TextBlock Text="{Binding RowText}" Classes="label" />
                 </StackPanel>
               </StackPanel>
             </DockPanel>
@@ -76,10 +59,10 @@
       <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
 
       <!-- Selected test: steps by section, then the selected step's details -->
-      <Grid Grid.Column="2" RowDefinitions="*,4,*" DataContext="{Binding Run.SelectedTest}" x:DataType="runs:TestRunViewModel"
+      <Grid Grid.Column="2" RowDefinitions="*,Auto,*" DataContext="{Binding Run.SelectedTest}" x:DataType="runs:TestRunViewModel"
             IsVisible="{Binding $parent[UserControl].((runs:RunTabViewModel)DataContext).Run.SelectedTest, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}">
         <ScrollViewer Grid.Row="0">
-          <StackPanel Margin="8">
+          <StackPanel Margin="{StaticResource Inset2}">
             <TextBlock Text="{Binding SkipReason, StringFormat='Skipped: {0}'}" IsVisible="{Binding SkipReason, Converter={x:Static ObjectConverters.IsNotNull}}" TextWrapping="Wrap" />
             <ItemsControl ItemsSource="{Binding Messages}">
               <ItemsControl.ItemTemplate>
@@ -91,20 +74,20 @@
             <ItemsControl x:Name="Sections" ItemsSource="{Binding Sections}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="runs:StepSectionViewModel">
-                  <StackPanel Margin="0,4">
-                    <TextBlock Text="{Binding Name}" Classes="heading muted" Margin="0,4" />
+                  <StackPanel Margin="{StaticResource InsetY1}">
+                    <TextBlock Text="{Binding Name}" Classes="section" Margin="{StaticResource InsetY1}" />
                     <ItemsControl ItemsSource="{Binding Steps}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="runs:StepRunViewModel">
-                          <Button Classes="stepRow" Classes.selected="{Binding IsSelected}"
+                          <Button Classes="row" Classes.selected="{Binding IsSelected}" Classes.skipped="{Binding IsSkipped}"
                                   Command="{Binding $parent[ItemsControl;1].((runs:TestRunViewModel)DataContext).SelectStepCommand}"
                                   CommandParameter="{Binding}">
                             <DockPanel Margin="{Binding Indent}">
                               <TextBlock DockPanel.Dock="Left" Classes="glyph" Text="{Binding Glyph}"
                                          Classes.passed="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static runs:StepRunState.Passed}}"
                                          Classes.failed="{Binding IsFailed}" />
-                              <TextBlock DockPanel.Dock="Right" Text="{Binding DurationText}" Classes="muted small" VerticalAlignment="Center" />
-                              <TextBlock DockPanel.Dock="Right" Text="{Binding Page}" Classes="muted small" VerticalAlignment="Center" Margin="8,0" />
+                              <TextBlock DockPanel.Dock="Right" Text="{Binding DurationText}" Classes="label" VerticalAlignment="Center" />
+                              <TextBlock DockPanel.Dock="Right" Text="{Binding Page}" Classes="label" VerticalAlignment="Center" Margin="{StaticResource InsetX2}" />
                               <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             </DockPanel>
                           </Button>
@@ -118,50 +101,50 @@
           </StackPanel>
         </ScrollViewer>
 
-        <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
+        <GridSplitter Grid.Row="1" ResizeDirection="Rows" Height="{StaticResource SplitterSize}" />
 
-        <Grid Grid.Row="2" ColumnDefinitions="*,4,*" DataContext="{Binding SelectedStep}" x:DataType="runs:StepRunViewModel"
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,*" DataContext="{Binding SelectedStep}" x:DataType="runs:StepRunViewModel"
               IsVisible="{Binding $parent[Grid].((runs:TestRunViewModel)DataContext).SelectedStep, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}">
           <ScrollViewer Grid.Column="0">
-            <StackPanel Margin="10" Spacing="6">
-              <TextBlock x:Name="StepTitle" Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
-              <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Margin="{StaticResource Inset3}" Spacing="{StaticResource Space2}">
+              <TextBlock x:Name="StepTitle" Text="{Binding Title}" Classes="title" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
                 <TextBlock Text="{Binding StatusText}" Classes="small" />
                 <TextBlock Text="{Binding Action}" Classes="code small" />
-                <TextBlock Text="{Binding Page, StringFormat='page {0}'}" Classes="muted small" />
-                <TextBlock Text="{Binding DurationText}" Classes="muted small" />
+                <TextBlock Text="{Binding Page, StringFormat='page {0}'}" Classes="label" />
+                <TextBlock Text="{Binding DurationText}" Classes="label" />
               </StackPanel>
-              <WrapPanel>
-                <Button Content="{Binding LocationText}" Margin="0,0,6,4" ToolTip.Tip="Open the file at this step"
+              <WrapPanel ItemSpacing="{StaticResource Space1}" LineSpacing="{StaticResource Space1}">
+                <Button Content="{Binding LocationText}" ToolTip.Tip="Open the file at this step"
                         Command="{Binding $parent[UserControl].((runs:RunTabViewModel)DataContext).GoToStepCommand}" CommandParameter="{Binding}" />
-                <Button x:Name="OpenPageStateButton" Content="Open page state" Margin="0,0,6,4" IsVisible="{Binding HasPageState}"
+                <Button x:Name="OpenPageStateButton" Content="Open page state" IsVisible="{Binding HasPageState}"
                         ToolTip.Tip="Show the page as it was after this step in a test browser"
                         Command="{Binding $parent[UserControl].((runs:RunTabViewModel)DataContext).OpenPageStateCommand}" CommandParameter="{Binding}" />
               </WrapPanel>
               <TextBlock Text="{Binding $parent[UserControl].((runs:RunTabViewModel)DataContext).PageStateMessage}" TextWrapping="Wrap" Classes="small"
                          IsVisible="{Binding $parent[UserControl].((runs:RunTabViewModel)DataContext).PageStateMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
-              <TextBlock Text="{Binding PageStateProblem}" TextWrapping="Wrap" Classes="muted small" IsVisible="{Binding PageStateProblem, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <TextBlock Text="{Binding PageStateProblem}" TextWrapping="Wrap" Classes="label" IsVisible="{Binding PageStateProblem, Converter={x:Static ObjectConverters.IsNotNull}}" />
 
               <!-- Failure -->
-              <Border IsVisible="{Binding IsFailed}" BorderBrush="{StaticResource ErrorBrush}" BorderThickness="2,0,0,0" Padding="8,4">
-                <StackPanel Spacing="4">
-                  <TextBlock Text="{Binding Error.Code, FallbackValue=''}" Classes="code small" Foreground="{StaticResource ErrorBrush}" />
+              <Border IsVisible="{Binding IsFailed}" Classes="card failure">
+                <StackPanel Spacing="{StaticResource Space1}">
+                  <TextBlock Text="{Binding Error.Code, FallbackValue=''}" Classes="code small failed" />
                   <SelectableTextBlock x:Name="ErrorMessage" Text="{Binding Error.Message, FallbackValue=''}" TextWrapping="Wrap" />
                   <SelectableTextBlock Text="{Binding Error.Hint, FallbackValue=''}" TextWrapping="Wrap" Classes="muted"
                                        IsVisible="{Binding Error.Hint, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}" />
                   <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" IsVisible="{Binding HasExpectedOrActual}">
-                    <TextBlock Grid.Row="0" Text="Expected" Classes="muted small" Margin="0,0,8,0" />
+                    <TextBlock Grid.Row="0" Text="Expected" Classes="label" Margin="{StaticResource InsetRight2}" />
                     <SelectableTextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ExpectedText}" Classes="code small" TextWrapping="Wrap" />
-                    <TextBlock Grid.Row="1" Text="Actual" Classes="muted small" Margin="0,0,8,0" />
+                    <TextBlock Grid.Row="1" Text="Actual" Classes="label" Margin="{StaticResource InsetRight2}" />
                     <SelectableTextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ActualText}" Classes="code small" TextWrapping="Wrap" />
                   </Grid>
-                  <TextBlock Text="Locator candidates and how many elements each matched:" Classes="muted small"
+                  <TextBlock Text="Locator candidates and how many elements each matched:" Classes="label"
                              IsVisible="{Binding HasCandidates}" />
                   <ItemsControl ItemsSource="{Binding Candidates}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="runs:CandidateRow">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                          <TextBlock Text="{Binding Matches}" Classes="small" Width="24" />
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}">
+                          <TextBlock Text="{Binding Matches}" Classes="small" Width="{StaticResource CountWidth}" />
                           <SelectableTextBlock Text="{Binding Candidate}" Classes="code small" />
                         </StackPanel>
                       </DataTemplate>
@@ -175,31 +158,31 @@
               <ItemsControl ItemsSource="{Binding Warnings}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="x:String">
-                    <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" Classes="small" />
+                    <TextBlock Text="{Binding}" TextWrapping="Wrap" Classes="small warning" />
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
               <ItemsControl ItemsSource="{Binding Locators}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="runs:LocatorRow">
-                    <StackPanel Spacing="2" Margin="0,2">
+                    <StackPanel Spacing="{StaticResource Space1}" Margin="{StaticResource InsetY1}">
                       <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Classes="small"
                                  Classes.muted="{Binding !IsFallback}" />
-                      <Button Content="{Binding OpenText}" IsVisible="{Binding HasTarget}" Padding="6,1" FontSize="12" HorizontalAlignment="Left"
+                      <Button Content="{Binding OpenText}" IsVisible="{Binding HasTarget}" Classes="quiet" HorizontalAlignment="Left"
                               ToolTip.Tip="Open this target in the targets editor"
                               Command="{Binding $parent[UserControl].((runs:RunTabViewModel)DataContext).OpenTargetCommand}" CommandParameter="{Binding}" />
                     </StackPanel>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
-              <TextBlock Text="Parameters" Classes="muted small" />
+              <TextBlock Text="Parameters" Classes="section" />
               <SelectableTextBlock Text="{Binding ParamsText}" Classes="code small" TextWrapping="Wrap" />
             </StackPanel>
           </ScrollViewer>
 
-          <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+          <GridSplitter Grid.Column="1" ResizeDirection="Columns" Width="{StaticResource SplitterSize}" />
 
-          <Panel Grid.Column="2" Margin="8">
+          <Panel Grid.Column="2" Margin="{StaticResource Inset2}">
             <Image x:Name="Screenshot" Source="{Binding ScreenshotPath, Converter={x:Static views:ImageFileConverter.Instance}}"
                    Stretch="Uniform" IsVisible="{Binding HasScreenshot}" />
             <TextBlock x:Name="NoScreenshot" Text="No screenshot was recorded." Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center"
