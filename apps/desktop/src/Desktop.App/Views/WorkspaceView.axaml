@@ -103,67 +103,118 @@
       <Border x:Name="ProjectRegion" Grid.Column="0" Grid.Row="0" Classes="region">
         <DockPanel>
           <Border DockPanel.Dock="Top" Classes="panelHeader">
+            <TextBlock Classes="heading" Text="Project" VerticalAlignment="Center" />
+          </Border>
+
+          <!-- The file selected in any group: rename or delete it -->
+          <Border x:Name="SelectionBar" DockPanel.Dock="Bottom" Classes="bar" BorderThickness="{StaticResource LineTop}"
+                  IsVisible="{Binding SelectedFile, Converter={x:Static ObjectConverters.IsNotNull}}">
             <DockPanel>
-              <Button x:Name="NewMenuButton" DockPanel.Dock="Right" Classes="quiet" Content="New ▾" ToolTip.Tip="Create a test, a flow or a targets file in the selected folder.">
-                <Button.Flyout>
-                  <Flyout Placement="BottomEdgeAlignedRight">
-                    <StackPanel x:Name="NewMenu" Spacing="{StaticResource Space1}" MinWidth="{StaticResource FieldMinWidth}">
-                      <Button x:Name="NewTestButton" Classes="row" Content="Test" Command="{Binding NewTestCommand}"
-                              ToolTip.Tip="Create a test in the selected folder." />
-                      <Button Classes="row" Content="Flow" Command="{Binding NewFlowCommand}" />
-                      <Button Classes="row" Content="Targets file" Command="{Binding NewTargetsCommand}" />
-                    </StackPanel>
-                  </Flyout>
-                </Button.Flyout>
-              </Button>
-              <TextBlock DockPanel.Dock="Right" Classes="label" Text="{Binding Explorer.Summary}" VerticalAlignment="Center" Margin="{StaticResource InsetRight2}" />
-              <TextBlock Classes="heading" Text="Project" VerticalAlignment="Center" />
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{StaticResource Space1}">
+                <Button x:Name="RenameSelectedButton" Classes="quiet" Content="Rename…" Command="{Binding RenameSelectedFileCommand}" />
+                <Button x:Name="DeleteSelectedButton" Classes="danger" Content="Delete…" Command="{Binding DeleteSelectedFileCommand}" />
+              </StackPanel>
+              <TextBlock Text="{Binding SelectedFileName}" Classes="code small" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                         ToolTip.Tip="{Binding SelectedFile}" />
             </DockPanel>
           </Border>
-          <StackPanel DockPanel.Dock="Top" Margin="{StaticResource Inset2}" Spacing="{StaticResource Space2}">
-            <TextBox x:Name="SearchBox" Text="{Binding Explorer.SearchText}" PlaceholderText="Search tests by name or path" />
-            <ComboBox ItemsSource="{Binding Explorer.Tags}" SelectedItem="{Binding Explorer.SelectedTag}" HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Show only the tests with this tag." />
-          </StackPanel>
-          <TextBlock x:Name="ExplorerEmpty" DockPanel.Dock="Top" Text="{Binding Explorer.EmptyText}" Classes="muted" TextWrapping="Wrap" Margin="{StaticResource InsetX3Y2}"
-                     IsVisible="{Binding Explorer.EmptyText, Converter={x:Static ObjectConverters.IsNotNull}}" />
-          <TreeView x:Name="ExplorerTree" ItemsSource="{Binding Explorer.Roots}" SelectedItem="{Binding Explorer.SelectedNode}">
-            <TreeView.Styles>
-              <Style Selector="TreeViewItem" x:DataType="vm:ExplorerNodeViewModel">
-                <Setter Property="IsExpanded" Value="{Binding IsExpanded}" />
-              </Style>
-            </TreeView.Styles>
-            <TreeView.ItemTemplate>
-              <TreeDataTemplate x:DataType="vm:ExplorerNodeViewModel" ItemsSource="{Binding Children}">
-                <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" ToolTip.Tip="{Binding Path}">
-                  <TextBlock Text="•" Classes="muted" IsVisible="{Binding IsTest}" VerticalAlignment="Center" />
-                  <TextBlock Text="{Binding DisplayName}" Classes="strong" IsVisible="{Binding IsFolder}" VerticalAlignment="Center" />
-                  <TextBlock Text="{Binding DisplayName}" IsVisible="{Binding IsTest}" VerticalAlignment="Center" />
-                  <Border Classes="badge error" IsVisible="{Binding HasErrors}" ToolTip.Tip="Errors">
-                    <TextBlock Classes="small" Text="{Binding ErrorCount}" />
-                  </Border>
-                  <Border Classes="badge warning" IsVisible="{Binding HasWarningsOnly}" ToolTip.Tip="Warnings">
-                    <TextBlock Classes="small" Text="{Binding WarningCount}" />
-                  </Border>
-                  <TextBlock Text="{Binding RowsText}" Classes="label" VerticalAlignment="Center" />
-                  <ItemsControl ItemsSource="{Binding Tags}" IsVisible="{Binding HasTags}" VerticalAlignment="Center">
-                    <ItemsControl.ItemsPanel>
-                      <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" />
-                      </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="x:String">
-                        <Border Classes="badge">
-                          <TextBlock Classes="small" Text="{Binding}" />
-                        </Border>
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </StackPanel>
-              </TreeDataTemplate>
-            </TreeView.ItemTemplate>
-          </TreeView>
+
+          <ScrollViewer>
+            <StackPanel Margin="{StaticResource InsetBottom2}">
+              <!-- Tests -->
+              <DockPanel Margin="{StaticResource InsetX3Y1}">
+                <Button x:Name="NewTestButton" DockPanel.Dock="Right" Classes="quiet" Content="+ New" Command="{Binding NewTestCommand}"
+                        ToolTip.Tip="Create a test in the selected folder." />
+                <TextBlock DockPanel.Dock="Right" Classes="label" Text="{Binding Explorer.Summary}" VerticalAlignment="Center" Margin="{StaticResource InsetRight2}" />
+                <TextBlock Classes="section" Text="Tests" VerticalAlignment="Center" />
+              </DockPanel>
+              <StackPanel Margin="{StaticResource InsetX2}" Spacing="{StaticResource Space2}">
+                <TextBox x:Name="SearchBox" Text="{Binding Explorer.SearchText}" PlaceholderText="Search tests by name or path" />
+                <ComboBox ItemsSource="{Binding Explorer.Tags}" SelectedItem="{Binding Explorer.SelectedTag}" HorizontalAlignment="Stretch"
+                          ToolTip.Tip="Show only the tests with this tag." />
+              </StackPanel>
+              <TextBlock x:Name="ExplorerEmpty" Text="{Binding Explorer.EmptyText}" Classes="muted" TextWrapping="Wrap" Margin="{StaticResource InsetX3Y2}"
+                         IsVisible="{Binding Explorer.EmptyText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <TreeView x:Name="ExplorerTree" Margin="{StaticResource InsetX1}" ItemsSource="{Binding Explorer.Roots}" SelectedItem="{Binding Explorer.SelectedNode}">
+                <TreeView.Styles>
+                  <Style Selector="TreeViewItem" x:DataType="vm:ExplorerNodeViewModel">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded}" />
+                  </Style>
+                </TreeView.Styles>
+                <TreeView.ItemTemplate>
+                  <TreeDataTemplate x:DataType="vm:ExplorerNodeViewModel" ItemsSource="{Binding Children}">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource Space2}" ToolTip.Tip="{Binding Path}">
+                      <TextBlock Text="•" Classes="muted" IsVisible="{Binding IsTest}" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding DisplayName}" Classes="strong" IsVisible="{Binding IsFolder}" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding DisplayName}" IsVisible="{Binding IsTest}" VerticalAlignment="Center" />
+                      <Border Classes="badge error" IsVisible="{Binding HasErrors}" ToolTip.Tip="Errors">
+                        <TextBlock Classes="small" Text="{Binding ErrorCount}" />
+                      </Border>
+                      <Border Classes="badge warning" IsVisible="{Binding HasWarningsOnly}" ToolTip.Tip="Warnings">
+                        <TextBlock Classes="small" Text="{Binding WarningCount}" />
+                      </Border>
+                      <TextBlock Text="{Binding RowsText}" Classes="label" VerticalAlignment="Center" />
+                      <ItemsControl ItemsSource="{Binding Tags}" IsVisible="{Binding HasTags}" VerticalAlignment="Center">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="x:String">
+                            <Border Classes="badge">
+                              <TextBlock Classes="small" Text="{Binding}" />
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </TreeDataTemplate>
+                </TreeView.ItemTemplate>
+              </TreeView>
+
+              <!-- Flows -->
+              <DockPanel Margin="{StaticResource InsetX3Y1}">
+                <Button x:Name="NewFlowButton" DockPanel.Dock="Right" Classes="quiet" Content="+ New" Command="{Binding NewFlowCommand}"
+                        ToolTip.Tip="Create a flow: steps that tests call." />
+                <TextBlock DockPanel.Dock="Right" Classes="label" Text="{Binding ProjectFiles.FlowsSummary}" VerticalAlignment="Center" Margin="{StaticResource InsetRight2}" />
+                <TextBlock Classes="section" Text="Flows" VerticalAlignment="Center" />
+              </DockPanel>
+              <TextBlock Text="No flows yet. A flow holds steps that several tests call." Classes="label" TextWrapping="Wrap" Margin="{StaticResource InsetX3Y1}"
+                         IsVisible="{Binding ProjectFiles.HasNoFlows}" />
+              <ListBox x:Name="FlowList" ItemsSource="{Binding ProjectFiles.Flows}" SelectedItem="{Binding ProjectFiles.SelectedFlow}" Margin="{StaticResource InsetX1}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ProjectFileViewModel">
+                    <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Path}" />
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <!-- Shared targets files -->
+              <DockPanel Margin="{StaticResource InsetX3Y1}">
+                <Button x:Name="NewTargetsButton" DockPanel.Dock="Right" Classes="quiet" Content="+ New" Command="{Binding NewTargetsCommand}"
+                        ToolTip.Tip="Create a targets file: targets every test can use." />
+                <TextBlock DockPanel.Dock="Right" Classes="label" Text="{Binding ProjectFiles.TargetsSummary}" VerticalAlignment="Center" Margin="{StaticResource InsetRight2}" />
+                <TextBlock Classes="section" Text="Targets" VerticalAlignment="Center" />
+              </DockPanel>
+              <TextBlock Text="No shared targets yet. Targets every test uses can live in a targets file." Classes="label" TextWrapping="Wrap" Margin="{StaticResource InsetX3Y1}"
+                         IsVisible="{Binding ProjectFiles.HasNoTargetsFiles}" />
+              <ListBox x:Name="TargetsFileList" ItemsSource="{Binding ProjectFiles.TargetsFiles}" SelectedItem="{Binding ProjectFiles.SelectedTargetsFile}" Margin="{StaticResource InsetX1}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ProjectFileViewModel">
+                    <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Path}" />
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <!-- Config -->
+              <TextBlock Classes="section" Text="Config" Margin="{StaticResource InsetX3Y1}" />
+              <Button x:Name="ConfigButton" Classes="row" Command="{Binding ProjectFiles.OpenConfigCommand}" Margin="{StaticResource InsetX1}"
+                      ToolTip.Tip="Environments, secrets, saved logins and defaults. Edited as text.">
+                <TextBlock Text="{Binding ProjectFiles.Config.Name}" />
+              </Button>
+            </StackPanel>
+          </ScrollViewer>
         </DockPanel>
       </Border>
 

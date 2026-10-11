@@ -1,7 +1,7 @@
 // Code-behind of the workspace view: view plumbing only. It sizes the
 // project, details and bottom tracks from the remembered layout, collapses the
-// details and bottom panels, reports the sizes a person drags the splitters
-// to, and closes the New menu once one of its buttons is used.
+// details and bottom panels, and reports the sizes a person drags the
+// splitters to.
 
 using System.ComponentModel;
 using Avalonia.Controls;
@@ -31,7 +31,6 @@ public partial class WorkspaceView : UserControl
             splitter.DragCompleted += (_, _) => ReportSizes();
         }
 
-        NewMenu.AddHandler(Button.ClickEvent, (_, _) => NewMenuButton.Flyout?.Hide());
     }
 
     /// <inheritdoc />

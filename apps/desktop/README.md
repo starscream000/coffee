@@ -15,8 +15,9 @@ What it does today:
 
 - **Creates a project** (name, folder, the address of the application under
   test, the first environment) with the engine's `createProject`, or **opens
-  one**, and shows its tests (a folder tree with search and
-  tags), every problem the engine finds (checked again when files change), the
+  one**, and shows what it holds in groups: its tests (a folder tree with
+  search and tags), flows, shared targets files and config file, each with
+  new, rename and delete; every problem the engine finds (checked again when files change), the
   action catalogue, and the engine's log.
 - **Edits tests without YAML**: each test and flow has three views of the
   same file, Steps, Targets and Text. The steps view shows step cards grouped
@@ -108,8 +109,8 @@ run from the repository's root unless said otherwise.
 7. **Open the demo project**: Open project…, then `examples/demo-app`. The
    tests appear on the left; the problems panel says "No problems". (Runs
    write their results into `examples/demo-app/.cfe/`, which Git ignores.)
-8. **Create a test**: select the `tests` folder, then New ▾ → Test in the
-   project panel, name it `my-first`, and Create. It opens on its Steps view
+8. **Create a test**: select the `tests` folder, then + New beside Tests in
+   the project panel, name it `my-first`, and Create. It opens on its Steps view
    with one step, `goto: /`:
    - select `goto` and, in its form in the Details panel on the right, set
      **url** to `/todos`;

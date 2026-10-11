@@ -10,6 +10,7 @@ using Desktop.App.ViewModels.Recording;
 using Desktop.App.ViewModels.Runs;
 using Desktop.App.ViewModels.Steps;
 using Desktop.Engine;
+using Desktop.Protocol;
 using Desktop.Protocol.Messages;
 
 namespace Desktop.App.ViewModels;
@@ -74,6 +75,20 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         Tabs.Add(Actions);
         SelectedTab = Actions;
         Explorer.FileActivated += (_, file) => OpenFile(file);
+        Explorer.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(TestExplorerViewModel.SelectedNode) && Explorer.SelectedNode is { } node)
+            {
+                ProjectFiles.ClearSelection();
+                SelectedFile = node.IsTest ? node.Path : null;
+            }
+        };
+        ProjectFiles.FileActivated += (_, file) =>
+        {
+            Explorer.SelectedNode = null;
+            SelectedFile = file;
+            OpenFile(file);
+        };
         Problems.ProblemActivated += (_, d) => OpenFile(d.File, d.Line);
         Explorer.Tags.CollectionChanged += (_, _) => RefreshTagRuns();
         Problems.Changed += (_, _) => ProblemsChanged();
@@ -132,6 +147,21 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
 
     /// <summary>The test explorer.</summary>
     public TestExplorerViewModel Explorer { get; } = new();
+
+    /// <summary>The project panel's flows, shared targets files and config file.</summary>
+    public ProjectFilesViewModel ProjectFiles { get; } = new();
+
+    /// <summary>The file selected in the project panel, in any group; null for none or a folder.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedFileName), nameof(CanChangeSelectedFile))]
+    [NotifyCanExecuteChangedFor(nameof(RenameSelectedFileCommand), nameof(DeleteSelectedFileCommand))]
+    private string? _selectedFile;
+
+    /// <summary>The selected file's name, for the project panel's selection bar.</summary>
+    public string SelectedFileName => SelectedFile is { } f ? f[(f.LastIndexOf('/') + 1)..] : string.Empty;
+
+    /// <summary>True when the selected file can be renamed or deleted: any file but the config file.</summary>
+    public bool CanChangeSelectedFile => SelectedFile is { } f && f != Product.ConfigFile;
 
     /// <summary>The problems panel.</summary>
     public ProblemsViewModel Problems { get; } = new();
@@ -198,6 +228,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
         await LoadTestsAsync(cancellationToken);
+        LoadProjectFiles();
         Actions.Load(await _engine.ListActionsAsync(cancellationToken));
         await ValidateCoreAsync(cancellationToken);
         // The list of earlier runs fills in when read; loading does not wait for it.
@@ -840,6 +871,8 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
                 tab.OnDiskChanged();
             }
 
+            LoadProjectFiles();
+
             if (changed.Any(f => f.EndsWith(".test.yaml", StringComparison.OrdinalIgnoreCase)))
             {
                 await LoadTestsAsync();
@@ -882,6 +915,37 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     {
         Status = $"{what}: {ex.Message}";
         EngineStatus.Report($"{what}: {ex}");
+    }
+
+    private void LoadProjectFiles()
+    {
+        ProjectFiles.Load(_files.FindFiles(Root, NewFiles.Ending(NewFileKind.Flow)), _files.FindFiles(Root, TargetNames.SharedFileEnding));
+        if (SelectedFile is { } selected && selected != Product.ConfigFile && !_files.Exists(Root, selected))
+        {
+            SelectedFile = null;
+        }
+    }
+
+    /// <summary>Renames the file selected in the project panel, opening it first; the config file keeps its name.</summary>
+    /// <returns>A task that completes when the file is renamed or was not.</returns>
+    [RelayCommand(CanExecute = nameof(CanChangeSelectedFile))]
+    private async Task RenameSelectedFileAsync()
+    {
+        if (SelectedFile is { } file)
+        {
+            await RenameFileAsync(OpenTab(file));
+        }
+    }
+
+    /// <summary>Deletes the file selected in the project panel, asking first; the config file stays.</summary>
+    /// <returns>A task that completes when the file is deleted or was not.</returns>
+    [RelayCommand(CanExecute = nameof(CanChangeSelectedFile))]
+    private async Task DeleteSelectedFileAsync()
+    {
+        if (SelectedFile is { } file)
+        {
+            await DeleteFileAsync(OpenTab(file));
+        }
     }
 
     private async Task LoadTestsAsync(CancellationToken cancellationToken = default)
