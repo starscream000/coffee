@@ -168,6 +168,10 @@ public sealed class EngineService : IEngineService, IAsyncDisposable
         _session.Client.StopRecordingAsync(recordingId, cancellationToken);
 
     /// <inheritdoc />
+    public Task<StartRunResult> VerifyRecordingAsync(string recordingId, CancellationToken cancellationToken = default) =>
+        _session.Client.VerifyRecordingAsync(recordingId, cancellationToken);
+
+    /// <inheritdoc />
     public Task CancelRunAsync(string runId, CancellationToken cancellationToken = default) =>
         _session.Client.CancelRunAsync(runId, cancellationToken);
 

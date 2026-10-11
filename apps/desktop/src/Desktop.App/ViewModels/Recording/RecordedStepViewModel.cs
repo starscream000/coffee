@@ -3,6 +3,7 @@
 // review. A step that changes while recording (typing) is replaced in place.
 
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Desktop.Protocol.Messages;
 
@@ -46,6 +47,14 @@ public sealed partial class RecordedStepViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasReview))]
     private string? _review;
 
+    /// <summary>The placeholder variable a typed password became, such as <c>loginPassword</c>; null otherwise.</summary>
+    [ObservableProperty]
+    private string? _passwordVariable;
+
+    /// <summary>The target a step acts on, when it has one.</summary>
+    [ObservableProperty]
+    private string? _target;
+
     /// <summary>True when the step is marked for review.</summary>
     public bool HasReview => Review is not null;
 
@@ -59,6 +68,17 @@ public sealed partial class RecordedStepViewModel : ObservableObject
         Detail = Shorten(DetailOf(step.Params));
         PageText = step.Opens is { } opens ? $"opens {opens}" : step.Page is { } page && page != "main" ? $"on page {page}" : string.Empty;
         Review = review;
+        Target = step.Params.ValueKind == JsonValueKind.Object && step.Params.TryGetProperty("target", out var target) && target.ValueKind == JsonValueKind.String
+            ? target.GetString()
+            : null;
+        PasswordVariable = review is not null
+            && step.Action == "fill"
+            && step.Params.ValueKind == JsonValueKind.Object
+            && step.Params.TryGetProperty("value", out var value)
+            && value.ValueKind == JsonValueKind.String
+            && Placeholder().Match(value.GetString() ?? string.Empty) is { Success: true } match
+                ? match.Groups[1].Value
+                : null;
     }
 
     private static string DetailOf(JsonElement parameters) => parameters.ValueKind switch
@@ -75,6 +95,9 @@ public sealed partial class RecordedStepViewModel : ObservableObject
     };
 
     private static string Shorten(string text) => text.Length <= MaxDetail ? text : text[..(MaxDetail - 1)] + "…";
+
+    [GeneratedRegex(@"^\$\{vars\.([A-Za-z0-9_]+)\}$")]
+    private static partial Regex Placeholder();
 }
 
 /// <summary>Something the recorder saw but did not record, such as a drag.</summary>

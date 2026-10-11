@@ -259,8 +259,16 @@ types are written by hand and how they are kept honest:
   applied once the tab exists. The recorded test is listed in the project
   panel as soon as its first step is written.
 - **Stop** sends `stopRecording`; closing the browser ends the recording too.
-  On `recordingStopped` the tab says that the file holds what was recorded,
-  and offers Open test.
+  On `recordingStopped` the app sends `verifyRecording` and follows the check
+  as a run (`RunControlViewModel.FollowAsync`): it is kept in the run history
+  and can be opened from the tab. `recordingVerified` gives the verdict:
+  passed, "This test runs" and Open test; failed, the failed step's title and
+  the engine's message, and Open test at that step (its card in the steps
+  view).
+- A `fill` marked for review whose value is a placeholder variable
+  (`${vars.loginPassword}`) is a typed password that matched no declared
+  secret: the tab explains, in plain words, that the test holds an empty
+  variable in its place and how to declare the secret and use it.
 - **Rules**: one recording at a time (Record shows the recording going on and
   says so); no recording during a run, and runs wait while recording (the
   reason is the bar above the panels); a recording's tab cannot be closed

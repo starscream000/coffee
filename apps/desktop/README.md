@@ -34,7 +34,9 @@ What it does today:
 - **Records tests**: Record asks for the test's name, the start address, the
   environment and a saved login; the engine opens its own browser, and each
   click, entry and choice appears as a step card in the Record tab, with the
-  steps marked for review and what was not recorded beside them.
+  steps marked for review and what was not recorded beside them. When the
+  recording ends, the app runs the test once by itself and says whether it
+  runs, or which step failed and why, with the test opened at that step.
 
 Saving writes the whole file anew (a temporary file next to it, then moved
 over the old one), so a crash never leaves half a file. The new file does not
