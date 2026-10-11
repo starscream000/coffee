@@ -27,6 +27,8 @@ export interface RecordArguments {
   readonly login?: string | undefined;
 }
 
+const FLAGS = ['--project', '--url', '--file', '--env', '--login'];
+
 const USAGE =
   'Usage: pnpm record --project <dir> --url <start URL> --file <tests/name.test.yaml> [--env <name>] [--login <name>]';
 
@@ -35,28 +37,35 @@ const USAGE =
  *
  * @param argv - The arguments after the script's name.
  * @returns The options.
- * @throws Error with the usage when a required option is missing or unknown.
+ * @throws Error that names the unknown argument, the option without a value or
+ *   the missing options, followed by the usage.
  */
 export function parseArguments(argv: readonly string[]): RecordArguments {
   const values = new Map<string, string>();
   for (let index = 0; index < argv.length; index++) {
     const flag = argv[index];
-    if (flag === '--') continue;
-    const value = argv[index + 1];
-    if (
-      flag === undefined ||
-      !['--project', '--url', '--file', '--env', '--login'].includes(flag) ||
-      value === undefined
-    ) {
-      throw new Error(USAGE);
+    if (flag === undefined || flag === '--') continue;
+    if (!FLAGS.includes(flag)) {
+      throw new Error(
+        `Unknown argument "${flag}". Each option is a flag followed by one value; type passwords into the browser, not here.\n${USAGE}`,
+      );
     }
+    const value = argv[index + 1];
+    if (value === undefined) throw new Error(`The option ${flag} needs a value.\n${USAGE}`);
     values.set(flag.slice(2), value);
     index += 1;
   }
   const project = values.get('project');
   const url = values.get('url');
   const file = values.get('file');
-  if (project === undefined || url === undefined || file === undefined) throw new Error(USAGE);
+  const missing = [
+    ...(project === undefined ? ['--project'] : []),
+    ...(url === undefined ? ['--url'] : []),
+    ...(file === undefined ? ['--file'] : []),
+  ];
+  if (project === undefined || url === undefined || file === undefined) {
+    throw new Error(`Missing ${missing.join(', ')}.\n${USAGE}`);
+  }
   return { project, url, file, env: values.get('env'), login: values.get('login') };
 }
 

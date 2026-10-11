@@ -369,7 +369,7 @@ describe('recording on the demo app', () => {
     expect(result.status).toBe('passed');
   });
 
-  it('an element with nothing but CSS: marked for review; the click that removes it still works', async () => {
+  it('a repeated Delete button in a table row: within the row, not by position', async () => {
     const recorded = await record('/products');
     const page = pageOf(recorded, 0);
     await clickAt(page, page.getByRole('row', { name: 'Office chair' }).getByRole('button'));
@@ -380,14 +380,69 @@ describe('recording on the demo app', () => {
         'version: 1',
         'name: R8',
         'targets:',
-        '  products.delete:',
-        '    - css: body > table > tbody > tr:nth-of-type(2) > td:nth-of-type(3) > button',
+        '  products.officeChairRow:',
+        '    - role: row',
+        '      name: Office chair',
+        '      exact: false',
+        '    - role: row',
+        '      name: Office chair €120 Delete',
+        '  products.officeChairDelete:',
+        '    within: products.officeChairRow',
+        '    candidates:',
+        '      - role: button',
+        '        name: Delete',
+        '      - text: Delete',
         'steps:',
         '  - goto: /products',
-        '  # review: only CSS identifies this element',
-        '  - click: products.delete',
+        '  - click: products.officeChairDelete',
       ),
     );
+    expect(result.status).toBe('passed');
+  });
+
+  it('the second Delete button of a list: within its item; nothing but CSS is marked; a background click is a notice', async () => {
+    const recorded = await record('/details');
+    const page = pageOf(recorded, 0);
+    await clickAt(
+      page,
+      page.getByRole('listitem').filter({ hasText: 'Office' }).getByRole('button'),
+    );
+    await expect.poll(() => recorded.session.recorded.length).toBe(2);
+    await clickAt(page, page.locator('.swatch').nth(1));
+    await page.getByText('Blue chosen').waitFor();
+    await page.mouse.click(5, 700);
+    await expect.poll(() => recorded.notices.length).toBe(1);
+    const result = await stopAndVerify(recorded);
+    expect(fileText(recorded)).toBe(
+      lines(
+        'version: 1',
+        'name: R9',
+        'targets:',
+        '  details.officeItem:',
+        '    - text: Office',
+        '      exact: false',
+        '    - text: Office Delete',
+        '  details.officeDelete:',
+        '    within: details.officeItem',
+        '    candidates:',
+        '      - role: button',
+        '        name: Delete',
+        '      - text: Delete',
+        '  details.div:',
+        '    - css: body > div > div:nth-of-type(2)',
+        'steps:',
+        '  - goto: /details',
+        '  - click: details.officeDelete',
+        '  # review: only CSS identifies this element',
+        '  - click: details.div',
+      ),
+    );
+    expect(recorded.notices).toEqual([
+      expect.objectContaining({
+        kind: 'background',
+        message: 'A click on the page background (on no element) is not recorded.',
+      }),
+    ]);
     expect(result.status).toBe('passed');
   });
 
