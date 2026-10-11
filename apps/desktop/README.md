@@ -55,6 +55,23 @@ engine protocol described in [docs/protocol.md](../../docs/protocol.md). It
 never references engine code. This folder is a .NET solution and is not part of
 the pnpm workspace.
 
+## Screens
+
+The main window at 1280 × 800. These are rendered on Avalonia's headless
+platform by `DocScreensTests`, with a fake engine and demo-like data, not
+captured from a running app; render them again with
+`DESKTOP_DOC_SCREENS=<folder> dotnet test tests/Desktop.App.Tests --filter DocScreensTests`.
+
+| Start page                                 | New project                                      |
+| ------------------------------------------ | ------------------------------------------------ |
+| ![Start page](docs/screens/start-page.png) | ![New project](docs/screens/new-project.png)     |
+| **A test in the steps view**               | **The targets view**                             |
+| ![Steps view](docs/screens/steps-view.png) | ![Targets view](docs/screens/targets-view.png)   |
+| **A recording in progress**                | **A verified recording**                         |
+| ![Recording](docs/screens/recording.png)   | ![Verified](docs/screens/recording-verified.png) |
+| **A failed run with its error**            | **The run history**                              |
+| ![Failed run](docs/screens/run-failed.png) | ![Run history](docs/screens/run-history.png)     |
+
 ## Walk-through: from a fresh clone to a passing run
 
 This builds the engine and the app, starts the demo web app, creates a test
