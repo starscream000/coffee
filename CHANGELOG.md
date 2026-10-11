@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The root documents (`CLAUDE.md`, `README.md`, `CONTRIBUTING.md`) say how the
+  work is organised now: one implementer, two tracks that stay separate
+  (engine and desktop), each with its own instructions, reports and branches.
 - The candidate order the recorder writes puts `testId` before `text`, as
   decision R5 says; `docs/step-format.md` had them the other way round.
 - The demo project has a committed, demo-only `.env` with `DEMO_PASSWORD`, so

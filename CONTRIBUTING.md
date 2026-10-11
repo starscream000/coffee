@@ -3,6 +3,20 @@
 The binding rules for this repository are in [CLAUDE.md](CLAUDE.md). This page
 summarises the day-to-day workflow.
 
+## Two tracks, one implementer
+
+The work has two tracks that stay separate, although one implementer carries
+both (owner decision of 2026-10-10):
+
+- the **engine track** is everything except `apps/desktop/`, directed through
+  [handoff/](handoff/README.md);
+- the **desktop track** is `apps/desktop/` only, directed through
+  [apps/desktop/handoff/](apps/desktop/handoff/).
+
+An instruction of one track changes nothing in the other's files and has its
+own report and branches. [handoff/STATUS.md](handoff/STATUS.md) says which
+open instruction comes first.
+
 ## Setup
 
 1. Install the Node.js version in [`.nvmrc`](.nvmrc).
@@ -64,7 +78,8 @@ project. How recording works: [docs/recording.md](docs/recording.md).
 - `main` is always stable. Never commit to it directly; never rewrite its history.
   (The reviewer's handoff files are the one exception; see
   [handoff/README.md](handoff/README.md).)
-- One branch per unit of work: `feat/…`, `fix/…`, `docs/…`, `chore/…`, `test/…`.
+- One branch per unit of work: `feat/…`, `fix/…`, `docs/…`, `chore/…`, `test/…`;
+  for the desktop track, `desktop/<type>/<name>` (`desktop/feat/record`).
 - [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`,
   `docs:`, `refactor:`, `test:`, `chore:`. Add a body that explains _why_ when
   it is not obvious.
