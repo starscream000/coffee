@@ -1,4 +1,5 @@
 # Coffee
+![Uploading image.png…]()
 
 > Placeholder name, defined once in
 > [`packages/protocol/src/product.ts`](packages/protocol/src/product.ts). Status: **pre-release (Milestone 0)**. Nothing runs tests yet.
